@@ -60,10 +60,12 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .row-paid{opacity:0.5;text-decoration:line-through}
 .cal-container{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:11px}
 .cal-day-h{font-weight:bold;color:var(--color-text-tertiary);padding-bottom:4px}
-.cal-day{background:var(--color-background-secondary);padding:6px 2px;border-radius:4px;position:relative;min-height:34px;display:flex;flex-direction:column;justify-content:space-between}
-.cal-day.today{background:#EEEDFE;border:1px solid #534AB7}
-.cal-dot{width:4px;height:4px;background:#E24B4A;border-radius:50%;margin:2px auto 0}
-.cal-dot.paid{background:#1D9E75}
+.cal-day{background:var(--color-background-secondary);padding:6px 2px;border-radius:4px;position:relative;min-height:38px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:background 0.15s;}
+.cal-day:hover{background:var(--color-border-tertiary)}
+.cal-day.active-day{background:#EEEDFE;border:1px solid #534AB7}
+.cal-dot{width:5px;height:5px;border-radius:50%;margin:2px auto 0}
+.cal-dot.pending{background:#E24B4A}
+.cal-dot.all-paid{background:#1D9E75}
 .semana-badge{background:var(--color-background-tertiary);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;color:var(--color-text-secondary)}
 .selector-mes-principal {background:#534AB7; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;}
 </style>
@@ -129,6 +131,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     <div class="card">
       <div class="cal-container" id="grid-calendario"></div>
     </div>
+
+    <div id="sec-vista-diaria" class="sec" style="display:none;">Detalle del Día Seleccionado</div>
+    <div id="card-vista-diaria" class="card" style="display:none; border-left: 4px solid #534AB7;"></div>
 
     <div class="sec">Fuentes de Ingreso Registradas</div>
     <div class="card" id="lista-ingresos-resumen"></div>
@@ -260,6 +265,7 @@ let mesesLineaTiempo = [
 let mesActivoGlobal = "Mayo 2026";
 let filtroDeudaActivo = "todas";
 let semanaSeleccionadaIndex = 0;
+let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista diaria
 
 const datosDefault = {
   ingresosList: [
@@ -342,6 +348,7 @@ function obtenerSemanasDelMesActivo() {
 function cambiarMesDeVisualizacion(nuevoMes) {
   mesActivoGlobal = nuevoMes;
   semanaSeleccionadaIndex = 0; 
+  diaSeleccionadoActivo = null; // Resetea el día seleccionado si cambia de mes
   initApp();
 }
 
@@ -390,16 +397,16 @@ function toggleCuotasInput(val) {
 
 function toggleCheckPago(id) {
   let comp = appData.compromisos.find(c => c.id === id);
-  if(comp) { comp.pagado = !comp.pagado; initApp(); }
+  if(comp) { 
+    comp.pagado = !comp.pagado; 
+    initApp(); 
+    if(diaSeleccionadoActivo !== null) {
+      renderVistaDiaria(compromisosMesGlobalCache); // Refresca la vista diaria si está abierta
+    }
+  }
 }
 
-function cambiarFiltroDeuda(tipo) {
-  filtroDeudaActivo = tipo;
-  ['todas','fijas','variables','creditos','pendientes'].forEach(f => {
-    document.getElementById('f-' + f).classList.toggle('on', f === tipo);
-  });
-  renderDeudasModulo();
-}
+let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
   localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
@@ -409,6 +416,8 @@ function initApp() {
   document.getElementById('tit-semanas-dinamico').innerText = `Línea de Semanas - ${mesActivoGlobal}`;
 
   let compromisosMesActual = appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
+  compromisosMesGlobalCache = compromisosMesActual;
+
   let totalIngresos = appData.ingresosList.reduce((acc, i) => acc + i.valor, 0);
   let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
   let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
@@ -439,6 +448,13 @@ function initApp() {
   renderMenuSemanas();
   renderSemanaActiva(compromisosMesActual);
   renderConfigIngresos();
+  
+  // Mantener la vista diaria actualizada si hay un día seleccionado
+  if(diaSeleccionadoActivo !== null) {
+    renderVistaDiaria(compromisosMesActual);
+  } else {
+    ocultarVistaDiariaDOM();
+  }
 }
 
 function renderIngresosResumen() {
@@ -470,7 +486,6 @@ function eliminarIngreso(id) {
   if(confirm("¿Remover esta fuente?")) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); initApp(); }
 }
 
-// NUEVA FUNCIÓN: RENDERIZA EL DROPDOWN DE QUINCENAS EN CADA INGRESO
 function renderConfigIngresos() {
   let container = document.getElementById('lista-config-ingresos');
   container.innerHTML = '';
@@ -509,7 +524,10 @@ function modificarIngresoPropiedad(id, campo, nuevoValor) {
 }
 
 function eliminarCompromiso(id) {
-  if(confirm("¿Eliminar compromiso?")) { appData.compromisos = appData.compromisos.filter(c => c.id !== id); initApp(); }
+  if(confirm("¿Eliminar compromiso?")) { 
+    appData.compromisos = appData.compromisos.filter(c => c.id !== id); 
+    initApp(); 
+  }
 }
 
 function modificarCompromisoPropiedad(id, campo, nuevoValor) {
@@ -575,7 +593,6 @@ function renderQuincenas(compromisosMes) {
   let q1Comps = compromisosMes.filter(c => parseInt(c.dia) >= 1 && parseInt(c.dia) <= 14);
   let q2Comps = compromisosMes.filter(c => parseInt(c.dia) >= 15);
 
-  // CÁLCULO TOTALMENTE DINÁMICO SEGÚN LA CONFIGURACIÓN EDICIÓN DE CADA INGRESO
   let ingQ1 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q1' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
   let ingQ2 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q2' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
 
@@ -614,6 +631,7 @@ function buildQuincenaHtml(container, list, titulo, fondoDisponible = null) {
   container.innerHTML = html;
 }
 
+// CORRECCIÓN Y ACTUALIZACIÓN: LÓGICA DEL CALENDARIO E INTERACCIÓN DE CLICK
 function renderCalendario(compromisosMes) {
   let grid = document.getElementById('grid-calendario');
   grid.innerHTML = '';
@@ -631,24 +649,105 @@ function renderCalendario(compromisosMes) {
 
   let mapaDias = {};
   compromisosMes.forEach(c => {
-    let d = parseInt(c.dia); if (d === -1) d = 1;
+    let d = parseInt(c.dia); 
+    if (d === -1) d = 1; // Muestra los cargos fijos "pre-mes" en el día 1 para visualización
     if (!mapaDias[d]) mapaDias[d] = [];
     mapaDias[d].push(c);
   });
 
   for(let dia=1; dia<=totalDias; dia++) {
-    let item = document.createElement('div'); item.className = 'cal-day';
-    let numDia = document.createElement('span'); numDia.innerText = dia; item.appendChild(numDia);
-    if(mapaDias[dia]) {
-      let dot = document.createElement('div'); dot.className = `cal-dot ${mapaDias[dia].every(c => c.pagado) ? 'paid' : ''}`;
+    let item = document.createElement('div'); 
+    item.className = 'cal-day';
+    if(diaSeleccionadoActivo === dia) item.classList.add('active-day');
+
+    let numDia = document.createElement('span'); 
+    numDia.innerText = dia; 
+    item.appendChild(numDia);
+
+    // Si el día tiene compromisos financieros asignados
+    if(mapaDias[dia] && mapaDias[dia].length > 0) {
+      let todosPagados = mapaDias[dia].every(c => c.pagado);
+      let dot = document.createElement('div'); 
+      // Lógica solicitada: Rojo si hay deuda, verde si todo el día pasó a pagado
+      dot.className = `cal-dot ${todosPagados ? 'all-paid' : 'pending'}`;
       item.appendChild(dot);
     }
+
+    // Evento Click para desplegar o cerrar la vista diaria
+    item.onclick = function() {
+      if(diaSeleccionadoActivo === dia) {
+        diaSeleccionadoActivo = null; // Si hace click en el mismo día activo, se cierra
+      } else {
+        diaSeleccionadoActivo = dia;
+      }
+      initApp();
+    };
+
     grid.appendChild(item);
   }
 }
 
+// NUEVO: SISTEMA DE DESPLIEGUE DE LA VISTA DIARIA
+function renderVistaDiaria(compromisosMes) {
+  let secTitulo = document.getElementById('sec-vista-diaria');
+  let cardContenedor = document.getElementById('card-vista-diaria');
+
+  // Filtrar compromisos correspondientes al día seleccionado
+  let deEsteDia = compromisosMes.filter(c => {
+    let d = parseInt(c.dia);
+    if(d === -1 && diaSeleccionadoActivo === 1) return true; // Incluye fijos pre-mes en el día 1
+    return d === diaSeleccionadoActivo;
+  });
+
+  secTitulo.innerText = `Detalle del Día ${diaSeleccionadoActivo} de ${mesActivoGlobal}`;
+  secTitulo.style.display = 'flex';
+  cardContenedor.style.display = 'block';
+
+  if(deEsteDia.length === 0) {
+    cardContenedor.innerHTML = `
+      <div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding: 10px 0;">
+        ¡Día libre! No tienes ninguna obligación de pago programada para esta fecha. 🎉
+      </div>
+    `;
+    return;
+  }
+
+  let totalDiaSum = deEsteDia.reduce((acc, c) => acc + c.valor, 0);
+  let totalPagadoDia = deEsteDia.filter(c => c.pagado).reduce((acc, c) => acc + c.valor, 0);
+
+  let html = `
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--color-text-secondary); margin-bottom:10px; border-bottom:1px dashed var(--color-border-secondary); padding-bottom:6px;">
+      <span>Compromisos: <strong>${deEsteDia.length}</strong></span>
+      <span>Total: <strong class="neg">${formatCOP(totalDiaSum)}</strong></span>
+    </div>
+  `;
+
+  deEsteDia.forEach(c => {
+    html += `
+      <div class="row ${c.pagado ? 'row-paid' : ''}">
+        <div class="rn">
+          <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
+          <div>
+            <div style="font-size:13px; font-weight:500;">${c.nombre}</div>
+            <div class="rm" style="text-transform: capitalize;">${c.tipo}</div>
+          </div>
+        </div>
+        <div class="ra ${c.pagado ? 'pos' : 'neg'}" style="font-size:13px;">${formatCOP(c.valor)}</div>
+      </div>
+    `;
+  });
+
+  cardContenedor.innerHTML = html;
+}
+
+function ocultarVistaDiariaDOM() {
+  document.getElementById('sec-vista-diaria').style.display = 'none';
+  document.getElementById('card-vista-diaria').style.display = 'none';
+}
+
 function renderMenuSemanas() {
   let contenedorBotones = document.getElementById('nav-semanas-botones');
+  if(!contenedorBotones) return;
   contenedorBotones.innerHTML = '';
   obtenerSemanasDelMesActivo().forEach((sem, idx) => {
     let btn = document.createElement('button');
@@ -661,6 +760,7 @@ function renderMenuSemanas() {
 
 function renderSemanaActiva(compromisosMes) {
   let container = document.getElementById('lista-semana-activa');
+  if(!container) return;
   let semanas = obtenerSemanasDelMesActivo();
   let configSemana = semanas[semanaSeleccionadaIndex];
   if(!configSemana) return;
