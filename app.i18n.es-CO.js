@@ -92,7 +92,7 @@
       'config.installHint': 'Si no ves el botón, usa "Agregar a pantalla de inicio" en el navegador.',
       'config.backupTitle': 'Respaldo de Datos',
       'config.backupDescription': 'Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.',
-      'config.lastSavePending': 'Ultimo guardado: pendiente...',
+      'config.lastSavePending': 'Último guardado: pendiente...',
       'config.exportBackup': 'Exportar respaldo',
       'config.importBackup': 'Importar respaldo',
       'config.restoreBackup': 'Recuperar último auto-respaldo',

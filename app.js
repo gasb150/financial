@@ -824,7 +824,14 @@ function limpiarFiltroFechaDeudas(soloEstado = false) {
 
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
-function initApp() {
+function initApp(options = {}) {
+  const opts = {
+    skipPersist: false,
+    skipDataNormalization: false,
+    skipLocaleInit: false,
+    ...options
+  };
+
   const i18nT = (key, vars = {}, fallback = key) => {
     if(window.FinancialI18n && typeof window.FinancialI18n.t === 'function') {
       return window.FinancialI18n.t(key, vars);
@@ -832,17 +839,23 @@ function initApp() {
     return fallback;
   };
 
-  if(window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
+  if(!opts.skipLocaleInit && window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
     window.FinancialI18n.initializeLocale();
   }
 
-  aplicarCorreccionMesBaseSiAplica();
-  normalizarRecurrenciasCompromisos();
-  normalizarIngresosConDia();
-  appData.schemaVersion = APP_SCHEMA_VERSION;
-  let marcaGuardado = new Date().toISOString();
-  persistirDataPrincipalConFallback();
-  persistirAuxiliaresConFallback(marcaGuardado);
+  if(!opts.skipDataNormalization) {
+    aplicarCorreccionMesBaseSiAplica();
+    normalizarRecurrenciasCompromisos();
+    normalizarIngresosConDia();
+    appData.schemaVersion = APP_SCHEMA_VERSION;
+  }
+
+  if(!opts.skipPersist) {
+    let marcaGuardado = new Date().toISOString();
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(marcaGuardado);
+  }
+
   actualizarSelectoresDeMes();
   
   document.getElementById('tit-cal-dinamico').innerText = i18nT(
@@ -1756,7 +1769,7 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'set-locale') {
       setAppLocale(el.value);
-      initApp();
+      initApp({ skipPersist: true, skipDataNormalization: true, skipLocaleInit: true });
       return;
     }
     if(action === 'debt-type-change') {
