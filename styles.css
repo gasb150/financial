@@ -1,0 +1,99 @@
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f8f9fa;
+  --color-background-tertiary: #f1f3f5;
+  --color-border-secondary: #dee2e6;
+  --color-border-tertiary: #e9ecef;
+  --color-text-primary: #212529;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #868e96;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-primary)}
+.app{max-width:390px;margin:0 auto;background:var(--color-background-tertiary);padding-bottom:20px;min-height:100vh;box-shadow:0 0 20px rgba(0,0,0,0.05)}
+.header{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:14px 16px}
+.nav{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);margin-bottom:12px}
+.nb{flex:1;padding:10px 4px 9px;font-size:11px;color:var(--color-text-tertiary);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;text-align:center}
+.nb.on{color:#534AB7;border-bottom-color:#534AB7;font-weight:500}
+.screen{display:none;padding:0 12px}
+.screen.on{display:block}
+.sec{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:14px 16px;margin-bottom:10px}
+.sg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.sc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.sl{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.sv{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.ss{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.row:last-child{border-bottom:none}
+.rn{font-size:13px;color:var(--color-text-primary);display:flex;align-items:center;gap:6px}
+.rm{font-size:11px;color:var(--color-text-tertiary)}
+.ra{font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
+.neg{color:#E24B4A}
+.pos{color:#1D9E75}
+.alert{background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+.alert i{color:#A32D2D;font-size:16px;margin-top:1px;flex-shrink:0}
+.alert-t{font-size:12px;font-weight:500;color:#A32D2D}
+.alert-b{font-size:11px;color:#791F1F;margin-top:2px}
+.deuda-bar{background:var(--color-background-secondary);border-radius:4px;height:6px;overflow:hidden;margin-top:4px;width:100%}
+.deuda-fill{height:100%;border-radius:4px;background:#E24B4A}
+.qs{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.qb{flex:none;padding:8px 10px;font-size:11px;font-weight:500;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;text-align:center;white-space:nowrap}
+.qb.on{background:#EEEDFE;border-color:#534AB7;color:#534AB7}
+.input-app{width:100%;padding:8px;margin-top:4px;border:1px solid var(--color-border-secondary);border-radius:4px;font-size:14px}
+.input-inline{border:none; border-bottom:1px dashed var(--color-border-secondary); font-size:13px; font-weight:500; color:var(--color-text-primary); width:130px; padding:2px}
+.input-inline:focus{outline:none; border-bottom-color:#534AB7; background:#f1f3f5}
+.money-input{text-align:right}
+.btn-action{background:#534AB7;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer}
+.btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:14px;display:flex;align-items:center}
+.chk-box{width:16px;height:16px;cursor:pointer}
+.row-paid{opacity:0.5;text-decoration:line-through}
+.cal-container{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:11px}
+.cal-day-h{font-weight:bold;color:var(--color-text-tertiary);padding-bottom:4px}
+.cal-day{background:var(--color-background-secondary);padding:6px 2px;border-radius:4px;position:relative;min-height:38px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:background 0.15s;}
+.cal-day:hover{background:var(--color-border-tertiary)}
+.cal-day.active-day{background:#EEEDFE;border:1px solid #534AB7}
+.cal-dot{width:5px;height:5px;border-radius:50%;margin:2px auto 0}
+.cal-dot.pending{background:#E24B4A}
+.cal-dot.all-paid{background:#1D9E75}
+.cal-pay-mark{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:999px;background:#1D9E75;color:#fff;font-size:9px;line-height:14px;text-align:center;font-weight:700;box-shadow:0 0 0 1px #fff}
+.semana-badge{background:var(--color-background-tertiary);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;color:var(--color-text-secondary)}
+.selector-mes-principal {background:#534AB7; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;}
+.filtro-fecha{display:flex;gap:8px;align-items:end;margin-bottom:10px}
+.filtro-fecha .campo{flex:1}
+.resumen-semanas{margin-bottom:10px;border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.resumen-semanas .r{display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:8px;padding:8px 10px;font-size:11px;border-bottom:1px solid var(--color-border-tertiary);align-items:center}
+.resumen-semanas .r:last-child{border-bottom:none}
+.resumen-semanas .h{background:var(--color-background-secondary);font-weight:600;color:var(--color-text-secondary)}
+.badge-pos{color:#1D9E75;font-weight:600}
+.badge-neg{color:#E24B4A;font-weight:600}
+.modo-alta{display:flex;gap:6px;margin-bottom:10px}
+.modo-alta .m{flex:1;border:1px solid var(--color-border-secondary);background:var(--color-background-secondary);border-radius:8px;padding:7px 8px;font-size:11px;font-weight:600;color:var(--color-text-secondary);cursor:pointer}
+.modo-alta .m.on{background:#EEEDFE;border-color:#534AB7;color:#534AB7}
+.bloque-avanzado{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.preview-deuda{margin-top:10px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:8px;padding:10px}
+.preview-deuda .tit{font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px}
+.preview-deuda .linea{font-size:12px;color:var(--color-text-secondary);margin-bottom:3px}
+.warn-inline{margin-top:8px;background:#FAEEDA;border:1px solid #FAC775;color:#854F0B;border-radius:8px;padding:8px 10px;font-size:11px;display:none}
+.deuda-resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.deuda-resumen .k{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:8px;padding:8px}
+.deuda-resumen .k .t{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.deuda-resumen .k .v{font-size:12px;font-weight:600;color:var(--color-text-primary)}
+.deuda-card{padding:12px 12px 10px;border-left:3px solid transparent}
+.deuda-card.tipo-fijo{border-left-color:#1D9E75}
+.deuda-card.tipo-variable{border-left-color:#BA7517}
+.deuda-card.tipo-credito{border-left-color:#534AB7}
+.deuda-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.deuda-name{width:100%}
+.deuda-valor{width:108px;text-align:right;color:#E24B4A;font-weight:600}
+.deuda-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px}
+.deuda-mini{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-secondary)}
+.deuda-tipo-pill{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600;border:1px solid transparent}
+.pill-fijo{background:#e7f8f0;color:#0f7a57;border-color:#b9e7d3}
+.pill-variable{background:#fff4df;color:#9c5d0a;border-color:#f7d9a7}
+.pill-credito{background:#efecff;color:#4339a2;border-color:#cdc7ff}
+.deuda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+.deuda-sub{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
