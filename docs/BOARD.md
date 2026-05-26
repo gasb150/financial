@@ -21,6 +21,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
+- [ ] TKT-015 Panel IA accionable (tarjetas + CTA)
+- [ ] TKT-016 Recomendaciones IA por categoria (deudas/variables)
 
 ## En curso
 
@@ -205,10 +207,41 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - Criterio de aceptacion:
    - Vista simple de costo/uso acumulado.
 
+### TKT-015 - Panel IA accionable (tarjetas + CTA)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Vista IA tipo tarjeta por tema financiero (ej: deudas pendientes, gastos variables).
+   - Cada tarjeta incluye CTA claro para ejecutar analisis IA.
+   - Diseño visual consistente con mobile y legible en modo oscuro.
+- Checklist:
+   - [ ] Definir layout de tarjetas IA en Resumen
+   - [ ] Agregar CTA por tarjeta (accion primaria)
+   - [ ] Conectar estado de carga/error por tarjeta
+
+### TKT-016 - Recomendaciones IA por categoria (deudas/variables)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Boton "Pedir estrategia para pagar deudas" genera plan priorizado de pago.
+   - Boton "Analizar qué puedo reducir" sugiere recortes por impacto/riesgo.
+   - Respuesta mostrada en formato accionable y corto (pasos concretos).
+- Checklist:
+   - [ ] Crear prompt/entrada para estrategia de deuda
+   - [ ] Crear prompt/entrada para analisis de recorte variable
+   - [ ] Renderizar resultados en panel IA
+
 ## Bitacora de avance
 
 ### 2026-05-26
 
+1. Backlog ampliado: TKT-015 y TKT-016 agregados para UX IA accionable (tarjetas + CTA por categoria).
 1. TKT-007 completado: selector IA OFF/LOCAL/API persistido y guardas para bloquear IA en OFF.
 1. TKT-006 completado: checksum SHA-256 agregado y validado en import/restore.
 1. TKT-005 completado: schemaVersion y migradores v1/v2 aplicados en carga/import/restore.
