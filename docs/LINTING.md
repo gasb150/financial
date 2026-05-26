@@ -17,7 +17,7 @@ Estandarizar validaciones de calidad para JavaScript con bajo riesgo de fricció
 
 ## Convenciones actuales
 
-- El proyecto se evalúa en `sourceType: script` por su arquitectura de archivos globales.
+- El `sourceType` no es único para todo el proyecto: los archivos legacy/globales se evalúan como `script`, los archivos `*.mjs` como `module` y los tests usan el `sourceType` definido para su entorno Node en la configuración de ESLint.
 - `no-undef` se mantiene desactivado para evitar falsos positivos por funciones globales cruzadas entre modulos legacy.
 - `no-unused-vars` y `no-empty` se mantienen como warning para visibilizar deuda tecnica sin bloquear flujo.
 
