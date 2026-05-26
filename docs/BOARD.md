@@ -43,6 +43,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-041 Baseline de pruebas automatizadas pre-split
 - [x] TKT-035 Split base: extraer modulo IA de app.js
 - [x] TKT-028 Undo del ultimo cambio aplicado por IA
 - [x] TKT-027 Flujo de confirmacion y ejecucion transaccional IA
@@ -531,6 +532,21 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Persistir historial en almacenamiento principal
    - [ ] Implementar UI de historial con opcion de revertir
 
+### TKT-041 - Baseline de pruebas automatizadas pre-split
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe una suite minima automatizada para funciones criticas que se ejecuta localmente.
+   - Las pruebas validan parseo de montos, utilidades de mes, calculo semanal y contrato base de acciones IA.
+   - Hay comando unico para correr la suite antes y despues de cada ticket de split.
+- Checklist:
+   - [x] Crear harness de pruebas sin dependencias externas
+   - [x] Agregar casos baseline de funciones core y IA
+   - [x] Exponer script de ejecucion estandar (`npm test`)
+
 ### TKT-035 - Split base: extraer modulo IA de app.js
 
 - Estado: Done
@@ -626,6 +642,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-041 completado: baseline de pruebas automatizadas agregado para validar refactors de split con comando unico (`npm test`).
 1. TKT-035 completado: split base de IA en app.ia.js con carga en HTML y cache v4 en service worker.
 1. Backlog de modularizacion agregado: TKT-035/TKT-036/TKT-037/TKT-038/TKT-039/TKT-040 para dividir app.js por dominios y ejecutar QA de regresion antes de nuevos features.
 1. TKT-028 completado: undo del ultimo cambio IA aplicado con restauracion de snapshot.

@@ -1,0 +1,9 @@
+{
+  "name": "financial",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Baseline tests for split-safe refactors",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js"
+  }
+}
