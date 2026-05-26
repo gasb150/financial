@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mis Finanzas - Finanzas Demo App Pro</title>
+<title>Mis Finanzas Pro</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
 :root {
@@ -60,11 +60,12 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .row-paid{opacity:0.5;text-decoration:line-through}
 .cal-container{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:11px}
 .cal-day-h{font-weight:bold;color:var(--color-text-tertiary);padding-bottom:4px}
-.cal-day{background:var(--color-background-secondary);padding:6px 2px;border-radius:4px;position:relative;min-height:32px;display:flex;flex-direction:column;justify-content:space-between}
+.cal-day{background:var(--color-background-secondary);padding:6px 2px;border-radius:4px;position:relative;min-height:34px;display:flex;flex-direction:column;justify-content:space-between}
 .cal-day.today{background:#EEEDFE;border:1px solid #534AB7}
 .cal-dot{width:4px;height:4px;background:#E24B4A;border-radius:50%;margin:2px auto 0}
 .cal-dot.paid{background:#1D9E75}
 .semana-badge{background:var(--color-background-tertiary);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;color:var(--color-text-secondary)}
+.selector-mes-principal {background:#534AB7; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;}
 </style>
 </head>
 <body>
@@ -73,10 +74,14 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
   <div class="header">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:12px;color:var(--color-text-secondary)">Hola Demo</div>
+        <div style="font-size:12px;color:var(--color-text-secondary)">Panel de Control</div>
         <div style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Mis Finanzas Pro</div>
       </div>
-      <div style="font-size:12px;color:var(--color-text-secondary);text-align:right">Mayo 2026<br><span style="color:var(--color-text-tertiary);font-size:11px">TRM: $4.180</span></div>
+      <div style="text-align:right">
+        <select id="global-mes-filtro" class="selector-mes-principal" onchange="cambiarMesDeVisualizacion(this.value)">
+          </select>
+        <div style="color:var(--color-text-tertiary);font-size:11px;margin-top:2px">TRM: $4.180</div>
+      </div>
     </div>
   </div>
 
@@ -99,39 +104,38 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 
     <div class="sg">
       <div class="sc">
-        <div class="sl">Ingresos mes</div>
+        <div class="sl">Ingresos periodo</div>
         <div id="res-ingresos" class="sv">$0</div>
-        <div class="ss">Fuentes activas</div>
+        <div class="ss">Fuentes calculadas</div>
       </div>
       <div class="sc">
-        <div class="sl">Gastos mes</div>
+        <div class="sl">Gastos periodo</div>
         <div id="res-gastos" class="sv" style="color:#E24B4A">$0</div>
         <div id="res-gastos-porc" class="ss">0% del ingreso</div>
       </div>
       <div class="sc">
-        <div class="sl">Balance</div>
+        <div class="sl">Balance Mes</div>
         <div id="res-balance" class="sv">-$0</div>
         <div id="res-balance-text" class="ss">estado actual</div>
       </div>
       <div class="sc">
         <div class="sl">Pendiente x Pagar</div>
         <div id="res-pendiente" class="sv" style="color:#BA7517">$0</div>
-        <div class="ss">Semanas / Mes</div>
+        <div class="ss">En tramos activos</div>
       </div>
     </div>
 
-    <div class="sec">Calendario de Flujo Mensual</div>
+    <div class="sec" id="tit-cal-dinamico">Calendario de Flujo</div>
     <div class="card">
-      <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:#534AB7;text-align:center;" id="cal-mes-titulo">Mayo 2026</div>
       <div class="cal-container" id="grid-calendario"></div>
     </div>
 
-    <div class="sec">Fuentes de Ingreso Activas</div>
+    <div class="sec">Fuentes de Ingreso Registradas</div>
     <div class="card" id="lista-ingresos-resumen"></div>
   </div>
 
   <div id="s-semanal" class="screen">
-    <div class="sec">Semanas del Año (Mayo 2026)</div>
+    <div class="sec" id="tit-semanas-dinamico">Semanas correspondientes</div>
     <div class="qs" id="nav-semanas-botones"></div>
     <div id="contenedor-vista-semanal">
       <div class="card" id="lista-semana-activa"></div>
@@ -140,9 +144,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 
   <div id="s-quincena" class="screen">
     <div class="qs">
-      <button class="qb on" id="q-pre" onclick="showQ('pre')">Pre-quincena</button>
-      <button class="qb" id="q-1" onclick="showQ('q1')">Quincena 1 (1-14)</button>
-      <button class="qb" id="q-2" onclick="showQ('q2')">Quincena 2 (15-31)</button>
+      <button class="qb on" id="q-pre" onclick="showQ('pre')">Pre-Gastos / Fijos</button>
+      <button class="qb" id="q-1" onclick="showQ('q1')">Tramo 1 (Días 1-14)</button>
+      <button class="qb" id="q-2" onclick="showQ('q2')">Tramo 2 (Días 15-31)</button>
     </div>
     <div id="qp-pre"><div class="card" id="lista-pre-quincena"></div></div>
     <div id="qp-q1" style="display:none"><div class="card" id="lista-q1-quincena"></div></div>
@@ -162,45 +166,53 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     <div class="sec" id="titulo-modulo-deudas">Gestión de Obligaciones</div>
     <div id="lista-deudas-modulo"></div>
 
-    <div class="sec">Añadir Nueva Obligación / Gasto</div>
+    <div class="sec">Añadir Compromiso / Gasto Planificado</div>
     <div class="card">
       <label class="sl">Nombre del Compromiso</label>
-      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Credito Banco 4">
+      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Seguro Vehicular o Regalos">
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
-          <label class="sl">Valor Cuota ($)</label>
-          <input type="number" id="add-valor" class="input-app" placeholder="600000">
+          <label class="sl">Valor Gasto ($)</label>
+          <input type="number" id="add-valor" class="input-app" placeholder="450000">
         </div>
         <div style="flex:1">
-          <label class="sl">Día de Pago (1-31)</label>
-          <input type="number" id="add-dia" class="input-app" placeholder="15" min="-1" max="31">
+          <label class="sl">Día de Pago Tentativo</label>
+          <input type="number" id="add-dia" class="input-app" placeholder="15" value="1" min="-1" max="31">
         </div>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
-          <label class="sl">Tipo de Gasto</label>
+          <label class="sl">Tipo de Obligación</label>
           <select id="add-tipo-gasto" class="input-app" onchange="toggleCuotasInput(this.value)">
+            <option value="variable">Gasto Variable / Opcional ✂️</option>
             <option value="fijo">Gasto Fijo Recurrente</option>
-            <option value="variable">Gasto Variable / Opcional</option>
-            <option value="credito">Crédito Formal (Con Plazo)</option>
+            <option value="credito">Crédito Formal (A Plazos)</option>
           </select>
         </div>
-        <div style="flex:2; display:none;" id="wrap-cuotas-add">
+        
+        <div style="flex:1; display:none;" id="wrap-cuotas-add">
           <div style="display:flex; gap:6px;">
             <div>
-              <label class="sl">Restantes</label>
-              <input type="number" id="add-faltantes" class="input-app" placeholder="6" value="6">
+              <label class="sl">Restan</label>
+              <input type="number" id="add-faltantes" class="input-app" value="6">
             </div>
             <div>
-              <label class="sl">Totales</label>
-              <input type="number" id="add-totales" class="input-app" placeholder="24" value="24">
+              <label class="sl">Total</label>
+              <input type="number" id="add-totales" class="input-app" value="12">
             </div>
           </div>
         </div>
       </div>
-      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px" onclick="agregarGastoDeuda()">Guardar Compromiso</button>
+
+      <div style="margin-top:8px; border-top:1px dashed var(--color-border-secondary); padding-top:10px;">
+        <label class="sl">¿En qué mes y año ocurrirá este gasto?</label>
+        <select id="add-mes-destino" class="input-app">
+          </select>
+      </div>
+
+      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px;background:#534AB7;" onclick="procesarNuevoGasto()">Guardar Compromiso</button>
     </div>
   </div>
 
@@ -208,7 +220,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     <div class="sec">Añadir Nueva Fuente de Ingreso</div>
     <div class="card">
       <label class="sl">Nombre del Ingreso</label>
-      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Consultoría externa">
+      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Trabajo Independiente">
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
@@ -230,66 +242,155 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     <div class="sec">Listado y Edición de Ingresos</div>
     <div id="lista-config-ingresos"></div>
     
+    <div class="sec">Línea de Tiempo del Sistema</div>
+    <div class="card">
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
+      <button class="btn-action" style="background:#534AB7;" onclick="extenderAnioLineaTiempo()">Expandir un Año Más 🚀</button>
+    </div>
+
     <div class="sec">Resetear Datos</div>
     <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" onclick="resetAFactory()">Restaurar Datos por Defecto</button>
   </div>
 </div>
 
 <script>
-const estructuraSemanas = [
-  { id: "s18", numAnio: 18, nombre: "Semana 18", rango: "May 1 - May 3", dias: [1, 2, 3] },
-  { id: "s19", numAnio: 19, nombre: "Semana 19", rango: "May 4 - May 10", dias: [4, 5, 6, 7, 8, 9, 10] },
-  { id: "s20", numAnio: 20, nombre: "Semana 20", rango: "May 11 - May 17", dias: [11, 12, 13, 14, 15, 16, 17] },
-  { id: "s21", numAnio: 21, nombre: "Semana 21", rango: "May 18 - May 24", dias: [18, 19, 20, 21, 22, 23, 24] },
-  { id: "s22", numAnio: 22, nombre: "Semana 22", rango: "May 25 - May 31", dias: [25, 26, 27, 28, 29, 30, 31] }
+// Base de datos de meses y años soportados dinámicamente por el sistema
+let mesesLineaTiempo = [
+  "Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"
 ];
 
-const nombresDiasMayo = {
-  1:"Viernes", 2:"Sábado", 3:"Domingo", 4:"Lunes", 5:"Martes", 6:"Miércoles", 7:"Jueves",
-  8:"Viernes", 9:"Sábado", 10:"Domingo", 11:"Lunes", 12:"Martes", 13:"Miércoles", 14:"Jueves",
-  15:"Viernes", 16:"Sábado", 17:"Domingo", 18:"Lunes", 19:"Martes", 20:"Miércoles", 21:"Jueves",
-  22:"Viernes", 23:"Sábado", 24:"Domingo", 25:"Lunes", 26:"Martes", 27:"Miércoles", 28:"Jueves",
-  29:"Viernes", 30:"Sábado", 31:"Domingo"
-};
-
-let semanaSeleccionada = "s20";
-let filtroDeudaActivo = "todas"; // Estado inicial del filtro
+let mesActivoGlobal = "Mayo 2026";
+let filtroDeudaActivo = "todas";
+let semanaSeleccionadaIndex = 0;
 
 const datosDefault = {
   ingresosList: [
-    { id: 1, nombre: "Salario Demo (Q1)", valor: 3200000, periodo: "q1" },
-    { id: 2, nombre: "Salario Demo (Q2)", valor: 3200000, periodo: "q2" },
+    { id: 1, nombre: "Trabajo Demo (Quincena 1)", valor: 3200000, periodo: "q1" },
+    { id: 2, nombre: "Trabajo Demo (Quincena 2)", valor: 3200000, periodo: "q2" },
     { id: 3, nombre: "Renta Demo", valor: 400000, periodo: "q2" }
   ],
   compromisos: [
-    { id: 1, nombre: "Internet Hogar", valor: 360000, dia: -1, pagado: false, tipo: "fijo" },
-    { id: 2, nombre: "Plan Datos", valor: 55000, dia: -1, pagado: false, tipo: "fijo" },
-    { id: 3, nombre: "Gas (servicios)", valor: 190000, dia: -1, pagado: false, tipo: "fijo" },
-    { id: 4, nombre: "Servicio Energia", valor: 110000, dia: -1, pagado: false, tipo: "fijo" },
-    { id: 5, nombre: "Comida", valor: 1200000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 6, nombre: "Alquiler", valor: 1800000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 7, nombre: "Casa", valor: 1250000, dia: 14, pagado: false, tipo: "fijo" },
-    { id: 8, nombre: "Tarjeta Credito Banco", valor: 620000, dia: 1, pagado: false, tipo: "credito", faltantes: 12, totales: 24 },
-    { id: 9, nombre: "Credito Banco 1", valor: 600000, dia: 1, pagado: false, tipo: "credito", faltantes: 6, totales: 12 },
-    { id: 10, nombre: "Credito Banco 2", valor: 980000, dia: 1, pagado: false, tipo: "credito", faltantes: 24, totales: 48 },
-    { id: 11, nombre: "Tienda Hogar", valor: 676688, dia: 1, pagado: false, tipo: "credito", faltantes: 4, totales: 6 },
-    { id: 12, nombre: "Gas Propiedad", valor: 720000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 13, nombre: "Administracion Propiedad", valor: 374000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 14, nombre: "Prestamo Familiar", valor: 1300000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 15, nombre: "Internet M", valor: 106000, dia: 12, pagado: false, tipo: "fijo" },
-    { id: 16, nombre: "Colegio Demo", valor: 339000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 17, nombre: "Gasolina", valor: 600000, dia: 1, pagado: false, tipo: "fijo" },
-    { id: 18, nombre: "Tienda Retail", valor: 220000, dia: 15, pagado: false, tipo: "credito", faltantes: 3, totales: 12 },
-    { id: 19, nombre: "Credito Vehiculo", valor: 1450000, dia: 5, pagado: false, tipo: "credito", faltantes: 36, totales: 60 },
-    { id: 20, nombre: "Credito Banco 3", valor: 250000, dia: 5, pagado: false, tipo: "credito", faltantes: 8, totales: 24 },
-    { id: 21, nombre: "Acueducto", valor: 700000, dia: 15, pagado: false, tipo: "fijo" },
-    { id: 22, nombre: "Extra colegio Gasto Hija", valor: 678000, dia: 1, pagado: false, tipo: "variable" }
-  ]
+    { id: 1, nombre: "Internet Hogar", valor: 360000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 2, nombre: "Plan Datos", valor: 55000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 3, nombre: "Gas (servicios)", valor: 190000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 4, nombre: "Servicio Energia", valor: 110000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 5, nombre: "Comida", valor: 1200000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 6, nombre: "Alquiler", valor: 1800000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 7, nombre: "Casa", valor: 1250000, dia: 14, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 12, nombre: "Gas Propiedad", valor: 720000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 13, nombre: "Administracion Propiedad", valor: 374000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 14, nombre: "Prestamo Familiar", valor: 1300000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 15, nombre: "Internet M", valor: 106000, dia: 12, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 16, nombre: "Colegio Demo", valor: 339000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 17, nombre: "Gasolina", valor: 600000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 21, nombre: "Acueducto", valor: 700000, dia: 15, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    
+    { id: 101, nombre: "Colegio Hija", valor: 678000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
+    { id: 102, nombre: "Extra Colegio", valor: 678000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 103, nombre: "Gastos Varios A", valor: 300000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 104, nombre: "Regalo Evento", valor: 200000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 105, nombre: "Aporte Familiar", valor: 200000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 106, nombre: "Deuda Particular A", valor: 250000, dia: 16, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 107, nombre: "Deuda Particular B", valor: 500000, dia: 16, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 108, nombre: "Cumpleano 1", valor: 150000, dia: 10, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 109, nombre: "Cumpleano 2", valor: 150000, dia: 13, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 110, nombre: "Cumpleano 3", valor: 150000, dia: 20, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 111, nombre: "Ropa Escolar", valor: 150000, dia: 15, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 112, nombre: "Gasto Hija", valor: 74000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+    { id: 113, nombre: "Gasto Hogar", valor: 500000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
+
+    { id: 8, nombre: "Tarjeta Credito Banco", valor: 620000, dia: 1, pagado: false, tipo: "credito", faltantes: 12, totales: 24, mesKey: "Mayo 2026" },
+    { id: 9, nombre: "Credito Banco 1", valor: 600000, dia: 1, pagado: false, tipo: "credito", faltantes: 6, totales: 12, mesKey: "Mayo 2026" },
+    { id: 10, nombre: "Credito Banco 2", valor: 980000, dia: 1, pagado: false, tipo: "credito", faltantes: 24, totales: 48, mesKey: "Mayo 2026" },
+    { id: 11, nombre: "Tienda Hogar", valor: 676688, dia: 1, pagado: false, tipo: "credito", faltantes: 4, totales: 6, mesKey: "Mayo 2026" },
+    { id: 18, nombre: "Tienda Retail", valor: 220000, dia: 15, pagado: false, tipo: "credito", faltantes: 3, totales: 12, mesKey: "Mayo 2026" },
+    { id: 19, nombre: "Credito Vehiculo", valor: 1450000, dia: 5, pagado: false, tipo: "credito", faltantes: 36, totales: 60, mesKey: "Mayo 2026" },
+    { id: 20, nombre: "Credito Banco 3", valor: 250000, dia: 5, pagado: false, tipo: "credito", faltantes: 8, totales: 24, mesKey: "Mayo 2026" }
+  ],
+  lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"]
 };
 
-let appData = JSON.parse(localStorage.getItem('demo_finanzas_data_v5')) || datosDefault;
+let appData = JSON.parse(localStorage.getItem('finanzas_linea_tiempo_v7')) || datosDefault;
+if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
+
+// Calcula dinámicamente la estructura de semanas para CUALQUIER mes seleccionado
+function obtenerSemanasDelMesActivo() {
+  let partes = mesActivoGlobal.split(" ");
+  let nombreMes = partes[0];
+  let anio = parseInt(partes[1]);
+  
+  const mesesIndices = {"Enero":0,"Febrero":1,"Marzo":2,"Abril":3,"Mayo":4,"Junio":5,"Julio":6,"Agosto":7,"Septiembre":8,"Octubre":9,"Noviembre":10,"Diciembre":11};
+  let mesIdx = mesesIndices[nombreMes];
+  
+  let totalDias = new Date(anio, mesIdx + 1, 0).getDate();
+  let semanas = [];
+  let diasAcumulados = [];
+  
+  let numSemanaFicticia = 1;
+  for(let d=1; d<=totalDias; d++) {
+    diasAcumulados.push(d);
+    
+    let fechaObjeto = new Date(anio, mesIdx, d);
+    let diaSemanaSistemas = fechaObjeto.getDay(); // 0 = Domingo, 6 = Sábado
+    
+    // Cortar semana en Domingo o si es el último día del mes
+    if(diaSemanaSistemas === 0 || d === totalDias) {
+      let primerDia = diasAcumulados[0];
+      let ultimoDia = diasAcumulados[diasAcumulados.length - 1];
+      semanas.push({
+        id: `sem-${numSemanaFicticia}`,
+        nombre: `Tramo Semanal ${numSemanaFicticia}`,
+        rango: `${nombreMes.substring(0,3)} ${primerDia} - ${nombreMes.substring(0,3)} ${ultimoDia}`,
+        dias: [...diasAcumulados]
+      });
+      diasAcumulados = [];
+      numSemanaFicticia++;
+    }
+  }
+  return semanas;
+}
+
+function cambiarMesDeVisualizacion(nuevoMes) {
+  mesActivoGlobal = nuevoMes;
+  semanaSeleccionadaIndex = 0; 
+  initApp();
+}
+
+function extenderAnioLineaTiempo() {
+  let ultimoMesTexto = mesesLineaTiempo[mesesLineaTiempo.length - 1];
+  let partes = ultimoMesTexto.split(" ");
+  let anioActual = parseInt(partes[1]);
+  let proximoAnio = anioActual + 1;
+  
+  const todosMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  todosMeses.forEach(m => {
+    mesesLineaTiempo.push(`${m} ${proximoAnio}`);
+  });
+  
+  appData.lineaTiempoGuardada = mesesLineaTiempo;
+  actualizarSelectoresDeMes();
+  alert(`Línea de tiempo expandida con éxito hasta Diciembre de ${proximoAnio}.`);
+  initApp();
+}
+
+function actualizarSelectoresDeMes() {
+  let selectPrincipal = document.getElementById('global-mes-filtro');
+  let selectFormulario = document.getElementById('add-mes-destino');
+  
+  let cachePrincipal = selectPrincipal.value || mesActivoGlobal;
+  
+  selectPrincipal.innerHTML = '';
+  selectFormulario.innerHTML = '';
+  
+  mesesLineaTiempo.forEach(m => {
+    selectPrincipal.innerHTML += `<option value="${m}">${m}</option>`;
+    selectFormulario.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+  
+  selectPrincipal.value = cachePrincipal;
+}
 
 function sw(id, btn) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
@@ -323,52 +424,55 @@ function cambiarFiltroDeuda(tipo) {
 }
 
 function initApp() {
-  localStorage.setItem('demo_finanzas_data_v5', JSON.stringify(appData));
+  localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
+  actualizarSelectoresDeMes();
   
-  let totalIngresosEfectivos = appData.ingresosList.reduce((acc, i) => acc + i.valor, 0);
-  let totalGastos = appData.compromisos.reduce((acc, c) => acc + c.valor, 0);
-  let totalPendiente = appData.compromisos.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
-  let balance = totalIngresosEfectivos - totalGastos;
+  document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
+  document.getElementById('tit-semanas-dinamico').innerText = `Línea de Semanas - ${mesActivoGlobal}`;
 
-  document.getElementById('res-ingresos').innerText = formatCOP(totalIngresosEfectivos);
+  // Filtrar exclusivamente los compromisos asignados al mes seleccionado
+  let compromisosMesActual = appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
+
+  let totalIngresos = appData.ingresosList.reduce((acc, i) => acc + i.valor, 0);
+  let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
+  let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
+  let balance = totalIngresos - totalGastos;
+
+  document.getElementById('res-ingresos').innerText = formatCOP(totalIngresos);
   document.getElementById('res-gastos').innerText = formatCOP(totalGastos);
   
-  let porcGastos = totalIngresosEfectivos > 0 ? ((totalGastos / totalIngresosEfectivos) * 100).toFixed(0) : 100;
-  document.getElementById('res-gastos-porc').innerText = `${porcGastos}% del ingreso total`;
+  let porcGastos = totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(0) : 100;
+  document.getElementById('res-gastos-porc').innerText = `${porcGastos}% del ingreso`;
   
   let balCard = document.getElementById('res-balance');
   balCard.innerText = formatCOP(balance);
   
   if(balance < 0) {
     balCard.style.color = '#E24B4A';
-    document.getElementById('res-balance-text').innerText = "Déficit mensual";
+    document.getElementById('res-balance-text').innerText = "Déficit en este periodo";
     document.getElementById('alerta-deficit').style.display = 'flex';
-    document.getElementById('alerta-b-text').innerText = `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresosEfectivos)}.`;
+    document.getElementById('alerta-b-text').innerText = `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresos)}.`;
   } else {
     balCard.style.color = '#1D9E75';
-    document.getElementById('res-balance-text').innerText = "Superávit mensual";
+    document.getElementById('res-balance-text').innerText = "Superávit en este periodo";
     document.getElementById('alerta-deficit').style.display = 'none';
   }
   document.getElementById('res-pendiente').innerText = formatCOP(totalPendiente);
 
   renderIngresosResumen();
-  renderCalendario();
-  renderQuincenas();
-  renderDeudasModulo();
+  renderCalendario(compromisosMesActual);
+  renderQuincenas(compromisosMesActual);
+  renderDeudasModulo(compromisosMesActual);
   renderMenuSemanas();
-  renderSemanaActiva();
+  renderSemanaActiva(compromisosMesActual);
   renderConfigIngresos();
 }
 
 function renderIngresosResumen() {
   let container = document.getElementById('lista-ingresos-resumen');
   container.innerHTML = '';
-  if(appData.ingresosList.length === 0) {
-    container.innerHTML = `<div class="rm" style="text-align:center;padding:10px;">Sin ingresos activos.</div>`;
-    return;
-  }
   appData.ingresosList.forEach(i => {
-    let tag = i.periodo === 'q1' ? 'Quincena 1' : (i.periodo === 'q2' ? 'Quincena 2' : 'Ambas Quincenas');
+    let tag = i.periodo === 'q1' ? 'Tramo Quincena 1' : (i.periodo === 'q2' ? 'Tramo Quincena 2' : 'Ambos Tramos (50/50)');
     container.innerHTML += `
       <div class="row">
         <div><div class="rn">${i.nombre}</div><div class="rm">${tag}</div></div>
@@ -376,16 +480,6 @@ function renderIngresosResumen() {
       </div>
     `;
   });
-}
-
-function modificarIngresoPropiedad(id, campo, nuevoValor) {
-  let ing = appData.ingresosList.find(i => i.id === id);
-  if(ing) {
-    if(campo === 'valor') ing.valor = parseFloat(nuevoValor) || 0;
-    if(campo === 'nombre') ing.nombre = nuevoValor.trim();
-    if(campo === 'periodo') ing.periodo = nuevoValor;
-    initApp();
-  }
 }
 
 function agregarIngresoDinamico() {
@@ -400,7 +494,7 @@ function agregarIngresoDinamico() {
 }
 
 function eliminarIngreso(id) {
-  if(confirm("¿Remover esta fuente de ingresos?")) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); initApp(); }
+  if(confirm("¿Remover esta fuente?")) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); initApp(); }
 }
 
 function renderConfigIngresos() {
@@ -417,17 +511,22 @@ function renderConfigIngresos() {
         <input type="text" value="${i.nombre}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
         <input type="number" value="${i.valor}" class="input-inline" style="width:90px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-left:26px;">
-        <span class="rm">Tramo:</span>
-        <select class="input-app" style="width:140px; padding:2px; font-size:11px; margin:0;" onchange="modificarIngresoPropiedad(${i.id}, 'periodo', this.value)">
-          <option value="q1" ${i.periodo === 'q1' ? 'selected':''}>Quincena 1</option>
-          <option value="q2" ${i.periodo === 'q2' ? 'selected':''}>Quincena 2</option>
-          <option value="todo" ${i.periodo === 'todo' ? 'selected':''}>50/50 Ambas</option>
-        </select>
-      </div>
     `;
     container.appendChild(card);
   });
+}
+
+function modificarIngresoPropiedad(id, campo, nuevoValor) {
+  let ing = appData.ingresosList.find(i => i.id === id);
+  if(ing) {
+    if(campo === 'valor') ing.valor = parseFloat(nuevoValor) || 0;
+    if(campo === 'nombre') ing.nombre = nuevoValor.trim();
+    initApp();
+  }
+}
+
+function eliminarCompromiso(id) {
+  if(confirm("¿Eliminar compromiso?")) { appData.compromisos = appData.compromisos.filter(c => c.id !== id); initApp(); }
 }
 
 function modificarCompromisoPropiedad(id, campo, nuevoValor) {
@@ -443,16 +542,11 @@ function modificarCompromisoPropiedad(id, campo, nuevoValor) {
   }
 }
 
-function eliminarCompromiso(id) {
-  if(confirm("¿Eliminar compromiso?")) { appData.compromisos = appData.compromisos.filter(c => c.id !== id); initApp(); }
-}
-
-function renderDeudasModulo() {
+function renderDeudasModulo(compromisosMes) {
   let container = document.getElementById('lista-deudas-modulo');
   container.innerHTML = '';
   
-  // FILTRADO DE LA LISTA SEGÚN EL BOTÓN ACTIVO
-  let deudasFiltradas = appData.compromisos.filter(c => {
+  let deudasFiltradas = compromisosMes.filter(c => {
     if (filtroDeudaActivo === 'todas') return true;
     if (filtroDeudaActivo === 'fijas') return c.tipo === 'fijo';
     if (filtroDeudaActivo === 'variables') return c.tipo === 'variable';
@@ -461,24 +555,21 @@ function renderDeudasModulo() {
     return true;
   });
 
-  // Actualizar etiqueta del título con la cantidad de ítems encontrados
-  document.getElementById('titulo-modulo-deudas').innerText = `Resultados (${deudasFiltradas.length})`;
+  document.getElementById('titulo-modulo-deudas').innerText = `Compromisos de ${mesActivoGlobal} (${deudasFiltradas.length})`;
 
   if(deudasFiltradas.length === 0) {
-    container.innerHTML = `<div class="card" style="text-align:center; padding:20px; color:var(--color-text-tertiary); font-size:12px;">Ningún gasto coincide con este filtro.</div>`;
+    container.innerHTML = `<div class="card" style="text-align:center; padding:20px; color:var(--color-text-tertiary); font-size:12px;">Sin registros para este filtro este mes.</div>`;
     return;
   }
 
   deudasFiltradas.forEach(c => {
     let card = document.createElement('div');
     card.className = 'card';
-    card.style.marginBottom = '8px';
-    card.style.padding = '12px 14px';
     if(c.pagado) card.style.opacity = '0.65';
 
     let pctBarra = 100; 
     let textoProgreso = "Gasto Fijo";
-    let colorBarra = "#BA7517"; // Color por defecto (fijos)
+    let colorBarra = "#BA7517";
 
     if (c.tipo === 'credito') {
       let totales = c.totales || 24;
@@ -489,7 +580,6 @@ function renderDeudasModulo() {
       colorBarra = "#534AB7";
     } else if (c.tipo === 'variable') {
       textoProgreso = "Gasto Variable / Recortable ✂️";
-      pctBarra = 100;
       colorBarra = "#E24B4A";
     }
 
@@ -497,37 +587,29 @@ function renderDeudasModulo() {
       <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px">
         <div style="display:flex; align-items:center; gap:4px; flex:1">
           <button class="btn-del" onclick="eliminarCompromiso(${c.id})"><i class="ti ti-trash"></i></button>
-          <input type="text" value="${c.nombre}" class="input-inline" style="width:100%; font-weight:500;" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
+          <input type="text" value="${c.nombre}" class="input-inline" style="width:100%;" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
         </div>
         <input type="number" value="${c.valor}" class="input-inline" style="width:90px; text-align:right; color:#E24B4A; font-weight:600" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
       </div>
       
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-left:24px; margin-bottom:6px">
         <div class="rm">
-          Vto Día: <input type="number" value="${c.dia}" class="input-app" style="width:42px; padding:2px; display:inline; margin:0;" onchange="modificarCompromisoPropiedad(${c.id}, 'dia', this.value)">
+          Día Pactado: <input type="number" value="${c.dia}" class="input-app" style="width:42px; padding:2px; display:inline; margin:0;" onchange="modificarCompromisoPropiedad(${c.id}, 'dia', this.value)">
         </div>
-        
-        <div class="rm" style="text-align:right">
-          <select class="input-app" style="width:110px; padding:2px; font-size:11px; margin:0; display:inline;" onchange="modificarCompromisoPropiedad(${c.id}, 'tipo', this.value)">
-            <option value="fijo" ${c.tipo === 'fijo' || !c.tipo ? 'selected':''}>Fijo</option>
+        <div class="rm">
+          <select class="input-app" style="width:100px; padding:2px; font-size:11px; margin:0;" onchange="modificarCompromisoPropiedad(${c.id}, 'tipo', this.value)">
+            <option value="fijo" ${c.tipo === 'fijo' ? 'selected':''}>Fijo</option>
             <option value="variable" ${c.tipo === 'variable' ? 'selected':''}>Variable</option>
-            <option value="credito" ${c.tipo === 'credito' ? 'selected':''}>Crédito Plazo</option>
+            <option value="credito" ${c.tipo === 'credito' ? 'selected':''}>Crédito</option>
           </select>
         </div>
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; padding-left:24px; margin-bottom:4px">
         <div style="font-size:11px; color:var(--color-text-tertiary);">${textoProgreso}</div>
-        ${c.tipo === 'credito' ? `
-          <div class="rm">
-            Restan: <input type="number" value="${c.faltantes}" class="input-app" style="width:36px; padding:2px; display:inline; margin:0;" onchange="modificarCompromisoPropiedad(${c.id}, 'faltantes', this.value)"> 
-            de <input type="number" value="${c.totales || 24}" class="input-app" style="width:36px; padding:2px; display:inline; margin:0;" onchange="modificarCompromisoPropiedad(${c.id}, 'totales', this.value)">
-          </div>
-        ` : `
-          <div class="rm" style="display:flex; align-items:center; gap:4px">
-            <input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> <span style="font-size:10px">¿Pagado?</span>
-          </div>
-        `}
+        <div class="rm" style="display:flex; align-items:center; gap:4px">
+          <input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> <span style="font-size:10px">¿Pagado?</span>
+        </div>
       </div>
       <div class="deuda-bar" style="margin-left:24px; width:calc(100% - 24px);"><div class="deuda-fill" style="width:${pctBarra}%; background:${colorBarra}"></div></div>
     `;
@@ -535,26 +617,21 @@ function renderDeudasModulo() {
   });
 }
 
-function obtenerFondosQuincena(q) {
-  return appData.ingresosList.reduce((acc, i) => {
-    if(i.periodo === q) return acc + i.valor;
-    if(i.periodo === 'todo') return acc + (i.valor / 2);
-    return acc;
-  }, 0);
-}
-
-function renderQuincenas() {
+function renderQuincenas(compromisosMes) {
   let preCont = document.getElementById('lista-pre-quincena');
   let q1Cont = document.getElementById('lista-q1-quincena');
   let q2Cont = document.getElementById('lista-q2-quincena');
 
-  let preComps = appData.compromisos.filter(c => parseInt(c.dia) === -1);
-  let q1Comps = appData.compromisos.filter(c => parseInt(c.dia) >= 1 && parseInt(c.dia) <= 14);
-  let q2Comps = appData.compromisos.filter(c => parseInt(c.dia) >= 15);
+  let preComps = compromisosMes.filter(c => parseInt(c.dia) === -1);
+  let q1Comps = compromisosMes.filter(c => parseInt(c.dia) >= 1 && parseInt(c.dia) <= 14);
+  let q2Comps = compromisosMes.filter(c => parseInt(c.dia) >= 15);
 
-  buildQuincenaHtml(preCont, preComps, "Pre-Quincena (Cargos Iniciales)");
-  buildQuincenaHtml(q1Cont, q1Comps, "Primera Quincena (Días 1-14)", obtenerFondosQuincena('q1'));
-  buildQuincenaHtml(q2Cont, q2Comps, "Segunda Quincena (Días 15-31)", obtenerFondosQuincena('q2'));
+  let ingQ1 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q1' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
+  let ingQ2 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q2' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
+
+  buildQuincenaHtml(preCont, preComps, "Cargos Fijos / Pre-Mes");
+  buildQuincenaHtml(q1Cont, q1Comps, "Tramo de Cobros 1 (Días 1-14)", ingQ1);
+  buildQuincenaHtml(q2Cont, q2Comps, "Tramo de Cobros 2 (Días 15-31)", ingQ2);
 }
 
 function buildQuincenaHtml(container, list, titulo, fondoDisponible = null) {
@@ -565,36 +642,19 @@ function buildQuincenaHtml(container, list, titulo, fondoDisponible = null) {
   </div>`;
 
   if(fondoDisponible !== null && fondoDisponible < suma) {
-    html += `
-      <div class="alert" style="background:#FAEEDA;border-color:#FAC775;padding:6px 10px;margin-bottom:8px">
-        <i class="ti ti-alert-triangle" style="color:#854F0B;font-size:13px"></i>
-        <div class="alert-t" style="color:#854F0B;font-size:11px">Tramo Ajustado: Carga de ${formatCOP(suma)} supera tu ingreso de ${formatCOP(fondoDisponible)}</div>
-      </div>
-    `;
-  } else if (fondoDisponible !== null) {
-    html += `
-      <div class="alert" style="background:#EAF3DE;border-color:#C3E6CB;padding:6px 10px;margin-bottom:8px">
-        <i class="ti ti-check" style="color:#3B6D11;font-size:13px"></i>
-        <div class="alert-t" style="color:#3B6D11;font-size:11px">Fondos bien respaldados para este periodo</div>
-      </div>
-    `;
+    html += `<div class="alert" style="background:#FAEEDA;border-color:#FAC775;padding:6px 10px;margin-bottom:8px; font-size:11px; color:#854F0B">¡Carga supera fondos del tramo! (${formatCOP(fondoDisponible)})</div>`;
   }
 
-  if(list.length === 0){
-    html += `<div class="rm" style="text-align:center; padding:12px;">No hay obligaciones programadas.</div>`;
-  }
+  if(list.length === 0) html += `<div class="rm" style="text-align:center; padding:12px;">Sin obligaciones programadas para este tramo.</div>`;
 
   list.forEach(c => {
-    let dNum = parseInt(c.dia);
-    let diaTexto = dNum === -1 ? 'Fijo Pre-mes' : `Día ${dNum} (${nombresDiasMayo[dNum] || ''})`;
-    let tagTipo = c.tipo === 'variable' ? ' <span style="color:#E24B4A;font-size:10px;">[Var]</span>' : '';
     html += `
       <div class="row ${c.pagado ? 'row-paid' : ''}">
         <div class="rn">
           <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
           <div>
-            <div>${c.nombre}${tagTipo}</div>
-            <div class="rm">${diaTexto}</div>
+            <div>${c.nombre}</div>
+            <div class="rm">Día Pactado: ${c.dia === -1 ? 'Pre-mes' : c.dia}</div>
           </div>
         </div>
         <div class="ra neg">${formatCOP(c.valor)}</div>
@@ -604,36 +664,41 @@ function buildQuincenaHtml(container, list, titulo, fondoDisponible = null) {
   container.innerHTML = html;
 }
 
-function renderCalendario() {
+function renderCalendario(compromisosMes) {
   let grid = document.getElementById('grid-calendario');
   grid.innerHTML = '';
+  
   const diasSemana = ['L','M','X','J','V','S','D'];
-  diasSemana.forEach(d => {
-    let h = document.createElement('div'); h.className = 'cal-day-h'; h.innerText = d; grid.appendChild(h);
-  });
+  diasSemana.forEach(d => { let h = document.createElement('div'); h.className = 'cal-day-h'; h.innerText = d; grid.appendChild(h); });
 
-  let offset = 4;
-  for(let i=0; i<offset; i++){ grid.appendChild(document.createElement('div')); }
+  // Determinar número de días según el mes activo
+  let partes = mesActivoGlobal.split(" ");
+  const mesesIndices = {"Enero":0,"Febrero":1,"Marzo":2,"Abril":3,"Mayo":4,"Junio":5,"Julio":6,"Agosto":7,"Septiembre":8,"Octubre":9,"Noviembre":10,"Diciembre":11};
+  let mesIdx = mesesIndices[partes[0]];
+  let anio = parseInt(partes[1]);
+  let totalDias = new Date(anio, mesIdx + 1, 0).getDate();
+
+  // Calcular desfase del primer día de la semana
+  let primerDiaSemana = new Date(anio, mesIdx, 1).getDay(); // 0 = Dom, 1 = Lun
+  let offset = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1;
+
+  for(let i=0; i<offset; i++) grid.appendChild(document.createElement('div'));
 
   let mapaDias = {};
-  appData.compromisos.forEach(c => {
+  compromisosMes.forEach(c => {
     let d = parseInt(c.dia); if (d === -1) d = 1;
     if (!mapaDias[d]) mapaDias[d] = [];
     mapaDias[d].push(c);
   });
 
-  for(let dia=1; dia<=31; dia++) {
+  for(let dia=1; dia<=totalDias; dia++) {
     let item = document.createElement('div'); item.className = 'cal-day';
-    if(dia === 25) item.classList.add('today'); 
-
     let numDia = document.createElement('span'); numDia.innerText = dia; item.appendChild(numDia);
 
     if(mapaDias[dia]) {
-      let dotContainer = document.createElement('div');
-      dotContainer.style.display = 'flex'; dotContainer.style.justifyContent = 'center';
       let todosPagados = mapaDias[dia].every(c => c.pagado);
       let dot = document.createElement('div'); dot.className = `cal-dot ${todosPagados ? 'paid' : ''}`;
-      dotContainer.appendChild(dot); item.appendChild(dotContainer);
+      item.appendChild(dot);
     }
     grid.appendChild(item);
   }
@@ -642,61 +707,48 @@ function renderCalendario() {
 function renderMenuSemanas() {
   let contenedorBotones = document.getElementById('nav-semanas-botones');
   contenedorBotones.innerHTML = '';
-  estructuraSemanas.forEach(sem => {
+  
+  let semanas = obtenerSemanasDelMesActivo();
+  semanas.forEach((sem, idx) => {
     let btn = document.createElement('button');
-    btn.className = `qb ${sem.id === semanaSeleccionada ? 'on' : ''}`;
-    btn.innerText = `Sem. ${sem.numAnio}`;
-    btn.onclick = function() {
-      semanaSeleccionada = sem.id;
-      renderMenuSemanas();
-      renderSemanaActiva();
-    };
+    btn.className = `qb ${idx === semanaSeleccionadaIndex ? 'on' : ''}`;
+    btn.innerText = `Tramo ${idx + 1}`;
+    btn.onclick = function() { semanaSeleccionadaIndex = idx; initApp(); };
     contenedorBotones.appendChild(btn);
   });
 }
 
-function renderSemanaActiva() {
+function renderSemanaActiva(compromisosMes) {
   let container = document.getElementById('lista-semana-activa');
-  let configSemana = estructuraSemanas.find(s => s.id === semanaSeleccionada);
-  if(!configSemana) return;
+  let semanas = obtenerSemanasDelMesActivo();
+  let configSemana = semanas[semanaSeleccionadaIndex];
+  
+  if(!configSemana) { container.innerHTML = ''; return; }
 
-  let deSemana = appData.compromisos.filter(c => {
+  let deSemana = compromisosMes.filter(c => {
     let dVal = parseInt(c.dia);
-    if (dVal === -1 && configSemana.id === "s18") return true;
+    if (dVal === -1 && semanaSeleccionadaIndex === 0) return true;
     return configSemana.dias.includes(dVal);
   });
 
-  deSemana.sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
   let sumaTotal = deSemana.reduce((acc, c) => acc + c.valor, 0);
-  let sumaPendiente = deSemana.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
 
   let html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--color-border-secondary);padding-bottom:8px">
-      <div>
-        <strong style="font-size:14px;color:#534AB7">Semana ${configSemana.numAnio}</strong>
-        <div class="rm">${configSemana.rango}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:12px;font-weight:bold;color:var(--color-text-primary)">Carga: ${formatCOP(sumaTotal)}</div>
-        <div style="font-size:11px;color:#BA7517">Por pagar: ${formatCOP(sumaPendiente)}</div>
-      </div>
+      <div><strong>${configSemana.nombre}</strong><div class="rm">${configSemana.rango}</div></div>
+      <div style="font-size:12px;font-weight:bold;">Total Tramo: ${formatCOP(sumaTotal)}</div>
     </div>
   `;
 
   if(deSemana.length === 0) {
-    html += `<div class="rm" style="text-align:center;padding:20px 0;">No hay deudas programadas.</div>`;
+    html += `<div class="rm" style="text-align:center;padding:12px 0;">Sin obligaciones de pago en este rango de días.</div>`;
   } else {
     deSemana.forEach(c => {
-      let dVal = parseInt(c.dia);
-      let etiquetaDia = dVal === -1 ? "Pre-mes" : `${nombresDiasMayo[dVal]} ${dVal}`;
       html += `
         <div class="row ${c.pagado ? 'row-paid' : ''}">
           <div class="rn">
             <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
-            <div>
-              <div>${c.nombre}</div>
-              <div class="rm"><span class="semana-badge">${etiquetaDia}</span></div>
-            </div>
+            <div><div>${c.nombre}</div><div class="rm"><span class="semana-badge">Día ${c.dia === -1 ? 'Pre': c.dia}</span></div></div>
           </div>
           <div class="ra neg">${formatCOP(c.valor)}</div>
         </div>
@@ -706,15 +758,14 @@ function renderSemanaActiva() {
   container.innerHTML = html;
 }
 
-function agregarGastoDeuda() {
+function procesarNuevoGasto() {
   let nombre = document.getElementById('add-nombre').value.trim();
   let valor = parseFloat(document.getElementById('add-valor').value);
   let dia = parseInt(document.getElementById('add-dia').value);
   let tipoGasto = document.getElementById('add-tipo-gasto').value;
-  let faltantes = parseInt(document.getElementById('add-faltantes').value) || 0;
-  let totales = parseInt(document.getElementById('add-totales').value) || 24;
+  let mesDestino = document.getElementById('add-mes-destino').value;
 
-  if(!nombre || isNaN(valor) || isNaN(dia)) { alert("Completa los campos obligatorios."); return; }
+  if(!nombre || isNaN(valor) || isNaN(dia)) { alert("Ingresa campos obligatorios: Nombre, Valor y Día."); return; }
 
   appData.compromisos.push({
     id: Date.now(), 
@@ -722,19 +773,30 @@ function agregarGastoDeuda() {
     valor: valor, 
     dia: dia, 
     pagado: false, 
-    tipo: tipoGasto, 
-    faltantes: tipoGasto === 'credito' ? faltantes : undefined, 
-    totales: tipoGasto === 'credito' ? totales : undefined
+    tipo: tipoGasto,
+    mesKey: mesDestino, // Se asocia de manera estricta al mes destino configurado
+    faltantes: tipoGasto === 'credito' ? parseInt(document.getElementById('add-faltantes').value) : undefined, 
+    totales: tipoGasto === 'credito' ? parseInt(document.getElementById('add-totales').value) : undefined
   });
+
+  // Si el usuario guardó un gasto en un mes que no estaba cargado originalmente, el sistema lo adopta automáticamente
+  if(!mesesLineaTiempo.includes(mesDestino)) {
+    mesesLineaTiempo.push(mesDestino);
+    appData.lineaTiempoGuardada = mesesLineaTiempo;
+  }
 
   document.getElementById('add-nombre').value = '';
   document.getElementById('add-valor').value = '';
-  document.getElementById('add-dia').value = '';
+  
+  // Mover la vista de la app al mes donde el usuario metió el gasto para que lo pueda ver de inmediato
+  mesActivoGlobal = mesDestino;
+  document.getElementById('global-mes-filtro').value = mesDestino;
+  
   initApp();
 }
 
 function resetAFactory() {
-  if(confirm("¿Restaurar valores iniciales de fábrica?")) { appData = JSON.parse(JSON.stringify(datosDefault)); initApp(); }
+  if(confirm("¿Restaurar valores de fábrica?")) { appData = JSON.parse(JSON.stringify(datosDefault)); mesesLineaTiempo = [...datosDefault.lineaTiempoGuardada]; initApp(); }
 }
 
 window.onload = initApp;
