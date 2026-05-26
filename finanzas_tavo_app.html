@@ -48,35 +48,35 @@
     <div id="alerta-deficit" class="alert" style="display:none;">
       <i class="ti ti-alert-triangle"></i>
       <div>
-        <div class="alert-t">Gastos superan ingresos este mes</div>
+        <div class="alert-t" data-i18n="summary.alertDeficitTitle">Gastos superan ingresos este mes</div>
         <div id="alerta-b-text" class="alert-b"></div>
       </div>
     </div>
 
     <div class="sg">
       <div class="sc">
-        <div class="sl">Ingresos periodo</div>
+        <div class="sl" data-i18n="summary.incomePeriod">Ingresos periodo</div>
         <div id="res-ingresos" class="sv">$0</div>
-        <div id="res-ingresos-detalle" class="ss">Fuentes calculadas</div>
+        <div id="res-ingresos-detalle" class="ss" data-i18n="summary.calculatedSources">Fuentes calculadas</div>
       </div>
       <div class="sc">
-        <div class="sl">Gastos periodo</div>
+        <div class="sl" data-i18n="summary.expensePeriod">Gastos periodo</div>
         <div id="res-gastos" class="sv" style="color:#E24B4A">$0</div>
-        <div id="res-gastos-porc" class="ss">0% del ingreso</div>
+        <div id="res-gastos-porc" class="ss" data-i18n="summary.percentIncome">0% del ingreso</div>
       </div>
       <div class="sc">
-        <div class="sl">Balance Mes</div>
+        <div class="sl" data-i18n="summary.balanceMonth">Balance Mes</div>
         <div id="res-balance" class="sv">-$0</div>
-        <div id="res-balance-text" class="ss">estado actual</div>
+        <div id="res-balance-text" class="ss" data-i18n="summary.currentState">estado actual</div>
       </div>
       <div class="sc">
-        <div class="sl">Pendiente x Pagar</div>
+        <div class="sl" data-i18n="summary.pendingToPay">Pendiente x Pagar</div>
         <div id="res-pendiente" class="sv" style="color:#BA7517">$0</div>
-        <div class="ss">En tramos activos</div>
+        <div class="ss" data-i18n="summary.activeTramos">En tramos activos</div>
       </div>
     </div>
 
-    <div class="sec">Sobrante (Base mensual: $0)</div>
+    <div class="sec" id="tit-sobrante-dinamico">Sobrante (Base mensual: $0)</div>
     <div class="card" id="card-sobrante-resumen"></div>
 
     <div class="sec" id="tit-cal-dinamico">Calendario de Flujo</div>
@@ -84,23 +84,23 @@
       <div class="cal-container" id="grid-calendario"></div>
     </div>
 
-    <div id="sec-vista-diaria" class="sec" style="display:none;">Detalle del Día Seleccionado</div>
+    <div id="sec-vista-diaria" class="sec" style="display:none;" data-i18n="summary.dayDetailSelected">Detalle del Día Seleccionado</div>
     <div id="card-vista-diaria" class="card" style="display:none; border-left: 4px solid #534AB7;"></div>
 
-    <div class="sec">Asistente IA accionable</div>
+    <div class="sec" data-i18n="common.aiActionable">Asistente IA accionable</div>
     <div id="ia-panel-resumen" class="ia-stack"></div>
 
-    <div class="sec">Fuentes de Ingreso Registradas</div>
+    <div class="sec" data-i18n="summary.incomeSourcesRegistered">Fuentes de Ingreso Registradas</div>
     <div class="card" id="lista-ingresos-resumen"></div>
   </div>
 
   <div id="s-semanal" class="screen">
     <div class="sec" id="tit-semanas-dinamico">Semanas correspondientes</div>
     <div class="card" style="padding:10px 12px;">
-      <div class="rm">El balance semanal usa fecha exacta de ingreso. Fin de mes se toma en último día hábil y, si cae en 29-31, impacta al día 1 del mes siguiente. Quincenal real: viernes cada 14 días.</div>
+      <div class="rm" data-i18n="weeks.balanceHint">El balance semanal usa fecha exacta de ingreso. Fin de mes se toma en último día hábil y, si cae en 29-31, impacta al día 1 del mes siguiente. Quincenal real: viernes cada 14 días.</div>
     </div>
     <div class="qs" id="nav-semanas-botones"></div>
-    <div class="sec">Asistente IA accionable</div>
+    <div class="sec" data-i18n="common.aiActionable">Asistente IA accionable</div>
     <div id="ia-panel-semanal" class="ia-stack"></div>
     <div id="contenedor-vista-semanal">
       <div class="card" id="lista-semana-activa"></div>
@@ -109,73 +109,73 @@
 
   <div id="s-quincena" class="screen">
     <div class="qs">
-      <button class="qb on" id="q-pre" data-action="show-quincena" data-value="pre">Pre-Gastos / Fijos</button>
-      <button class="qb" id="q-q1" data-action="show-quincena" data-value="q1">Tramo 1 (Días 1-14)</button>
-      <button class="qb" id="q-q2" data-action="show-quincena" data-value="q2">Tramo 2 (Días 15-31)</button>
+      <button class="qb on" id="q-pre" data-action="show-quincena" data-value="pre" data-i18n="fortnight.pre">Pre-Gastos / Fijos</button>
+      <button class="qb" id="q-q1" data-action="show-quincena" data-value="q1" data-i18n="fortnight.q1">Tramo 1 (Días 1-14)</button>
+      <button class="qb" id="q-q2" data-action="show-quincena" data-value="q2" data-i18n="fortnight.q2">Tramo 2 (Días 15-31)</button>
     </div>
     <div id="qp-pre"><div class="card" id="lista-pre-quincena"></div></div>
     <div id="qp-q1" style="display:none"><div class="card" id="lista-q1-quincena"></div></div>
     <div id="qp-q2" style="display:none"><div class="card" id="lista-q2-quincena"></div></div>
-    <div class="sec">Asistente IA accionable</div>
+    <div class="sec" data-i18n="common.aiActionable">Asistente IA accionable</div>
     <div id="ia-panel-quincena" class="ia-stack"></div>
   </div>
 
   <div id="s-deudas" class="screen">
     <div class="qs" style="margin-bottom: 14px;">
-      <button class="qb on" id="f-todas" data-action="filter-debt" data-value="todas">Todas</button>
-      <button class="qb" id="f-fijas" data-action="filter-debt" data-value="fijas">Fijos</button>
-      <button class="qb" id="f-variables" data-action="filter-debt" data-value="variables">Variables</button>
-      <button class="qb" id="f-creditos" data-action="filter-debt" data-value="creditos">Créditos 🏦</button>
-      <button class="qb" id="f-pendientes" data-action="filter-debt" data-value="pendientes">Por Pagar ⏳</button>
+      <button class="qb on" id="f-todas" data-action="filter-debt" data-value="todas" data-i18n="debts.all">Todas</button>
+      <button class="qb" id="f-fijas" data-action="filter-debt" data-value="fijas" data-i18n="debts.fixed">Fijos</button>
+      <button class="qb" id="f-variables" data-action="filter-debt" data-value="variables" data-i18n="debts.variable">Variables</button>
+      <button class="qb" id="f-creditos" data-action="filter-debt" data-value="creditos" data-i18n="debts.credits">Créditos 🏦</button>
+      <button class="qb" id="f-pendientes" data-action="filter-debt" data-value="pendientes" data-i18n="debts.pending">Por Pagar ⏳</button>
     </div>
 
-    <div class="sec" id="titulo-modulo-deudas">Gestión de Obligaciones</div>
-    <div class="sec">Asistente IA accionable</div>
+    <div class="sec" id="titulo-modulo-deudas" data-i18n="debts.manageTitle">Gestión de Obligaciones</div>
+    <div class="sec" data-i18n="common.aiActionable">Asistente IA accionable</div>
     <div id="ia-panel-deudas" class="ia-stack"></div>
     <div class="card" style="padding:10px 12px;">
-      <label class="sl">Filtrar por fecha tentativa (día del mes)</label>
+      <label class="sl" data-i18n="debts.filterByTentativeDate">Filtrar por fecha tentativa (día del mes)</label>
       <div class="filtro-fecha">
         <div class="campo">
-          <label class="sl">Desde</label>
+          <label class="sl" data-i18n="common.from">Desde</label>
           <input type="number" id="f-dia-desde" class="input-app" min="1" max="31" placeholder="1" data-action="apply-debt-date-filter">
         </div>
         <div class="campo">
-          <label class="sl">Hasta</label>
+          <label class="sl" data-i18n="common.to">Hasta</label>
           <input type="number" id="f-dia-hasta" class="input-app" min="1" max="31" placeholder="31" data-action="apply-debt-date-filter">
         </div>
-        <button class="btn-action" style="height:34px;margin-bottom:1px" data-action="clear-debt-date-filter">Limpiar</button>
+        <button class="btn-action" style="height:34px;margin-bottom:1px" data-action="clear-debt-date-filter" data-i18n="common.clear">Limpiar</button>
       </div>
       <div id="deudas-fecha-info" class="rm"></div>
     </div>
     <div id="lista-deudas-modulo"></div>
 
-    <div class="sec">Registrar Obligación</div>
+    <div class="sec" data-i18n="debts.register">Registrar Obligación</div>
     <div class="card">
       <div class="modo-alta">
-        <button id="modo-rapido" class="m on" data-action="set-debt-entry-mode" data-value="rapido">Modo Rápido</button>
-        <button id="modo-avanzado" class="m" data-action="set-debt-entry-mode" data-value="avanzado">Modo Avanzado</button>
+        <button id="modo-rapido" class="m on" data-action="set-debt-entry-mode" data-value="rapido" data-i18n="debts.quickMode">Modo Rápido</button>
+        <button id="modo-avanzado" class="m" data-action="set-debt-entry-mode" data-value="avanzado" data-i18n="debts.advancedMode">Modo Avanzado</button>
       </div>
 
-      <label class="sl">Nombre del Compromiso</label>
-      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Seguro Vehicular" data-action="update-debt-preview">
+      <label class="sl" data-i18n="debts.commitmentName">Nombre del Compromiso</label>
+      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Seguro Vehicular" data-action="update-debt-preview" data-i18n-placeholder="debts.commitmentName.placeholder">
 
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
-          <label class="sl">Valor Gasto ($)</label>
-          <input type="text" inputmode="numeric" id="add-valor" class="input-app money-input" placeholder="$450.000" data-action="update-debt-preview">
+          <label class="sl" data-i18n="debts.expenseValue">Valor Gasto ($)</label>
+          <input type="text" inputmode="numeric" id="add-valor" class="input-app money-input" placeholder="$450.000" data-action="update-debt-preview" data-i18n-placeholder="debts.expenseValue.placeholder">
         </div>
         <div style="flex:1">
-          <label class="sl">Día de Pago Tentativo</label>
+          <label class="sl" data-i18n="debts.tentativePayDay">Día de Pago Tentativo</label>
           <input type="number" id="add-dia" class="input-app" placeholder="15" value="1" min="-1" max="31" data-action="update-debt-preview">
         </div>
       </div>
 
       <div style="margin-top:8px">
-        <label class="sl">Tipo de Obligación</label>
+        <label class="sl" data-i18n="debts.type">Tipo de Obligación</label>
         <select id="add-tipo-gasto" class="input-app" data-action="debt-type-change">
-          <option value="variable">Gasto Variable / Opcional</option>
-          <option value="fijo">Gasto Fijo Recurrente</option>
-          <option value="credito">Crédito Formal (A Plazos)</option>
+          <option value="variable" data-i18n="debts.type.variable">Gasto Variable / Opcional</option>
+          <option value="fijo" data-i18n="debts.type.fixed">Gasto Fijo Recurrente</option>
+          <option value="credito" data-i18n="debts.type.credit">Crédito Formal (A Plazos)</option>
         </select>
       </div>
 
@@ -184,11 +184,11 @@
           <div style="flex:1;" id="wrap-cuotas-add">
             <div style="display:flex; gap:6px;">
               <div style="flex:1;">
-                <label class="sl">Cuotas Restantes</label>
+                <label class="sl" data-i18n="debts.installmentsRemaining">Cuotas Restantes</label>
                 <input type="number" id="add-faltantes" class="input-app" value="6" data-action="update-debt-preview">
               </div>
               <div style="flex:1;">
-                <label class="sl">Cuotas Totales</label>
+                <label class="sl" data-i18n="debts.installmentsTotal">Cuotas Totales</label>
                 <input type="number" id="add-totales" class="input-app" value="12" data-action="update-debt-preview">
               </div>
             </div>
@@ -196,149 +196,149 @@
         </div>
 
         <div style="margin-top:8px;">
-          <label class="sl">Mes destino de este gasto</label>
+          <label class="sl" data-i18n="debts.targetMonth">Mes destino de este gasto</label>
           <select id="add-mes-destino" class="input-app" data-action="update-debt-preview"></select>
         </div>
       </div>
 
       <div class="preview-deuda" id="preview-nueva-deuda">
-        <div class="tit">Vista previa de impacto</div>
-        <div class="linea" id="pv-resumen">Completa nombre, valor y día para simular impacto.</div>
+        <div class="tit" data-i18n="debts.previewTitle">Vista previa de impacto</div>
+        <div class="linea" id="pv-resumen" data-i18n="debts.previewHint">Completa nombre, valor y día para simular impacto.</div>
         <div class="linea" id="pv-semana"></div>
         <div class="linea" id="pv-quincena"></div>
       </div>
       <div class="warn-inline" id="add-warn-deuda"></div>
 
-      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px;background:#534AB7;" data-action="save-new-expense">Guardar Obligación</button>
+      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px;background:#534AB7;" data-action="save-new-expense" data-i18n="debts.save">Guardar Obligación</button>
     </div>
   </div>
 
   <div id="s-config" class="screen">
-    <div class="sec">Añadir Nueva Fuente de Ingreso</div>
+    <div class="sec" data-i18n="config.addIncome">Añadir Nueva Fuente de Ingreso</div>
     <div class="card">
-      <label class="sl">Nombre del Ingreso</label>
-      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional">
+      <label class="sl" data-i18n="config.incomeName">Nombre del Ingreso</label>
+      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional" data-i18n-placeholder="config.incomeName.placeholder">
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
-          <label class="sl">Monto Mensual ($)</label>
-          <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000">
+          <label class="sl" data-i18n="config.monthlyAmount">Monto Mensual ($)</label>
+          <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000" data-i18n-placeholder="config.monthlyAmount.placeholder">
         </div>
         <div style="flex:1">
-          <label class="sl">Distribución inicial</label>
+          <label class="sl" data-i18n="config.initialDistribution">Distribución inicial</label>
           <select id="new-ing-periodo" class="input-app">
-            <option value="q1">Entra en Quincena 1</option>
-            <option value="q2">Entra en Quincena 2</option>
-            <option value="biweekly">Pago cada 14 días (quincenal real)</option>
-            <option value="todo">Ambas quincenas (50/50)</option>
+            <option value="q1" data-i18n="config.dist.q1">Entra en Quincena 1</option>
+            <option value="q2" data-i18n="config.dist.q2">Entra en Quincena 2</option>
+            <option value="biweekly" data-i18n="config.dist.biweekly">Pago cada 14 días (quincenal real)</option>
+            <option value="todo" data-i18n="config.dist.all">Ambas quincenas (50/50)</option>
           </select>
         </div>
       </div>
       <div style="margin-top:8px;">
-        <label class="sl">Día exacto de pago (1-31)</label>
+        <label class="sl" data-i18n="config.exactPayDay">Día exacto de pago (1-31)</label>
         <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
       </div>
       <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
         <div style="flex:1;">
-          <label class="sl">Vigencia desde</label>
+          <label class="sl" data-i18n="config.validFrom">Vigencia desde</label>
           <select id="new-ing-desde" class="input-app"></select>
         </div>
         <div style="flex:1;">
-          <label class="sl">Vigencia hasta</label>
+          <label class="sl" data-i18n="config.validTo">Vigencia hasta</label>
           <select id="new-ing-hasta" class="input-app"></select>
         </div>
       </div>
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income">Añadir Ingreso</button>
+      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income" data-i18n="config.addIncomeBtn">Añadir Ingreso</button>
     </div>
 
-    <div class="sec">Listado y Edición de Ingresos</div>
+    <div class="sec" data-i18n="config.incomeListEdit">Listado y Edición de Ingresos</div>
     <div id="lista-config-ingresos"></div>
 
-    <div class="sec">Primas / Ingresos no recurrentes</div>
+    <div class="sec" data-i18n="config.bonusesTitle">Primas / Ingresos no recurrentes</div>
     <div class="card">
-      <label class="sl">Nombre de la Prima</label>
-      <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio">
+      <label class="sl" data-i18n="config.bonusName">Nombre de la Prima</label>
+      <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio" data-i18n-placeholder="config.bonusName.placeholder">
 
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
-          <label class="sl">Valor ($)</label>
-          <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000">
+          <label class="sl" data-i18n="config.value">Valor ($)</label>
+          <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000" data-i18n-placeholder="config.value.placeholder">
         </div>
         <div style="width:92px;">
-          <label class="sl">Día</label>
+          <label class="sl" data-i18n="config.day">Día</label>
           <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
         </div>
       </div>
 
       <div style="margin-top:8px;">
-        <label class="sl">Mes de pago</label>
+        <label class="sl" data-i18n="config.payMonth">Mes de pago</label>
         <select id="new-prima-mes" class="input-app"></select>
       </div>
 
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus">Añadir Prima</button>
+      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus" data-i18n="config.addBonusBtn">Añadir Prima</button>
     </div>
 
     <div id="lista-config-primas"></div>
 
-    <div class="sec">Instalar App</div>
+    <div class="sec" data-i18n="config.installApp">Instalar App</div>
     <div class="card">
-      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
-      <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa">Instalar en este dispositivo</button>
-      <div id="install-hint" class="rm">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.installDescription">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
+      <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa" data-i18n="config.installButton">Instalar en este dispositivo</button>
+      <div id="install-hint" class="rm" data-i18n="config.installHint">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
     </div>
 
-    <div class="sec">Respaldo de Datos</div>
+    <div class="sec" data-i18n="config.backupTitle">Respaldo de Datos</div>
     <div class="card">
-      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
-      <div id="last-save-indicator" class="rm" style="margin-bottom:8px;">Ultimo guardado: pendiente...</div>
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.backupDescription">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
+      <div id="last-save-indicator" class="rm" style="margin-bottom:8px;" data-i18n="config.lastSavePending">Ultimo guardado: pendiente...</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-action" style="padding:8px 10px;" data-action="export-backup">Exportar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup">Importar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup">Recuperar último auto-respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;" data-action="export-backup" data-i18n="config.exportBackup">Exportar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup" data-i18n="config.importBackup">Importar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup" data-i18n="config.restoreBackup">Recuperar último auto-respaldo</button>
       </div>
       <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" data-action="import-backup-file">
     </div>
 
-    <div class="sec">Asistente IA</div>
+    <div class="sec" data-i18n="config.aiTitle">Asistente IA</div>
     <div class="card">
-      <label class="sl">Modo IA</label>
+      <label class="sl" data-i18n="config.aiMode">Modo IA</label>
       <select id="ia-mode-selector" class="input-app" data-action="set-ai-mode">
-        <option value="off">OFF (sin llamadas IA)</option>
-        <option value="local">LOCAL (IA Local)</option>
-        <option value="api">API externa</option>
+        <option value="off" data-i18n="config.aiMode.off">OFF (sin llamadas IA)</option>
+        <option value="local" data-i18n="config.aiMode.local">LOCAL (IA Local)</option>
+        <option value="api" data-i18n="config.aiMode.api">API externa</option>
       </select>
       <div id="ia-mode-help" class="rm" style="margin-top:8px;"></div>
       <div style="margin-top:10px; border-top:1px dashed var(--color-border-secondary); padding-top:10px;">
-        <div class="sl" style="margin-bottom:6px;">Configuración LOCAL (IA Local)</div>
-        <label class="sl">Endpoint</label>
+        <div class="sl" style="margin-bottom:6px;" data-i18n="config.localConfigTitle">Configuración LOCAL (IA Local)</div>
+        <label class="sl" data-i18n="config.endpoint">Endpoint</label>
         <input id="ia-local-endpoint" class="input-app" type="text" placeholder="http://localhost:11434/api/generate" data-action="save-local-ai-config">
         <div style="display:flex;gap:8px;margin-top:8px;">
           <div style="flex:1;">
-            <label class="sl">Modelo</label>
+            <label class="sl" data-i18n="config.model">Modelo</label>
             <input id="ia-local-model" class="input-app" type="text" placeholder="llama3.1:8b" data-action="save-local-ai-config">
           </div>
           <div style="width:110px;">
-            <label class="sl">Timeout ms</label>
+            <label class="sl" data-i18n="config.timeout">Timeout ms</label>
             <input id="ia-local-timeout" class="input-app" type="number" min="10000" max="180000" step="1000" data-action="save-local-ai-config">
           </div>
           <div style="width:90px;">
-            <label class="sl">Reintentos</label>
+            <label class="sl" data-i18n="config.retries">Reintentos</label>
             <input id="ia-local-retries" class="input-app" type="number" min="0" max="4" step="1" data-action="save-local-ai-config">
           </div>
         </div>
       </div>
-      <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" data-action="test-ai-mode">Probar modo IA</button>
+      <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" data-action="test-ai-mode" data-i18n="config.testAiMode">Probar modo IA</button>
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>
 
-    <div class="sec">Línea de Tiempo del Sistema</div>
+    <div class="sec" data-i18n="config.timelineTitle">Línea de Tiempo del Sistema</div>
     <div class="card">
-      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
-      <button class="btn-action" style="background:#534AB7;" data-action="extend-timeline-year">Expandir un Año Más 🚀</button>
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.timelineDescription">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
+      <button class="btn-action" style="background:#534AB7;" data-action="extend-timeline-year" data-i18n="config.extendYear">Expandir un Año Más 🚀</button>
     </div>
 
-    <div class="sec">Resetear Datos</div>
-    <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" data-action="reset-factory">Restaurar Datos por Defecto</button>
+    <div class="sec" data-i18n="config.resetTitle">Resetear Datos</div>
+    <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" data-action="reset-factory" data-i18n="config.resetButton">Restaurar Datos por Defecto</button>
   </div>
 </div>
 
@@ -349,6 +349,8 @@
 <script src="./app.rules.js"></script>
 <script src="./app.actions.js"></script>
 <script src="./app.render.js"></script>
+<script src="./app.i18n.es-CO.js"></script>
+<script src="./app.i18n.en-US.js"></script>
 <script src="./app.i18n.js"></script>
 <script src="./app.ia.js"></script>
 </body>

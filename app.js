@@ -824,22 +824,62 @@ function limpiarFiltroFechaDeudas(soloEstado = false) {
 
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
-function initApp() {
-  if(window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
+function initApp(options = {}) {
+  const opts = {
+    skipPersist: false,
+    skipDataNormalization: false,
+    skipLocaleInit: false,
+    ...options
+  };
+
+  const i18nT = (key, vars = {}, fallback = key) => {
+    if(window.FinancialI18n && typeof window.FinancialI18n.t === 'function') {
+      const translated = window.FinancialI18n.t(key, vars);
+      if(translated === key || translated == null || translated === '') {
+        return fallback;
+      }
+      return translated;
+    }
+    return fallback;
+  };
+
+  if(!opts.skipLocaleInit && window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
     window.FinancialI18n.initializeLocale();
   }
 
-  aplicarCorreccionMesBaseSiAplica();
-  normalizarRecurrenciasCompromisos();
-  normalizarIngresosConDia();
-  appData.schemaVersion = APP_SCHEMA_VERSION;
-  let marcaGuardado = new Date().toISOString();
-  persistirDataPrincipalConFallback();
-  persistirAuxiliaresConFallback(marcaGuardado);
+  if(!opts.skipDataNormalization) {
+    aplicarCorreccionMesBaseSiAplica();
+    normalizarRecurrenciasCompromisos();
+    normalizarIngresosConDia();
+    appData.schemaVersion = APP_SCHEMA_VERSION;
+  }
+
+  if(!opts.skipPersist) {
+    let marcaGuardado = new Date().toISOString();
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(marcaGuardado);
+  }
+
   actualizarSelectoresDeMes();
   
-  document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
-  document.getElementById('tit-semanas-dinamico').innerText = `Línea de Semanas - ${mesActivoGlobal}`;
+  document.getElementById('tit-cal-dinamico').innerText = i18nT(
+    'summary.flowCalendarTitle',
+    { month: mesActivoGlobal },
+    `Calendario de Flujo - ${mesActivoGlobal}`
+  );
+  document.getElementById('tit-semanas-dinamico').innerText = i18nT(
+    'weeks.timelineTitle',
+    { month: mesActivoGlobal },
+    `Línea de Semanas - ${mesActivoGlobal}`
+  );
+  const titSobrante = document.getElementById('tit-sobrante-dinamico');
+  if(titSobrante) {
+    titSobrante.innerText = i18nT(
+      'summary.surplusBaseMonthly',
+      { value: formatCOP(0) },
+      `Sobrante (Base mensual: ${formatCOP(0)})`
+    );
+  }
 
   let compromisosMesActual = getCompromisosMesActual();
   compromisosMesGlobalCache = compromisosMesActual;
@@ -853,22 +893,49 @@ function initApp() {
   let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
   let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
   let balance = totalIngresos - totalGastos;
+  const totalGastosPorc = totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(0) : '100';
 
   document.getElementById('res-ingresos').innerText = formatCOP(totalIngresos);
-  document.getElementById('res-ingresos-detalle').innerText = `Normal: ${formatCOP(totalNormalIngresos)} · Arrastre: ${formatCOP(totalArrastreIngresos)}`;
+  document.getElementById('res-ingresos-detalle').innerText = i18nT(
+    'summary.incomeBreakdown',
+    {
+      normal: formatCOP(totalNormalIngresos),
+      carry: formatCOP(totalArrastreIngresos)
+    },
+    `Normal: ${formatCOP(totalNormalIngresos)} · Arrastre: ${formatCOP(totalArrastreIngresos)}`
+  );
   document.getElementById('res-gastos').innerText = formatCOP(totalGastos);
-  document.getElementById('res-gastos-porc').innerText = `${totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(0) : 100}% del ingreso`;
+  document.getElementById('res-gastos-porc').innerText = i18nT(
+    'summary.percentIncomeDynamic',
+    { value: totalGastosPorc },
+    `${totalGastosPorc}% del ingreso`
+  );
   
   let balCard = document.getElementById('res-balance');
   balCard.innerText = formatCOP(balance);
   if(balance < 0) {
     balCard.style.color = '#E24B4A';
-    document.getElementById('res-balance-text').innerText = "Déficit en este periodo";
+    document.getElementById('res-balance-text').innerText = i18nT(
+      'summary.balanceDeficitPeriod',
+      {},
+      'Déficit en este periodo'
+    );
     document.getElementById('alerta-deficit').style.display = 'flex';
-    document.getElementById('alerta-b-text').innerText = `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresos)}.`;
+    document.getElementById('alerta-b-text').innerText = i18nT(
+      'summary.alertDeficitBody',
+      {
+        expenses: formatCOP(totalGastos),
+        income: formatCOP(totalIngresos)
+      },
+      `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresos)}.`
+    );
   } else {
     balCard.style.color = '#1D9E75';
-    document.getElementById('res-balance-text').innerText = "Superávit en este periodo";
+    document.getElementById('res-balance-text').innerText = i18nT(
+      'summary.balanceSurplusPeriod',
+      {},
+      'Superávit en este periodo'
+    );
     document.getElementById('alerta-deficit').style.display = 'none';
   }
   document.getElementById('res-pendiente').innerText = formatCOP(totalPendiente);
@@ -1706,6 +1773,7 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'set-locale') {
       setAppLocale(el.value);
+      initApp({ skipPersist: true, skipDataNormalization: true, skipLocaleInit: true });
       return;
     }
     if(action === 'debt-type-change') {
