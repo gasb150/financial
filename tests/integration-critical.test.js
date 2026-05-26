@@ -101,8 +101,8 @@ test('ejecutarConsultaIA routes through OFF/LOCAL/API modes as expected', async 
     consultarIALocal: async () => ({ ok: true, mode: 'local', message: 'unused' })
   });
 
-  assert.throws(
-    () => ctx.ejecutarConsultaIA('hola'),
+  await assert.rejects(
+    async () => ctx.ejecutarConsultaIA('hola'),
     /Modo IA en OFF/
   );
 
