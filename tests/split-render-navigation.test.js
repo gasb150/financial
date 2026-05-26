@@ -89,3 +89,100 @@ test('showQuincenaTab toggles display and button states by active tab', () => {
   assert.equal(q1Btn.state, true);
   assert.equal(q2Btn.state, false);
 });
+
+test('renderWeeklyMenu clears container when no weeks are available', () => {
+  const container = { innerHTML: 'old-content' };
+
+  const ctx = loadFunctionsFromFile(RENDER_JS, ['renderWeeklyMenu'], {
+    semanaSeleccionadaIndex: 0,
+    obtenerSemanasDelMesActivo: () => [],
+    document: {
+      getElementById: (id) => id === 'nav-semanas-botones' ? container : null
+    }
+  });
+
+  ctx.renderWeeklyMenu();
+  assert.equal(container.innerHTML, '');
+});
+
+test('renderWeeklyMenu resets out-of-range index and uses partial render on click', () => {
+  const container = {
+    innerHTML: '',
+    buttons: [],
+    appendChild(btn) { this.buttons.push(btn); }
+  };
+
+  let activeWeekCalls = 0;
+  let iaPanelCalls = 0;
+  let initCalls = 0;
+
+  const weeks = [
+    { nombre: 'Semana 1', dias: [1, 2], rango: '1-2' },
+    { nombre: 'Semana 2', dias: [3, 4], rango: '3-4' }
+  ];
+
+  const ctx = loadFunctionsFromFile(RENDER_JS, ['renderWeeklyMenu'], {
+    semanaSeleccionadaIndex: 10,
+    obtenerSemanasDelMesActivo: () => weeks,
+    getCompromisosMesActual: () => [{ id: 1 }],
+    renderActiveWeek: () => { activeWeekCalls += 1; },
+    renderIAPanelSemanal: () => { iaPanelCalls += 1; },
+    initApp: () => { initCalls += 1; },
+    document: {
+      getElementById: (id) => id === 'nav-semanas-botones' ? container : null,
+      createElement: () => ({
+        className: '',
+        innerText: '',
+        onclick: null
+      })
+    }
+  });
+
+  ctx.renderWeeklyMenu();
+  assert.equal(ctx.semanaSeleccionadaIndex, 0);
+  assert.equal(container.buttons.length, 2);
+
+  container.buttons[1].onclick();
+  assert.equal(ctx.semanaSeleccionadaIndex, 1);
+  assert.equal(activeWeekCalls, 1);
+  assert.equal(iaPanelCalls, 1);
+  assert.equal(initCalls, 0);
+});
+
+test('renderActiveWeek escapes week labels and sanitizes debt id in onclick', () => {
+  const container = { innerHTML: '' };
+  const weeks = [
+    {
+      nombre: '<img src=x onerror=alert(1)>',
+      rango: '1-7<script>alert(1)</script>',
+      dias: [1, 2, 3]
+    }
+  ];
+
+  const compromisos = [
+    { id: '7);alert(1)//', nombre: '<b>deuda</b>', dia: 1, pagado: false, valor: 1200 }
+  ];
+
+  const ctx = loadFunctionsFromFile(RENDER_JS, ['renderActiveWeek'], {
+    semanaSeleccionadaIndex: 0,
+    obtenerSemanasDelMesActivo: () => weeks,
+    calcularBalanceSemanal: () => ({ ingresosSemana: 2000, gastosSemana: 1200, balanceSemana: 800 }),
+    formatCOP: (n) => `$${n}`,
+    escapeHTML: (v) => String(v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;'),
+    document: {
+      getElementById: (id) => id === 'lista-semana-activa' ? container : null
+    }
+  });
+
+  ctx.renderActiveWeek(compromisos);
+
+  assert.match(container.innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(container.innerHTML, /1-7&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.match(container.innerHTML, /toggleCheckPago\(7\)/);
+  assert.doesNotMatch(container.innerHTML, /alert\(1\)\//);
+});

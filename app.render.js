@@ -123,7 +123,9 @@
       btn.innerText = `Tramo ${idx + 1}`;
       btn.onclick = function() {
         semanaSeleccionadaIndex = idx;
-        initApp();
+        renderWeeklyMenu();
+        renderActiveWeek(typeof getCompromisosMesActual === 'function' ? getCompromisosMesActual() : []);
+        if(typeof renderIAPanelSemanal === 'function') renderIAPanelSemanal();
       };
       container.appendChild(btn);
     });
@@ -183,7 +185,9 @@
     });
     html += '</div>';
 
-    html += `<div style="margin:10px 0 8px"><strong>${selectedWeek.nombre}</strong> (${selectedWeek.rango})</div>`;
+    let safeWeekName = escapeHTML(selectedWeek.nombre);
+    let safeWeekRange = escapeHTML(selectedWeek.rango);
+    html += `<div style="margin:10px 0 8px"><strong>${safeWeekName}</strong> (${safeWeekRange})</div>`;
     html += '<div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px;">';
     html += `Arrastre previo: <span class="${activeWeekStats.saldoInicial >= 0 ? 'pos' : 'neg'}">${formatCOP(activeWeekStats.saldoInicial)}</span> · `;
     html += `Ingresos: <span class="pos">${formatCOP(activeWeekStats.ingresosSemana)}</span> · `;
@@ -198,8 +202,9 @@
 
     weekDebts.forEach((debt) => {
       let safeName = escapeHTML(debt.nombre);
+      let safeDebtId = parseInt(debt.id, 10);
       html += `<div class="row ${debt.pagado ? 'row-paid' : ''}">`;
-      html += `<div class="rn"><input type="checkbox" class="chk-box" ${debt.pagado ? 'checked' : ''} onclick="toggleCheckPago(${debt.id})"> ${safeName}</div>`;
+      html += `<div class="rn"><input type="checkbox" class="chk-box" ${debt.pagado ? 'checked' : ''} onclick="toggleCheckPago(${Number.isFinite(safeDebtId) ? safeDebtId : 'null'})"> ${safeName}</div>`;
       html += `<div class="ra ${debt.pagado ? 'pos' : 'neg'}">${formatCOP(debt.valor)}</div>`;
       html += '</div>';
     });

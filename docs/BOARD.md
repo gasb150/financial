@@ -29,8 +29,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
 - [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
-- [ ] TKT-047 Eliminacion de handlers inline en HTML
-- [ ] TKT-048 Endurecimiento offline/PWA y dependencia CDN
 - [ ] TKT-049 Cobertura de pruebas de integracion critica
 - [ ] TKT-050 Cobertura i18n completa en UI y mensajes
 
@@ -47,6 +45,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
 - [x] TKT-040 QA de regresion post-split y saneamiento
+- [x] TKT-047 Eliminacion de handlers inline en HTML
+- [x] TKT-048 Endurecimiento offline/PWA y dependencia CDN
 - [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
@@ -714,7 +714,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-047 - Eliminacion de handlers inline en HTML
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -723,13 +723,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Los eventos se registran desde JS usando data-* y listeners desacoplados.
    - No hay regresiones en flujos de formularios y navegacion.
 - Checklist:
-   - [ ] Reemplazar handlers inline por data-action/data-input
-   - [ ] Registrar listeners en bootstrap de UI
-   - [ ] Ejecutar smoke completo de pantallas
+   - [x] Reemplazar handlers inline por data-action/data-input
+   - [x] Registrar listeners en bootstrap de UI
+   - [x] Ejecutar smoke completo de pantallas
 
 ### TKT-048 - Endurecimiento offline/PWA y dependencia CDN
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -738,9 +738,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Los assets criticos de UI quedan versionados localmente o con estrategia estable cacheable.
    - Se valida carga en frio offline tras instalacion.
 - Checklist:
-   - [ ] Reemplazar CDN mutable por asset local/versionado
-   - [ ] Ajustar service worker para cubrir asset de iconos/tablero
-   - [ ] Validar PWA offline en movil/escritorio
+   - [x] Reemplazar CDN mutable por asset local/versionado
+   - [x] Ajustar service worker para cubrir asset de iconos/tablero
+   - [x] Validar PWA offline en movil/escritorio
 
 ### TKT-049 - Cobertura de pruebas de integracion critica
 
@@ -791,6 +791,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-048 completado: dependencia CDN mutable removida (@latest -> version fija) y cache endurecida en service worker para asset externo estable.
+1. TKT-047 completado: eliminados handlers inline en HTML y migrados a listeners delegados con data-action en bootstrap de JS.
+1. TKT-049 avanzado: se agregaron pruebas de regresion para render semanal (limpieza sin semanas, reset de indice fuera de rango y hardening XSS/ID en render).
 1. TKT-040 completado: QA de regresion ejecutado (tests + smoke funcional + verificacion service worker/cache) con correccion de runtime en render semanal (`renderMenuSemanas` y `renderSemanaActiva`).
 1. TKT-050 agregado: cobertura i18n completa para eliminar textos hardcodeados en UI.
 1. TKT-049 agregado: pruebas de integracion critica (init/render/IA/offline).
