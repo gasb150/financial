@@ -27,8 +27,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-043 Saneamiento historico de Git y datos sensibles
 - [ ] TKT-040 QA de regresion post-split y saneamiento
+- [ ] TKT-045 Modularizacion final de app.js y dominio IA
+- [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
+- [ ] TKT-047 Eliminacion de handlers inline en HTML
+- [ ] TKT-048 Endurecimiento offline/PWA y dependencia CDN
+- [ ] TKT-049 Cobertura de pruebas de integracion critica
+- [ ] TKT-050 Cobertura i18n completa en UI y mensajes
 
 ## En curso
 
@@ -42,6 +47,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
+- [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [x] TKT-037 Split dominio render y navegacion
@@ -537,7 +543,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-043 - Saneamiento historico de Git y datos sensibles
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -546,16 +552,16 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se publica historial saneado mediante force push y las referencias antiguas dejan de estar disponibles en remoto.
    - El estado final conserva comportamiento funcional manteniendo la data actual durante desarrollo activo.
 - Checklist:
-   - [ ] Identificar commit base donde aparece data sensible y definir ventana de reescritura
-   - [ ] Definir politica de anonimización (campos permitidos/prohibidos)
-   - [ ] Aplicar reescritura historica (filter-repo o equivalente) sobre ramas/tags relevantes
-   - [ ] Validar que no queden rastros de datos sensibles en todo el historial reescrito
-   - [ ] Publicar historial saneado con force push
-   - [ ] Documentar impacto para clones existentes (re-clone o hard reset al nuevo historial)
+   - [x] Identificar commit base donde aparece data sensible y definir ventana de reescritura
+   - [x] Definir politica de anonimización (campos permitidos/prohibidos)
+   - [x] Aplicar reescritura historica (filter-repo o equivalente) sobre ramas/tags relevantes
+   - [x] Validar que no queden rastros de datos sensibles en todo el historial reescrito
+   - [x] Publicar historial saneado con force push
+   - [x] Documentar impacto para clones existentes (re-clone o hard reset al nuevo historial)
 
 ### TKT-044 - Seed anonima final para version publica
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -564,10 +570,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - La seed anonima mantiene estructura, volumen y fechas clave para conservar comportamiento funcional de demo.
    - El usuario puede reiniciar datos con seed de prueba sin exponer informacion sensible real.
 - Checklist:
-   - [ ] Definir mapeo de nombres/montos anonimizados
-   - [ ] Reemplazar datos reales en defaults/fixtures por seed anonima
-   - [ ] Validar flujos funcionales con seed anonima
-   - [ ] Documentar estrategia de reset/seed para entorno publico
+   - [x] Definir mapeo de nombres/montos anonimizados
+   - [x] Reemplazar datos reales en defaults/fixtures por seed anonima
+   - [x] Validar flujos funcionales con seed anonima
+   - [x] Documentar estrategia de reset/seed para entorno publico
 
 ### TKT-042 - Base de localizacion (i18n) para transicion a ingles
 
@@ -663,7 +669,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-039 - Split dominio acciones de usuario y formularios
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -672,9 +678,99 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - El registro de eventos no depende del orden incidental de funciones en un unico archivo.
    - Formularios mantienen validaciones y mensajes actuales.
 - Checklist:
-   - [ ] Separar handlers de compromisos, ingresos y configuracion
-   - [ ] Reordenar bootstrap de listeners y acciones globales
-   - [ ] Validar formularios criticos y atajos existentes
+   - [x] Separar handlers de compromisos, ingresos y configuracion
+   - [x] Reordenar bootstrap de listeners y acciones globales
+   - [x] Validar formularios criticos y atajos existentes
+
+### TKT-045 - Modularizacion final de app.js y dominio IA
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - app.js queda reducido a bootstrap/orquestacion y pierde logica de dominio restante.
+   - El cliente IA y flujo de consulta quedan centralizados en app.ia.js.
+   - Existen pruebas para consultarIALocal y ejecutarConsultaIA con casos de error/reintento.
+- Checklist:
+   - [ ] Extraer inicializacion y composicion de dashboard fuera de app.js
+   - [ ] Migrar transporte/errores/fallback IA a app.ia.js
+   - [ ] Agregar pruebas unitarias del cliente IA
+
+### TKT-046 - Validacion fuerte de persistencia y esquema de datos
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - validatePrimaryData y validateBackupPayload validan estructura interna completa.
+   - Se soporta recuperacion parcial segura cuando algun bloque del payload esta corrupto.
+   - Se registra trazabilidad de errores de persistencia para diagnostico.
+- Checklist:
+   - [ ] Definir esquema de ingresos/primas/compromisos/iaConfig
+   - [ ] Implementar validador estructural y sanitizacion de entradas
+   - [ ] Agregar logs de error y pruebas de payloads invalidos
+
+### TKT-047 - Eliminacion de handlers inline en HTML
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Se eliminan handlers inline (onclick/onchange/oninput) de finanzas_tavo_app.html.
+   - Los eventos se registran desde JS usando data-* y listeners desacoplados.
+   - No hay regresiones en flujos de formularios y navegacion.
+- Checklist:
+   - [ ] Reemplazar handlers inline por data-action/data-input
+   - [ ] Registrar listeners en bootstrap de UI
+   - [ ] Ejecutar smoke completo de pantallas
+
+### TKT-048 - Endurecimiento offline/PWA y dependencia CDN
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - El modo offline no depende de recursos mutables externos (@latest).
+   - Los assets criticos de UI quedan versionados localmente o con estrategia estable cacheable.
+   - Se valida carga en frio offline tras instalacion.
+- Checklist:
+   - [ ] Reemplazar CDN mutable por asset local/versionado
+   - [ ] Ajustar service worker para cubrir asset de iconos/tabler
+   - [ ] Validar PWA offline en movil/escritorio
+
+### TKT-049 - Cobertura de pruebas de integracion critica
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Se cubren flujos de inicializacion, render principal y rutas IA criticas.
+   - Se cubren escenarios clave de PWA/service worker sin dependencia de red.
+   - El pipeline local identifica regresiones DOM/integracion no cubiertas por unit tests.
+- Checklist:
+   - [ ] Agregar pruebas de integracion de initApp y render por pantallas
+   - [ ] Agregar pruebas de flujo IA end-to-end simulado
+   - [ ] Agregar pruebas de cache/offline de service worker
+
+### TKT-050 - Cobertura i18n completa en UI y mensajes
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - El cambio de idioma impacta todos los textos visibles de UI principal.
+   - Se eliminan hardcodes remanentes en HTML/app.js para textos de usuario.
+   - Existen pruebas basicas de regresion para claves faltantes/fallback.
+- Checklist:
+   - [ ] Inventariar textos hardcodeados y moverlos a diccionario
+   - [ ] Completar claves de traduccion por pantalla
+   - [ ] Agregar pruebas de fallback y cobertura minima por locale
 
 ### TKT-040 - QA de regresion post-split y saneamiento
 
@@ -695,6 +791,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-050 agregado: cobertura i18n completa para eliminar textos hardcodeados en UI.
+1. TKT-049 agregado: pruebas de integracion critica (init/render/IA/offline).
+1. TKT-048 agregado: endurecimiento offline/PWA removiendo dependencia CDN mutable.
+1. TKT-047 agregado: eliminacion de handlers inline y registro de eventos por listeners JS.
+1. TKT-046 agregado: validacion fuerte de persistencia y esquema de datos.
+1. TKT-045 agregado: modularizacion final de app.js y centralizacion de dominio IA.
+1. TKT-044 completado: seed anonima publicada y separacion de seed local ignorada por git.
+1. TKT-043 completado: historial git saneado y publicado via force push.
+1. TKT-039 completado: split de acciones/formularios con modulo dedicado y pruebas.
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
 1. TKT-038 completado: modulo app.rules.js agregado para reglas financieras/calculos con wrappers compatibles y pruebas dedicadas.
 1. TKT-044 agregado: seed anonima final separada del saneamiento historico para ejecutar al cierre del desarrollo.
