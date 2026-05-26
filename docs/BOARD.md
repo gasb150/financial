@@ -14,7 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-002 Service worker offline cache
 - [ ] TKT-003 Indicador de ultimo guardado
 - [ ] TKT-004 Migracion de localStorage a IndexedDB
 - [ ] TKT-005 Versionado de esquema y migraciones
@@ -38,6 +37,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-002 Service worker offline cache
 - [x] TKT-001 PWA base (manifest + install)
 - [x] OPS-001 Repo personal publicado y push estable
 - [x] OPS-002 GitHub Pages preparado (index + nojekyll)
@@ -63,7 +63,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-002 - Service worker offline cache
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 1
 - Owner: Gustavo
@@ -71,9 +71,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - App abre sin internet despues de primera carga.
    - Actualizacion de cache controlada por version.
 - Checklist:
-   - [ ] Crear service-worker.js
-   - [ ] Registrar SW en la app
-   - [ ] Definir estrategia cache-first para assets
+   - [x] Crear service-worker.js
+   - [x] Registrar SW en la app
+   - [x] Definir estrategia cache-first para assets
 
 ### TKT-003 - Indicador de ultimo guardado
 
@@ -209,6 +209,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-002 completado: cache offline base con service worker registrado.
 1. TKT-001 completado: manifest, iconos y flujo de instalacion base agregados.
 1. OPS-001 completado: push estable a repo personal.
 2. OPS-002 completado: entrypoint y pages listos.

@@ -2259,6 +2259,13 @@ function resetAFactory() {
   if(confirm("¿Resetear?")) { appData = JSON.parse(JSON.stringify(datosDefault)); initApp(); }
 }
 
+function registrarServiceWorker() {
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./service-worker.js').catch(() => {
+    // Fail silently; app should continue working without offline cache.
+  });
+}
+
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
@@ -2272,7 +2279,10 @@ window.addEventListener('appinstalled', () => {
   if(btn) btn.style.display = 'none';
 });
 
-window.onload = initApp;
+window.onload = function() {
+  initApp();
+  registrarServiceWorker();
+};
 </script>
 </body>
 </html>
