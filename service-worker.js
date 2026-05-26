@@ -45,12 +45,14 @@ self.addEventListener('fetch', (event) => {
         if (cached) return cached;
         return fetch(req)
           .then((res) => {
-            if (!res || res.status !== 200) return res;
+            if (!res) return Response.error();
+            // no-cors cross-origin CSS responses are opaque (status 0) but still cacheable.
+            if (!(res.ok || res.type === 'opaque')) return res;
             const copy = res.clone();
             caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
             return res;
           })
-          .catch(() => cached);
+          .catch(() => cached || Response.error());
       })
     );
     return;

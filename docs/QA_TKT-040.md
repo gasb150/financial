@@ -53,7 +53,7 @@ Estado post-fix:
 Verificaciones ejecutadas desde navegador:
 - `navigator.serviceWorker` disponible: true
 - registro activo encontrado con scope: `http://localhost:8080/`
-- cache key presente: `finanzas-cache-v10`
+- cache key presente: `finanzas-cache-v11`
 - assets criticos cacheados: `finanzas_tavo_app.html` y `app.js`
 
 Resultado:
