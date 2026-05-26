@@ -28,6 +28,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-036 Split dominio datos y persistencia
+- [ ] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [ ] TKT-037 Split dominio render y navegacion
 - [ ] TKT-038 Split dominio reglas financieras y calculos
 - [ ] TKT-039 Split dominio acciones de usuario y formularios
@@ -43,6 +44,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-036 Split dominio datos y persistencia
 - [x] TKT-041 Baseline de pruebas automatizadas pre-split
 - [x] TKT-035 Split base: extraer modulo IA de app.js
 - [x] TKT-028 Undo del ultimo cambio aplicado por IA
@@ -532,6 +534,36 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Persistir historial en almacenamiento principal
    - [ ] Implementar UI de historial con opcion de revertir
 
+### TKT-042 - Base de localizacion (i18n) para transicion a ingles
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe un diccionario base de textos para separar idioma de logica funcional.
+   - El proyecto define locale por defecto y estrategia de fallback.
+   - Nuevos cambios de split pueden migrar mensajes gradualmente sin romper UI.
+- Checklist:
+   - [ ] Definir estructura de recursos por locale (es-CO, en-US)
+   - [ ] Crear helper central de traduccion con fallback
+   - [ ] Migrar primer bloque de mensajes de prueba
+
+### TKT-036 - Split dominio datos y persistencia
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - La logica de acceso a datos (lectura, guardado, backup, migraciones) queda aislada en modulo propio.
+   - No se alteran contratos publicos usados por UI y calculos.
+   - Guardado/restore sigue funcionando en escenarios normales y con fallback.
+- Checklist:
+   - [x] Extraer helpers y flujos de persistencia a archivo dedicado
+   - [x] Mantener wrappers o adaptadores para compatibilidad temporal
+   - [x] Ejecutar smoke test de guardar/importar/restaurar
+
 ### TKT-041 - Baseline de pruebas automatizadas pre-split
 
 - Estado: Done
@@ -642,6 +674,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-036 completado: modulo app.data.js agregado con wrappers compatibles en app.js y cache actualizada para offline.
+1. TKT-042 agregado: base i18n para soportar migracion progresiva de textos/funciones hacia ingles.
 1. TKT-041 completado: baseline de pruebas automatizadas agregado para validar refactors de split con comando unico (`npm test`).
 1. TKT-035 completado: split base de IA en app.ia.js con carga en HTML y cache v4 en service worker.
 1. Backlog de modularizacion agregado: TKT-035/TKT-036/TKT-037/TKT-038/TKT-039/TKT-040 para dividir app.js por dominios y ejecutar QA de regresion antes de nuevos features.

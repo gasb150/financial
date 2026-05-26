@@ -1,10 +1,11 @@
-const CACHE_VERSION = 'finanzas-cache-v4';
+const CACHE_VERSION = 'finanzas-cache-v5';
 const CORE_ASSETS = [
   './',
   './index.html',
   './finanzas_tavo_app.html',
   './styles.css',
   './app.js',
+  './app.data.js',
   './app.ia.js',
   './manifest.webmanifest',
   './assets/icons/icon-192.svg',
