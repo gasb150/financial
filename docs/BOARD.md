@@ -29,7 +29,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
 - [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
-- [ ] TKT-049 Cobertura de pruebas de integracion critica
 - [ ] TKT-050 Cobertura i18n completa en UI y mensajes
 
 ## En curso
@@ -47,6 +46,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-040 QA de regresion post-split y saneamiento
 - [x] TKT-047 Eliminacion de handlers inline en HTML
 - [x] TKT-048 Endurecimiento offline/PWA y dependencia CDN
+- [x] TKT-049 Cobertura de pruebas de integracion critica
 - [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
@@ -744,7 +744,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-049 - Cobertura de pruebas de integracion critica
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -753,9 +753,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se cubren escenarios clave de PWA/service worker sin dependencia de red.
    - El pipeline local identifica regresiones DOM/integracion no cubiertas por unit tests.
 - Checklist:
-   - [ ] Agregar pruebas de integracion de initApp y render por pantallas
-   - [ ] Agregar pruebas de flujo IA end-to-end simulado
-   - [ ] Agregar pruebas de cache/offline de service worker
+   - [x] Agregar pruebas de integracion de initApp y render por pantallas
+   - [x] Agregar pruebas de flujo IA end-to-end simulado
+   - [x] Agregar pruebas de cache/offline de service worker
 
 ### TKT-050 - Cobertura i18n completa en UI y mensajes
 
@@ -791,9 +791,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-049 completado: pruebas de integracion critica agregadas para `initApp`/render principal, flujo IA simulado y escenarios de cache/offline del service worker.
 1. TKT-048 completado: dependencia CDN mutable removida (@latest -> version fija) y cache endurecida en service worker para asset externo estable.
 1. TKT-047 completado: eliminados handlers inline en HTML y migrados a listeners delegados con data-action en bootstrap de JS.
-1. TKT-049 avanzado: se agregaron pruebas de regresion para render semanal (limpieza sin semanas, reset de indice fuera de rango y hardening XSS/ID en render).
 1. TKT-040 completado: QA de regresion ejecutado (tests + smoke funcional + verificacion service worker/cache) con correccion de runtime en render semanal (`renderMenuSemanas` y `renderSemanaActiva`).
 1. TKT-050 agregado: cobertura i18n completa para eliminar textos hardcodeados en UI.
 1. TKT-049 agregado: pruebas de integracion critica (init/render/IA/offline).
