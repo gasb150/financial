@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financial App</title>
+  <meta http-equiv="refresh" content="0; url=./finanzas_tavo_app.html">
+  <script>
+    // Preserve query/hash if the user opens root URL directly.
+    const target = './finanzas_tavo_app.html' + window.location.search + window.location.hash;
+    window.location.replace(target);
+  </script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+    a {
+      color: #1f6ea8;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p>Redirigiendo a la app...</p>
+    <p>Si no ocurre automáticamente, abre <a href="./finanzas_tavo_app.html">la aplicación</a>.</p>
+  </main>
+</body>
+</html>
