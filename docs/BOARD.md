@@ -29,7 +29,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-043 Saneamiento historico de Git y datos sensibles
 - [ ] TKT-044 Seed anonima final para version publica
-- [ ] TKT-039 Split dominio acciones de usuario y formularios
 - [ ] TKT-040 QA de regresion post-split y saneamiento
 
 ## En curso
@@ -43,6 +42,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Done
 
 - [x] TKT-038 Split dominio reglas financieras y calculos
+- [x] TKT-039 Split dominio acciones de usuario y formularios
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [x] TKT-037 Split dominio render y navegacion
 - [x] TKT-036 Split dominio datos y persistencia
