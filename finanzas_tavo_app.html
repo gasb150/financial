@@ -425,6 +425,121 @@ function parseMesKey(mesKey) {
   return { mes, anio: parseInt(anioStr, 10) };
 }
 
+function mesKeyToIndex(mesKey) {
+  let { mes, anio } = parseMesKey(mesKey);
+  return (anio * 12) + ORDEN_MESES.indexOf(mes);
+}
+
+function indexToMesKey(indexMes) {
+  let anio = Math.floor(indexMes / 12);
+  let mesIdx = ((indexMes % 12) + 12) % 12;
+  return `${ORDEN_MESES[mesIdx]} ${anio}`;
+}
+
+function sumarMesesMesKey(mesKey, cantidad) {
+  return indexToMesKey(mesKeyToIndex(mesKey) + cantidad);
+}
+
+function asegurarLineaTiempoHastaMes(mesKeyObjetivo) {
+  if(!mesesLineaTiempo.length) return;
+  let idxObjetivo = mesKeyToIndex(mesKeyObjetivo);
+  let idxUltimo = mesKeyToIndex(mesesLineaTiempo[mesesLineaTiempo.length - 1]);
+
+  while(idxUltimo < idxObjetivo) {
+    idxUltimo += 1;
+    mesesLineaTiempo.push(indexToMesKey(idxUltimo));
+  }
+}
+
+function obtenerMaxIdNumericoCompromisos() {
+  return appData.compromisos.reduce((mx, c) => {
+    let n = typeof c.id === 'number' ? c.id : parseInt(c.id, 10);
+    return !isNaN(n) ? Math.max(mx, n) : mx;
+  }, 0);
+}
+
+function normalizarRecurrenciasCompromisos() {
+  if(!Array.isArray(appData.compromisos)) return;
+
+  let manuales = appData.compromisos.filter(c => !c.autoGenerado);
+  let generadosPrevios = appData.compromisos.filter(c => c.autoGenerado);
+  let prevByKey = new Map(generadosPrevios.map(c => [`${c.recurringKey}|${c.mesKey}`, c]));
+
+  manuales.forEach(c => {
+    if((c.tipo === 'fijo' || c.tipo === 'credito') && !c.recurringKey) {
+      c.recurringKey = `rec-${c.id}`;
+    }
+  });
+
+  let siguienteId = obtenerMaxIdNumericoCompromisos() + 1;
+  let nuevos = [];
+
+  function existeManual(recurringKey, mesKey) {
+    return manuales.some(m => m.recurringKey === recurringKey && m.mesKey === mesKey);
+  }
+
+  function pushGenerado(seed, mesKey, faltantesCredito = null) {
+    if(!seed.recurringKey) return;
+    if(existeManual(seed.recurringKey, mesKey)) return;
+
+    let k = `${seed.recurringKey}|${mesKey}`;
+    let previo = prevByKey.get(k);
+    let nuevo = {
+      ...seed,
+      id: previo ? previo.id : siguienteId++,
+      mesKey,
+      pagado: previo ? !!previo.pagado : false,
+      autoGenerado: true
+    };
+
+    if(nuevo.tipo !== 'credito') {
+      delete nuevo.faltantes;
+      delete nuevo.totales;
+    } else {
+      nuevo.faltantes = faltantesCredito;
+      nuevo.totales = seed.totales;
+    }
+
+    nuevos.push(nuevo);
+  }
+
+  manuales.forEach(seed => {
+    if(seed.tipo === 'credito') {
+      let faltantesBase = Math.max(1, parseInt(seed.faltantes, 10) || 1);
+      let totalesBase = Math.max(faltantesBase, parseInt(seed.totales, 10) || faltantesBase);
+      seed.faltantes = faltantesBase;
+      seed.totales = totalesBase;
+
+      let mesesPorGenerar = Math.max(0, faltantesBase - 1);
+      if(mesesPorGenerar > 0) {
+        let ultimoMesCredito = sumarMesesMesKey(seed.mesKey, mesesPorGenerar);
+        asegurarLineaTiempoHastaMes(ultimoMesCredito);
+      }
+
+      for(let paso = 1; paso <= mesesPorGenerar; paso++) {
+        let faltantesMes = faltantesBase - paso;
+        if(faltantesMes < 1) break;
+        pushGenerado(seed, sumarMesesMesKey(seed.mesKey, paso), faltantesMes);
+      }
+    }
+
+    if(seed.tipo === 'fijo') {
+      let { anio } = parseMesKey(seed.mesKey);
+      let mesFinAnio = `Diciembre ${anio}`;
+      asegurarLineaTiempoHastaMes(mesFinAnio);
+
+      let idxInicio = mesKeyToIndex(seed.mesKey);
+      let idxFin = mesKeyToIndex(mesFinAnio);
+      for(let idx = idxInicio + 1; idx <= idxFin; idx++) {
+        pushGenerado(seed, indexToMesKey(idx));
+      }
+    }
+  });
+
+  appData.compromisos = [...manuales, ...nuevos];
+  appData.lineaTiempoGuardada = mesesLineaTiempo;
+}
+
 function mesKeyAnterior(mesKey) {
   let { mes, anio } = parseMesKey(mesKey);
   let idx = ORDEN_MESES.indexOf(mes);
@@ -684,6 +799,7 @@ function limpiarFiltroFechaDeudas(soloEstado = false) {
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
+  normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
   localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
   actualizarSelectoresDeMes();
@@ -830,6 +946,10 @@ function eliminarCompromiso(id) {
 function modificarCompromisoPropiedad(id, campo, nuevoValor) {
   let comp = appData.compromisos.find(c => c.id === id);
   if(comp) {
+    if(comp.autoGenerado) {
+      // If user edits an auto-generated row, keep that month as a manual override.
+      comp.autoGenerado = false;
+    }
     if(campo === 'nombre') comp.nombre = nuevoValor.trim();
     if(campo === 'valor') comp.valor = parseFloat(nuevoValor) || 0;
     if(campo === 'dia') comp.dia = parseInt(nuevoValor);
