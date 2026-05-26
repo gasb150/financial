@@ -54,6 +54,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .input-app{width:100%;padding:8px;margin-top:4px;border:1px solid var(--color-border-secondary);border-radius:4px;font-size:14px}
 .input-inline{border:none; border-bottom:1px dashed var(--color-border-secondary); font-size:13px; font-weight:500; color:var(--color-text-primary); width:130px; padding:2px}
 .input-inline:focus{outline:none; border-bottom-color:#534AB7; background:#f1f3f5}
+.money-input{text-align:right}
 .btn-action{background:#534AB7;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer}
 .btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:14px;display:flex;align-items:center}
 .chk-box{width:16px;height:16px;cursor:pointer}
@@ -144,7 +145,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
       <div class="sc">
         <div class="sl">Ingresos periodo</div>
         <div id="res-ingresos" class="sv">$0</div>
-        <div class="ss">Fuentes calculadas</div>
+        <div id="res-ingresos-detalle" class="ss">Fuentes calculadas</div>
       </div>
       <div class="sc">
         <div class="sl">Gastos periodo</div>
@@ -162,6 +163,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
         <div class="ss">En tramos activos</div>
       </div>
     </div>
+
+    <div class="sec">Sobrante (Base mensual: $0)</div>
+    <div class="card" id="card-sobrante-resumen"></div>
 
     <div class="sec" id="tit-cal-dinamico">Calendario de Flujo</div>
     <div class="card">
@@ -237,7 +241,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
           <label class="sl">Valor Gasto ($)</label>
-          <input type="number" id="add-valor" class="input-app" placeholder="450000" oninput="actualizarPreviewNuevaDeuda()">
+          <input type="text" inputmode="numeric" id="add-valor" class="input-app money-input" placeholder="$450.000" oninput="actualizarPreviewNuevaDeuda()">
         </div>
         <div style="flex:1">
           <label class="sl">Día de Pago Tentativo</label>
@@ -297,7 +301,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
           <label class="sl">Monto Mensual ($)</label>
-          <input type="number" id="new-ing-valor" class="input-app" placeholder="1500000">
+          <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000">
         </div>
         <div style="flex:1">
           <label class="sl">Distribución inicial</label>
@@ -313,6 +317,16 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
         <label class="sl">Día exacto de pago (1-31)</label>
         <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
       </div>
+      <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
+        <div style="flex:1;">
+          <label class="sl">Vigencia desde</label>
+          <select id="new-ing-desde" class="input-app"></select>
+        </div>
+        <div style="flex:1;">
+          <label class="sl">Vigencia hasta</label>
+          <select id="new-ing-hasta" class="input-app"></select>
+        </div>
+      </div>
       <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" onclick="agregarIngresoDinamico()">Añadir Ingreso</button>
     </div>
 
@@ -327,7 +341,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
           <label class="sl">Valor ($)</label>
-          <input type="number" id="new-prima-valor" class="input-app" placeholder="1450000">
+          <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000">
         </div>
         <div style="width:92px;">
           <label class="sl">Día</label>
@@ -344,7 +358,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     </div>
 
     <div id="lista-config-primas"></div>
-    
+
     <div class="sec">Línea de Tiempo del Sistema</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
@@ -418,10 +432,46 @@ const datosDefault = {
 let appData = JSON.parse(localStorage.getItem('finanzas_linea_tiempo_v7')) || datosDefault;
 if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
 if(!Array.isArray(appData.primasList)) appData.primasList = [];
+if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
 
 const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
+
+function parseMontoInput(valor) {
+  if(typeof valor === 'number') return isNaN(valor) ? NaN : valor;
+  let limpio = String(valor || '')
+    .replace(/\s/g, '')
+    .replace(/\$/g, '')
+    .replace(/\./g, '')
+    .replace(/,/g, '.')
+    .replace(/[^\d.-]/g, '');
+  if(!limpio || limpio === '-' || limpio === '.') return NaN;
+  let n = Number(limpio);
+  return isNaN(n) ? NaN : n;
+}
+
+function aplicarFormatoMonedaInputs() {
+  document.querySelectorAll('input.money-input').forEach(inp => {
+    if(document.activeElement === inp) return;
+    let n = parseMontoInput(inp.value);
+    inp.value = isNaN(n) ? '' : formatCOP(n);
+  });
+}
+
+document.addEventListener('focusin', (e) => {
+  let inp = e.target;
+  if(!(inp instanceof HTMLInputElement) || !inp.classList.contains('money-input')) return;
+  let n = parseMontoInput(inp.value);
+  inp.value = isNaN(n) ? '' : String(Math.round(n));
+});
+
+document.addEventListener('focusout', (e) => {
+  let inp = e.target;
+  if(!(inp instanceof HTMLInputElement) || !inp.classList.contains('money-input')) return;
+  let n = parseMontoInput(inp.value);
+  inp.value = isNaN(n) ? '' : formatCOP(n);
+});
 
 function escapeHTML(texto) {
   return String(texto)
@@ -448,14 +498,55 @@ function getDiaIngreso(ing) {
 function normalizarIngresosConDia() {
   appData.ingresosList.forEach(i => {
     i.diaPago = getDiaIngreso(i);
+    if(!esMesKeyValido(i.mesInicio)) {
+      i.mesInicio = mesesLineaTiempo[0] || mesActivoGlobal;
+    }
+    if(i.mesFin === '' || i.mesFin === null || i.mesFin === undefined) {
+      i.mesFin = null;
+    }
+    if(i.mesFinIndefinido === undefined) {
+      i.mesFinIndefinido = !esMesKeyValido(i.mesFin);
+    }
+    if(i.mesFinIndefinido) {
+      i.mesFin = null;
+    } else if(!esMesKeyValido(i.mesFin)) {
+      i.mesFin = i.mesInicio;
+    }
+    if(i.mesFin && mesKeyToIndex(i.mesFin) < mesKeyToIndex(i.mesInicio)) {
+      i.mesFin = i.mesInicio;
+    }
     if(i.periodo === 'biweekly' && !i.anchorDate) {
-      let baseMes = mesesLineaTiempo[0] || mesActivoGlobal;
+      let baseMes = i.mesInicio || mesesLineaTiempo[0] || mesActivoGlobal;
       let { mes, anio } = parseMesKey(baseMes);
       let mesIdx = ORDEN_MESES.indexOf(mes);
       let day = Math.min(i.diaPago, new Date(anio, mesIdx + 1, 0).getDate());
       i.anchorDate = siguienteViernes(new Date(anio, mesIdx, day)).toISOString().slice(0, 10);
     }
   });
+}
+
+function esMesKeyValido(mesKey) {
+  if(!mesKey || typeof mesKey !== 'string') return false;
+  let [mes, anioStr] = mesKey.split(' ');
+  return ORDEN_MESES.includes(mes) && !isNaN(parseInt(anioStr, 10));
+}
+
+function obtenerMesInicioIngreso(ing) {
+  return esMesKeyValido(ing.mesInicio) ? ing.mesInicio : (mesesLineaTiempo[0] || mesActivoGlobal);
+}
+
+function obtenerMesFinIngreso(ing) {
+  if(ing.mesFinIndefinido) return null;
+  return esMesKeyValido(ing.mesFin) ? ing.mesFin : null;
+}
+
+function ingresoActivoEnMes(ing, mesKey) {
+  let idxMes = mesKeyToIndex(mesKey);
+  let idxInicio = mesKeyToIndex(obtenerMesInicioIngreso(ing));
+  if(idxMes < idxInicio) return false;
+  let mesFin = obtenerMesFinIngreso(ing);
+  if(!mesFin) return true;
+  return idxMes <= mesKeyToIndex(mesFin);
 }
 
 function parseMesKey(mesKey) {
@@ -494,6 +585,49 @@ function obtenerMaxIdNumericoCompromisos() {
     let n = typeof c.id === 'number' ? c.id : parseInt(c.id, 10);
     return !isNaN(n) ? Math.max(mx, n) : mx;
   }, 0);
+}
+
+function aplicarCorreccionMesBaseSiAplica() {
+  if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+  if(appData.migraciones.correccionMesBaseJunio2026) return;
+
+  function desplazarMesKey(mesKey) {
+    if(!esMesKeyValido(mesKey)) return mesKey;
+    return sumarMesesMesKey(mesKey, 1);
+  }
+
+  if(Array.isArray(mesesLineaTiempo)) {
+    mesesLineaTiempo = mesesLineaTiempo.map(desplazarMesKey);
+  }
+
+  if(Array.isArray(appData.lineaTiempoGuardada)) {
+    appData.lineaTiempoGuardada = appData.lineaTiempoGuardada.map(desplazarMesKey);
+  }
+
+  if(Array.isArray(appData.compromisos)) {
+    appData.compromisos.forEach(c => {
+      c.mesKey = desplazarMesKey(c.mesKey);
+    });
+  }
+
+  if(Array.isArray(appData.primasList)) {
+    appData.primasList.forEach(p => {
+      p.mesKey = desplazarMesKey(p.mesKey);
+    });
+  }
+
+  if(Array.isArray(appData.ingresosList)) {
+    appData.ingresosList.forEach(i => {
+      if(esMesKeyValido(i.mesInicio)) i.mesInicio = desplazarMesKey(i.mesInicio);
+      if(esMesKeyValido(i.mesFin)) i.mesFin = desplazarMesKey(i.mesFin);
+    });
+  }
+
+  if(esMesKeyValido(mesActivoGlobal)) {
+    mesActivoGlobal = desplazarMesKey(mesActivoGlobal);
+  }
+
+  appData.migraciones.correccionMesBaseJunio2026 = true;
 }
 
 function normalizarRecurrenciasCompromisos() {
@@ -650,6 +784,7 @@ function obtenerDetalleDiasPagoMes(mesKey) {
   }
 
   appData.ingresosList.forEach(i => {
+    if(!ingresoActivoEnMes(i, mesKey)) return;
     obtenerDiasPagoIngresoEnMes(i, mesKey).forEach(d => {
       asegurarDia(d);
       out[d].real = true;
@@ -670,6 +805,7 @@ function obtenerDetalleDiasPagoMes(mesKey) {
   let prevDiasMes = new Date(prevData.anio, prevMesIdx + 1, 0).getDate();
 
   appData.ingresosList.forEach(i => {
+    if(!ingresoActivoEnMes(i, mesPrevio)) return;
     let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
     diasPrevios.forEach(d => {
       if(d >= 29) {
@@ -695,16 +831,26 @@ function obtenerDetalleDiasPagoMes(mesKey) {
 function obtenerEventosIngresoDelMes(mesKey) {
   let eventos = [];
   appData.ingresosList.forEach(i => {
+    if(!ingresoActivoEnMes(i, mesKey)) return;
     let dias = obtenerDiasPagoIngresoEnMes(i, mesKey);
     dias.forEach((dia, idx) => {
       if(dia <= 28) {
-        eventos.push({ id: `${i.id}-${mesKey}-${idx}`, nombre: i.nombre, valor: i.valor, dia: dia, origen: 'normal' });
+        eventos.push({
+          id: `${i.id}-${mesKey}-${idx}`,
+          nombre: i.nombre,
+          valor: i.valor,
+          dia: dia,
+          origen: 'normal',
+          fuenteTipo: 'ingreso',
+          fuenteId: i.id
+        });
       }
     });
   });
 
   let mesPrevio = mesKeyAnterior(mesKey);
   appData.ingresosList.forEach(i => {
+    if(!ingresoActivoEnMes(i, mesPrevio)) return;
     let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
     diasPrevios.forEach((dia, idx) => {
       if(dia >= 29) {
@@ -713,7 +859,9 @@ function obtenerEventosIngresoDelMes(mesKey) {
           nombre: `${i.nombre} (arrastre mes anterior)`,
           valor: i.valor,
           dia: 1,
-          origen: 'arrastre'
+          origen: 'arrastre',
+          fuenteTipo: 'ingreso',
+          fuenteId: i.id
         });
       }
     });
@@ -726,7 +874,15 @@ function obtenerEventosIngresoDelMes(mesKey) {
     let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
     let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
     if(p.mesKey === mesKey && dia >= 1 && dia <= 28) {
-      eventos.push({ id: `prima-${p.id}`, nombre: p.nombre, valor: p.valor, dia: dia, origen: 'prima' });
+      eventos.push({
+        id: `prima-${p.id}`,
+        nombre: p.nombre,
+        valor: p.valor,
+        dia: dia,
+        origen: 'prima',
+        fuenteTipo: 'prima',
+        fuenteId: p.id
+      });
     }
   });
 
@@ -742,7 +898,9 @@ function obtenerEventosIngresoDelMes(mesKey) {
         nombre: `${p.nombre} (arrastre mes anterior)`,
         valor: p.valor,
         dia: 1,
-        origen: 'prima-arrastre'
+        origen: 'prima-arrastre',
+        fuenteTipo: 'prima',
+        fuenteId: p.id
       });
     }
   });
@@ -824,6 +982,15 @@ function actualizarSelectoresDeMes() {
   let selectFormulario = document.getElementById('add-mes-destino');
   let selectPrima = document.getElementById('new-prima-mes');
   let cachePrincipal = selectPrincipal.value || mesActivoGlobal;
+
+  function resolverMesPreferido() {
+    if(mesesLineaTiempo.includes('Junio 2026')) return 'Junio 2026';
+    return mesesLineaTiempo[0] || 'Junio 2026';
+  }
+
+  if(!mesesLineaTiempo.includes(mesActivoGlobal)) {
+    mesActivoGlobal = resolverMesPreferido();
+  }
   
   selectPrincipal.innerHTML = '';
   if(selectFormulario) selectFormulario.innerHTML = '';
@@ -833,7 +1000,22 @@ function actualizarSelectoresDeMes() {
     if(selectFormulario) selectFormulario.innerHTML += `<option value="${m}">${m}</option>`;
     if(selectPrima) selectPrima.innerHTML += `<option value="${m}">${m}</option>`;
   });
-  selectPrincipal.value = cachePrincipal;
+
+  let valorPrincipal = mesesLineaTiempo.includes(cachePrincipal)
+    ? cachePrincipal
+    : (mesesLineaTiempo.includes(mesActivoGlobal) ? mesActivoGlobal : resolverMesPreferido());
+
+  mesActivoGlobal = valorPrincipal;
+  selectPrincipal.value = valorPrincipal;
+
+  if(!selectPrincipal.value && selectPrincipal.options.length > 0) {
+    selectPrincipal.selectedIndex = 0;
+    mesActivoGlobal = selectPrincipal.value;
+  }
+
+  if(selectFormulario && mesesLineaTiempo.includes(mesActivoGlobal)) {
+    selectFormulario.value = mesActivoGlobal;
+  }
   if(selectPrima && !selectPrima.value) selectPrima.value = mesActivoGlobal;
 }
 
@@ -897,7 +1079,7 @@ function actualizarPreviewNuevaDeuda() {
   if(!resumen || !semanaTxt || !quincenaTxt || !alerta) return;
 
   let nombre = document.getElementById('add-nombre').value.trim();
-  let valor = parseFloat(document.getElementById('add-valor').value);
+  let valor = parseMontoInput(document.getElementById('add-valor').value);
   let dia = parseInt(document.getElementById('add-dia').value, 10);
 
   if(!nombre || isNaN(valor) || valor <= 0 || (dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31))) {
@@ -980,6 +1162,7 @@ function limpiarFiltroFechaDeudas(soloEstado = false) {
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
+  aplicarCorreccionMesBaseSiAplica();
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
   localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
@@ -991,12 +1174,18 @@ function initApp() {
   let compromisosMesActual = getCompromisosMesActual();
   compromisosMesGlobalCache = compromisosMesActual;
 
-  let totalIngresos = obtenerEventosIngresoDelMes(mesActivoGlobal).reduce((acc, e) => acc + e.valor, 0);
+  let eventosIngresoMes = obtenerEventosIngresoDelMes(mesActivoGlobal);
+  let totalIngresos = eventosIngresoMes.reduce((acc, e) => acc + e.valor, 0);
+  let totalArrastreIngresos = eventosIngresoMes
+    .filter(e => e.origen === 'arrastre' || e.origen === 'prima-arrastre')
+    .reduce((acc, e) => acc + e.valor, 0);
+  let totalNormalIngresos = totalIngresos - totalArrastreIngresos;
   let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
   let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
   let balance = totalIngresos - totalGastos;
 
   document.getElementById('res-ingresos').innerText = formatCOP(totalIngresos);
+  document.getElementById('res-ingresos-detalle').innerText = `Normal: ${formatCOP(totalNormalIngresos)} · Arrastre: ${formatCOP(totalArrastreIngresos)}`;
   document.getElementById('res-gastos').innerText = formatCOP(totalGastos);
   document.getElementById('res-gastos-porc').innerText = `${totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(0) : 100}% del ingreso`;
   
@@ -1013,6 +1202,7 @@ function initApp() {
     document.getElementById('alerta-deficit').style.display = 'none';
   }
   document.getElementById('res-pendiente').innerText = formatCOP(totalPendiente);
+  renderSobrante(balance);
 
   renderIngresosResumen();
   renderCalendario(compromisosMesActual);
@@ -1020,8 +1210,10 @@ function initApp() {
   renderDeudasModulo(compromisosMesActual);
   renderMenuSemanas();
   renderSemanaActiva(compromisosMesActual);
+  renderSelectoresVigenciaIngreso();
   renderConfigIngresos();
   renderConfigPrimas();
+  aplicarFormatoMonedaInputs();
   
   // Mantener la vista diaria actualizada si hay un día seleccionado
   if(diaSeleccionadoActivo !== null) {
@@ -1035,12 +1227,65 @@ function initApp() {
   actualizarPreviewNuevaDeuda();
 }
 
+function renderSobrante(balanceMes) {
+  let cont = document.getElementById('card-sobrante-resumen');
+  if(!cont) return;
+
+  let sobrante = Math.max(0, balanceMes);
+  let ahorro = Math.round(sobrante * 0.5);
+  let inversion = Math.round(sobrante * 0.3);
+  let calamidad = Math.max(0, sobrante - ahorro - inversion);
+
+  let estado = balanceMes >= 0
+    ? `<div class="ss" style="margin-top:2px;">Disponible para plan futuro (no impacta aún el flujo).</div>`
+    : `<div class="ss" style="margin-top:2px;color:#E24B4A;">Este mes no hay sobrante. Primero cubrimos déficit.</div>`;
+
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">
+      <div>
+        <div class="sl">Sobrante disponible</div>
+        <div class="sv" style="font-size:24px;color:${sobrante > 0 ? '#1D9E75' : 'var(--color-text-secondary)'}">${formatCOP(sobrante)}</div>
+        ${estado}
+      </div>
+      <div class="ss" style="text-align:right;">Mes inicia en $0</div>
+    </div>
+    <div class="row">
+      <div class="rn">Ahorro (futuro)</div>
+      <div class="ra pos">${formatCOP(ahorro)}</div>
+    </div>
+    <div class="row">
+      <div class="rn">Inversión (futuro)</div>
+      <div class="ra pos">${formatCOP(inversion)}</div>
+    </div>
+    <div class="row">
+      <div class="rn">Calamidad (fondo)</div>
+      <div class="ra pos">${formatCOP(calamidad)}</div>
+    </div>
+  `;
+}
+
 function renderIngresosResumen() {
   let container = document.getElementById('lista-ingresos-resumen');
   container.innerHTML = '';
-  appData.ingresosList.forEach(i => {
+
+  let eventosMes = obtenerEventosIngresoDelMes(mesActivoGlobal);
+
+  appData.ingresosList
+    .filter(i => ingresoActivoEnMes(i, mesActivoGlobal))
+    .forEach(i => {
     let nombreSeguro = escapeHTML(i.nombre);
     let diaIngreso = getDiaIngreso(i);
+    let desde = obtenerMesInicioIngreso(i);
+    let hasta = obtenerMesFinIngreso(i);
+    let vigencia = hasta ? `Vigencia: ${desde} -> ${hasta}` : `Vigencia: ${desde} -> indefinido`;
+    let eventosFuente = eventosMes.filter(e => e.fuenteTipo === 'ingreso' && e.fuenteId === i.id);
+    let totalFuenteMes = eventosFuente.reduce((acc, e) => acc + e.valor, 0);
+    let pagosNormales = eventosFuente.filter(e => e.origen === 'normal').length;
+    let pagosArrastre = eventosFuente.filter(e => e.origen === 'arrastre').length;
+    let totalQ1Fuente = eventosFuente.filter(e => e.dia >= 1 && e.dia <= 14).reduce((acc, e) => acc + e.valor, 0);
+    let totalQ2Fuente = eventosFuente.filter(e => e.dia >= 15).reduce((acc, e) => acc + e.valor, 0);
+    let impactoMes = `Este mes: ${pagosNormales} normal(es) + ${pagosArrastre} arrastre(s)`;
+    let impactoQuincenas = `Q1: ${formatCOP(totalQ1Fuente)} · Q2: ${formatCOP(totalQ2Fuente)}`;
     let impacto = i.periodo === 'biweekly'
       ? `Cada 14 días (ancla día ${diaIngreso})`
       : (diaIngreso >= 29 ? 'Impacta mes siguiente (arrastre día 1)' : `Pago día ${diaIngreso}`);
@@ -1051,22 +1296,30 @@ function renderIngresosResumen() {
         : (i.periodo === 'biweekly' ? 'Quincenal real (14 días)' : 'Ambas Quincenas (50/50)'));
     container.innerHTML += `
       <div class="row">
-        <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag} · ${impacto}</div></div>
-        <div class="ra pos">${formatCOP(i.valor)}</div>
+        <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag} · ${impacto} · ${impactoMes} · ${impactoQuincenas} · ${vigencia}</div></div>
+        <div class="ra pos">${formatCOP(totalFuenteMes)}</div>
       </div>
     `;
   });
 
   appData.primasList
-    .filter(p => p.mesKey === mesActivoGlobal)
+    .filter(p => eventosMes.some(e => e.fuenteTipo === 'prima' && e.fuenteId === p.id))
     .forEach(p => {
       let nombreSeguro = escapeHTML(p.nombre);
+      let eventosPrima = eventosMes.filter(e => e.fuenteTipo === 'prima' && e.fuenteId === p.id);
+      let totalPrimaMes = eventosPrima.reduce((acc, e) => acc + e.valor, 0);
+      let pagosNormales = eventosPrima.filter(e => e.origen === 'prima').length;
+      let pagosArrastre = eventosPrima.filter(e => e.origen === 'prima-arrastre').length;
+      let totalQ1Prima = eventosPrima.filter(e => e.dia >= 1 && e.dia <= 14).reduce((acc, e) => acc + e.valor, 0);
+      let totalQ2Prima = eventosPrima.filter(e => e.dia >= 15).reduce((acc, e) => acc + e.valor, 0);
       let dia = parseInt(p.diaPago, 10);
       let impacto = dia >= 29 ? `Pago día ${dia} · arrastre mes siguiente` : `Pago día ${dia}`;
+      let impactoMes = `Este mes: ${pagosNormales} normal(es) + ${pagosArrastre} arrastre(s)`;
+      let impactoQuincenas = `Q1: ${formatCOP(totalQ1Prima)} · Q2: ${formatCOP(totalQ2Prima)}`;
       container.innerHTML += `
         <div class="row">
-          <div><div class="rn">${nombreSeguro}</div><div class="rm">Prima no recurrente · ${impacto}</div></div>
-          <div class="ra pos">${formatCOP(p.valor)}</div>
+          <div><div class="rn">${nombreSeguro}</div><div class="rm">Prima no recurrente · ${impacto} · ${impactoMes} · ${impactoQuincenas}</div></div>
+          <div class="ra pos">${formatCOP(totalPrimaMes)}</div>
         </div>
       `;
     });
@@ -1074,15 +1327,33 @@ function renderIngresosResumen() {
 
 function agregarIngresoDinamico() {
   let nombre = document.getElementById('new-ing-nombre').value.trim();
-  let valor = parseFloat(document.getElementById('new-ing-valor').value);
+  let valor = parseMontoInput(document.getElementById('new-ing-valor').value);
   let periodo = document.getElementById('new-ing-periodo').value;
   let diaPago = parseInt(document.getElementById('new-ing-dia').value, 10);
+  let mesInicio = document.getElementById('new-ing-desde').value;
+  let mesFinRaw = document.getElementById('new-ing-hasta').value;
+  let mesFinIndefinido = mesFinRaw === '__indefinido__';
+  let mesFin = mesFinIndefinido ? null : mesFinRaw;
   if(!nombre || isNaN(valor) || valor <= 0) { alert("Datos inválidos"); return; }
   if(isNaN(diaPago) || diaPago < 1 || diaPago > 31) { alert("El día de pago del ingreso debe estar entre 1 y 31."); return; }
-  appData.ingresosList.push({ id: Date.now(), nombre: nombre, valor: valor, periodo: periodo, diaPago: diaPago });
+  if(!esMesKeyValido(mesInicio)) { alert('Selecciona el mes inicial de vigencia.'); return; }
+  if(!mesFinIndefinido && !esMesKeyValido(mesFin)) { alert('Selecciona un mes final válido o deja indefinido.'); return; }
+  if(!mesFinIndefinido && mesKeyToIndex(mesFin) < mesKeyToIndex(mesInicio)) { alert('La vigencia final no puede ser anterior al inicio.'); return; }
+  appData.ingresosList.push({
+    id: Date.now(),
+    nombre: nombre,
+    valor: valor,
+    periodo: periodo,
+    diaPago: diaPago,
+    mesInicio: mesInicio,
+    mesFin: mesFin,
+    mesFinIndefinido: mesFinIndefinido
+  });
   document.getElementById('new-ing-nombre').value = '';
   document.getElementById('new-ing-valor').value = '';
   document.getElementById('new-ing-dia').value = '30';
+  document.getElementById('new-ing-desde').value = mesActivoGlobal;
+  document.getElementById('new-ing-hasta').value = '__indefinido__';
   initApp();
 }
 
@@ -1095,6 +1366,10 @@ function renderConfigIngresos() {
   container.innerHTML = '';
   appData.ingresosList.forEach(i => {
     let nombreSeguro = escapeHTML(i.nombre);
+    let desde = obtenerMesInicioIngreso(i);
+    let hasta = obtenerMesFinIngreso(i);
+    let opcionesDesde = mesesLineaTiempo.map(m => `<option value="${m}" ${desde === m ? 'selected' : ''}>${m}</option>`).join('');
+    let opcionesHasta = `<option value="__indefinido__" ${!hasta ? 'selected' : ''}>Indefinido</option>` + mesesLineaTiempo.map(m => `<option value="${m}" ${hasta === m ? 'selected' : ''}>${m}</option>`).join('');
     let card = document.createElement('div');
     card.className = 'card';
     card.style.padding = '12px';
@@ -1103,7 +1378,7 @@ function renderConfigIngresos() {
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px">
         <button class="btn-del" onclick="eliminarIngreso(${i.id})"><i class="ti ti-trash"></i></button>
         <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
-        <input type="number" value="${i.valor}" class="input-inline" style="width:90px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
+        <input type="text" inputmode="numeric" value="${formatCOP(i.valor)}" class="input-inline money-input" style="width:110px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
       </div>
       <div style="padding-left:24px; display:flex; gap:8px; align-items:end;">
         <div style="flex:1;">
@@ -1120,14 +1395,40 @@ function renderConfigIngresos() {
           <input type="number" min="1" max="31" class="input-app" style="margin:0; padding:4px; font-size:12px;" value="${getDiaIngreso(i)}" onchange="modificarIngresoPropiedad(${i.id}, 'diaPago', this.value)">
         </div>
       </div>
+      <div style="padding-left:24px; display:flex; gap:8px; align-items:end; margin-top:8px;">
+        <div style="flex:1;">
+          <label class="sl" style="display:block; margin-bottom:2px">Vigente desde</label>
+          <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesInicio', this.value)">${opcionesDesde}</select>
+        </div>
+        <div style="flex:1;">
+          <label class="sl" style="display:block; margin-bottom:2px">Vigente hasta</label>
+          <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesFin', this.value)">${opcionesHasta}</select>
+        </div>
+      </div>
     `;
     container.appendChild(card);
   });
 }
 
+function renderSelectoresVigenciaIngreso() {
+  let selDesde = document.getElementById('new-ing-desde');
+  let selHasta = document.getElementById('new-ing-hasta');
+  if(!selDesde || !selHasta) return;
+
+  let opcionesDesde = mesesLineaTiempo.map(m => `<option value="${m}">${m}</option>`).join('');
+  let opcionesHasta = `<option value="__indefinido__">Indefinido</option>` + mesesLineaTiempo.map(m => `<option value="${m}">${m}</option>`).join('');
+  selDesde.innerHTML = opcionesDesde;
+  selHasta.innerHTML = opcionesHasta;
+
+  if([...selDesde.options].some(o => o.value === mesActivoGlobal)) {
+    selDesde.value = mesActivoGlobal;
+  }
+  selHasta.value = '__indefinido__';
+}
+
 function agregarPrimaNoRecurrente() {
   let nombre = document.getElementById('new-prima-nombre').value.trim();
-  let valor = parseFloat(document.getElementById('new-prima-valor').value);
+  let valor = parseMontoInput(document.getElementById('new-prima-valor').value);
   let diaPago = parseInt(document.getElementById('new-prima-dia').value, 10);
   let mesKey = document.getElementById('new-prima-mes').value;
 
@@ -1166,7 +1467,7 @@ function modificarPrimaPropiedad(id, campo, nuevoValor) {
   if(!prima) return;
 
   if(campo === 'nombre') prima.nombre = nuevoValor.trim();
-  if(campo === 'valor') prima.valor = parseFloat(nuevoValor) || 0;
+  if(campo === 'valor') prima.valor = parseMontoInput(nuevoValor) || 0;
   if(campo === 'diaPago') {
     let d = parseInt(nuevoValor, 10);
     if(!isNaN(d) && d >= 1 && d <= 31) prima.diaPago = d;
@@ -1199,7 +1500,7 @@ function renderConfigPrimas() {
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
           <button class="btn-del" onclick="eliminarPrima(${p.id})"><i class="ti ti-trash"></i></button>
           <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'nombre', this.value)">
-          <input type="number" value="${p.valor}" class="input-inline" style="width:100px;text-align:right;color:#1D9E75;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
+          <input type="text" inputmode="numeric" value="${formatCOP(p.valor)}" class="input-inline money-input" style="width:110px;text-align:right;color:#1D9E75;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
         </div>
         <div style="display:flex; gap:8px; align-items:end; padding-left:24px;">
           <div style="width:88px;">
@@ -1219,12 +1520,33 @@ function renderConfigPrimas() {
 function modificarIngresoPropiedad(id, campo, nuevoValor) {
   let ing = appData.ingresosList.find(i => i.id === id);
   if(ing) {
-    if(campo === 'valor') ing.valor = parseFloat(nuevoValor) || 0;
+    if(campo === 'valor') ing.valor = parseMontoInput(nuevoValor) || 0;
     if(campo === 'nombre') ing.nombre = nuevoValor.trim();
     if(campo === 'periodo') ing.periodo = nuevoValor;
     if(campo === 'diaPago') {
       let d = parseInt(nuevoValor, 10);
       if(!isNaN(d) && d >= 1 && d <= 31) ing.diaPago = d;
+    }
+    if(campo === 'mesInicio' && esMesKeyValido(nuevoValor)) {
+      ing.mesInicio = nuevoValor;
+      let fin = obtenerMesFinIngreso(ing);
+      if(fin && mesKeyToIndex(fin) < mesKeyToIndex(ing.mesInicio)) {
+        ing.mesFin = ing.mesInicio;
+        ing.mesFinIndefinido = false;
+      }
+    }
+    if(campo === 'mesFin') {
+      if(nuevoValor === '__indefinido__') {
+        ing.mesFin = null;
+        ing.mesFinIndefinido = true;
+      } else if(esMesKeyValido(nuevoValor)) {
+        if(mesKeyToIndex(nuevoValor) < mesKeyToIndex(obtenerMesInicioIngreso(ing))) {
+          ing.mesFin = obtenerMesInicioIngreso(ing);
+        } else {
+          ing.mesFin = nuevoValor;
+        }
+        ing.mesFinIndefinido = false;
+      }
     }
     initApp();
   }
@@ -1245,7 +1567,7 @@ function modificarCompromisoPropiedad(id, campo, nuevoValor) {
       comp.autoGenerado = false;
     }
     if(campo === 'nombre') comp.nombre = nuevoValor.trim();
-    if(campo === 'valor') comp.valor = parseFloat(nuevoValor) || 0;
+    if(campo === 'valor') comp.valor = parseMontoInput(nuevoValor) || 0;
     if(campo === 'dia') comp.dia = parseInt(nuevoValor);
     if(campo === 'tipo') comp.tipo = nuevoValor;
     if(campo === 'mesKey') comp.mesKey = nuevoValor;
@@ -1348,7 +1670,7 @@ function renderDeudasModulo(compromisosMes) {
           <button class="btn-del" onclick="eliminarCompromiso(${c.id})"><i class="ti ti-trash"></i></button>
         </div>
         <input type="text" value="${nombreSeguro}" class="input-inline deuda-name" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
-        <input type="number" value="${c.valor}" class="input-inline deuda-valor" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
+        <input type="text" inputmode="numeric" value="${formatCOP(c.valor)}" class="input-inline deuda-valor money-input" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
       </div>
 
       <div class="deuda-meta">
@@ -1396,8 +1718,13 @@ function renderQuincenas(compromisosMes) {
   let q1Comps = compromisosMes.filter(c => parseInt(c.dia) >= 1 && parseInt(c.dia) <= 14);
   let q2Comps = compromisosMes.filter(c => parseInt(c.dia) >= 15);
 
-  let ingQ1 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q1' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
-  let ingQ2 = appData.ingresosList.reduce((acc, i) => i.periodo === 'q2' || i.periodo === 'todo' ? acc + (i.periodo === 'todo' ? i.valor/2 : i.valor) : acc, 0);
+  let eventosIngresosMes = obtenerEventosIngresoDelMes(mesActivoGlobal);
+  let ingQ1 = eventosIngresosMes
+    .filter(e => e.dia >= 1 && e.dia <= 14)
+    .reduce((acc, e) => acc + e.valor, 0);
+  let ingQ2 = eventosIngresosMes
+    .filter(e => e.dia >= 15)
+    .reduce((acc, e) => acc + e.valor, 0);
 
   buildQuincenaHtml(preCont, preComps, "Cargos Fijos / Pre-Mes");
   buildQuincenaHtml(q1Cont, q1Comps, "Tramo de Cobros 1 (Días 1-14)", ingQ1);
@@ -1509,6 +1836,44 @@ function renderCalendario(compromisosMes) {
   }
 }
 
+function obtenerPagosRealesDiferidosDelDia(mesKey, diaObjetivo) {
+  let pagos = [];
+  let { mes, anio } = parseMesKey(mesKey);
+  let mesIdx = ORDEN_MESES.indexOf(mes);
+  let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
+
+  appData.ingresosList.forEach(i => {
+    if(!ingresoActivoEnMes(i, mesKey)) return;
+    let diasReales = obtenerDiasPagoIngresoEnMes(i, mesKey);
+    diasReales.forEach((d, idx) => {
+      if(d === diaObjetivo && d > 28) {
+        pagos.push({
+          id: `real-diferido-${i.id}-${mesKey}-${idx}`,
+          nombre: i.nombre,
+          valor: i.valor,
+          tipo: 'ingreso'
+        });
+      }
+    });
+  });
+
+  appData.primasList
+    .filter(p => p.mesKey === mesKey)
+    .forEach(p => {
+      let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
+      if(dia === diaObjetivo && dia > 28) {
+        pagos.push({
+          id: `real-diferido-prima-${p.id}-${mesKey}`,
+          nombre: p.nombre,
+          valor: p.valor,
+          tipo: 'prima'
+        });
+      }
+    });
+
+  return pagos;
+}
+
 // NUEVO: SISTEMA DE DESPLIEGUE DE LA VISTA DIARIA
 function renderVistaDiaria(compromisosMes) {
   let secTitulo = document.getElementById('sec-vista-diaria');
@@ -1524,12 +1889,13 @@ function renderVistaDiaria(compromisosMes) {
   // Filtrar ingresos que entran este día (incluye primas y arrastres)
   let ingresosDia = obtenerEventosIngresoDelMes(mesActivoGlobal)
     .filter(e => e.dia === diaSeleccionadoActivo);
+  let pagosRealesDiferidosDia = obtenerPagosRealesDiferidosDelDia(mesActivoGlobal, diaSeleccionadoActivo);
 
   secTitulo.innerText = `Detalle del Día ${diaSeleccionadoActivo} de ${mesActivoGlobal}`;
   secTitulo.style.display = 'flex';
   cardContenedor.style.display = 'block';
 
-  if(deEsteDia.length === 0 && ingresosDia.length === 0) {
+  if(deEsteDia.length === 0 && ingresosDia.length === 0 && pagosRealesDiferidosDia.length === 0) {
     cardContenedor.innerHTML = `
       <div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding: 10px 0;">
         ¡Día libre! No tienes ingresos ni obligaciones programadas para esta fecha. 🎉
@@ -1540,6 +1906,7 @@ function renderVistaDiaria(compromisosMes) {
 
   let totalDiaSum = deEsteDia.reduce((acc, c) => acc + c.valor, 0);
   let totalIngresoDia = ingresosDia.reduce((acc, e) => acc + e.valor, 0);
+  let totalPagoRealDiferidoDia = pagosRealesDiferidosDia.reduce((acc, e) => acc + e.valor, 0);
 
   let html = `
     <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--color-text-secondary); margin-bottom:10px; border-bottom:1px dashed var(--color-border-secondary); padding-bottom:6px;">
@@ -1547,6 +1914,15 @@ function renderVistaDiaria(compromisosMes) {
       <span>Pagos: <strong class="neg">${formatCOP(totalDiaSum)}</strong></span>
     </div>
   `;
+
+  if(totalPagoRealDiferidoDia > 0) {
+    html += `
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:8px;">
+        Pago real hoy (se refleja en flujo el día 1 del mes siguiente):
+        <strong class="pos">${formatCOP(totalPagoRealDiferidoDia)}</strong>
+      </div>
+    `;
+  }
 
   if(ingresosDia.length > 0) {
     html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Pagos recibidos este día:</div>`;
@@ -1559,6 +1935,19 @@ function renderVistaDiaria(compromisosMes) {
         <div class="row">
           <div class="rn"><i class="ti ti-arrow-down-right"></i> ${nombreSeguro}</div>
           <div class="ra pos">${formatCOP(i.valor)} <span class="rm">(${subtipo})</span></div>
+        </div>
+      `;
+    });
+  }
+
+  if(pagosRealesDiferidosDia.length > 0) {
+    html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin:8px 0 6px;">Pagos reales de hoy (diferidos):</div>`;
+    pagosRealesDiferidosDia.forEach(i => {
+      let nombreSeguro = escapeHTML(i.nombre);
+      html += `
+        <div class="row">
+          <div class="rn"><i class="ti ti-calendar-dollar"></i> ${nombreSeguro}</div>
+          <div class="ra pos">${formatCOP(i.valor)} <span class="rm">(${i.tipo})</span></div>
         </div>
       `;
     });
@@ -1683,7 +2072,7 @@ function renderSemanaActiva(compromisosMes) {
 
 function procesarNuevoGasto() {
   let nombre = document.getElementById('add-nombre').value.trim();
-  let valor = parseFloat(document.getElementById('add-valor').value);
+  let valor = parseMontoInput(document.getElementById('add-valor').value);
   let dia = parseInt(document.getElementById('add-dia').value, 10);
   let tipoGasto = document.getElementById('add-tipo-gasto').value;
   let mesDestino = modoAltaDeuda === 'rapido' ? mesActivoGlobal : document.getElementById('add-mes-destino').value;
