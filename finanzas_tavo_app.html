@@ -66,6 +66,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .cal-dot{width:5px;height:5px;border-radius:50%;margin:2px auto 0}
 .cal-dot.pending{background:#E24B4A}
 .cal-dot.all-paid{background:#1D9E75}
+.cal-pay-mark{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:999px;background:#1D9E75;color:#fff;font-size:9px;line-height:14px;text-align:center;font-weight:700;box-shadow:0 0 0 1px #fff}
 .semana-badge{background:var(--color-background-tertiary);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;color:var(--color-text-secondary)}
 .selector-mes-principal {background:#534AB7; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;}
 .filtro-fecha{display:flex;gap:8px;align-items:end;margin-bottom:10px}
@@ -177,7 +178,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
   <div id="s-semanal" class="screen">
     <div class="sec" id="tit-semanas-dinamico">Semanas correspondientes</div>
     <div class="card" style="padding:10px 12px;">
-      <div class="rm">El balance semanal usa fecha exacta de ingreso. Pagos en día 29-31 se mueven al día 1 del mes siguiente.</div>
+      <div class="rm">El balance semanal usa fecha exacta de ingreso. Fin de mes se toma en último día hábil y, si cae en 29-31, impacta al día 1 del mes siguiente. Quincenal real: viernes cada 14 días.</div>
     </div>
     <div class="qs" id="nav-semanas-botones"></div>
     <div id="contenedor-vista-semanal">
@@ -303,6 +304,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
           <select id="new-ing-periodo" class="input-app">
             <option value="q1">Entra en Quincena 1</option>
             <option value="q2">Entra en Quincena 2</option>
+            <option value="biweekly">Pago cada 14 días (quincenal real)</option>
             <option value="todo">Ambas quincenas (50/50)</option>
           </select>
         </div>
@@ -437,6 +439,7 @@ function getCompromisosMesActual() {
 function getDiaIngreso(ing) {
   let dia = parseInt(ing.diaPago, 10);
   if(!isNaN(dia) && dia >= 1 && dia <= 31) return dia;
+  if(ing.periodo === 'biweekly') return 14;
   if(ing.periodo === 'q1') return 7;
   if(ing.periodo === 'q2') return 22;
   return 15;
@@ -445,6 +448,13 @@ function getDiaIngreso(ing) {
 function normalizarIngresosConDia() {
   appData.ingresosList.forEach(i => {
     i.diaPago = getDiaIngreso(i);
+    if(i.periodo === 'biweekly' && !i.anchorDate) {
+      let baseMes = mesesLineaTiempo[0] || mesActivoGlobal;
+      let { mes, anio } = parseMesKey(baseMes);
+      let mesIdx = ORDEN_MESES.indexOf(mes);
+      let day = Math.min(i.diaPago, new Date(anio, mesIdx + 1, 0).getDate());
+      i.anchorDate = siguienteViernes(new Date(anio, mesIdx, day)).toISOString().slice(0, 10);
+    }
   });
 }
 
@@ -575,32 +585,146 @@ function mesKeyAnterior(mesKey) {
   return `${ORDEN_MESES[idx - 1]} ${anio}`;
 }
 
+function ultimoDiaHabilMes(anio, mesIdx) {
+  let d = new Date(anio, mesIdx + 1, 0);
+  let dow = d.getDay();
+  if(dow === 6) d.setDate(d.getDate() - 1);
+  if(dow === 0) d.setDate(d.getDate() - 2);
+  return d.getDate();
+}
+
+function siguienteViernes(fecha) {
+  let d = new Date(fecha);
+  let dow = d.getDay();
+  let diff = (5 - dow + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function normalizarDiaPagoDeMes(diaBase, anio, mesIdx, diasMes) {
+  let dia = Math.min(Math.max(diaBase, 1), diasMes);
+  if(dia >= 28) return ultimoDiaHabilMes(anio, mesIdx);
+  return dia;
+}
+
+function obtenerDiasPagoIngresoEnMes(ing, mesKey) {
+  let { mes, anio } = parseMesKey(mesKey);
+  let mesIdx = ORDEN_MESES.indexOf(mes);
+  let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
+
+  if(ing.periodo !== 'biweekly') {
+    let dia = normalizarDiaPagoDeMes(getDiaIngreso(ing), anio, mesIdx, diasMes);
+    return [dia];
+  }
+
+  if(!ing.anchorDate) {
+    return [Math.min(getDiaIngreso(ing), diasMes)];
+  }
+
+  let anchor = new Date(`${ing.anchorDate}T00:00:00`);
+  anchor = siguienteViernes(anchor);
+  let inicioMes = new Date(anio, mesIdx, 1);
+  let finMes = new Date(anio, mesIdx, diasMes);
+  let dias = [];
+
+  let cursor = new Date(anchor);
+  while(cursor < inicioMes) {
+    cursor.setDate(cursor.getDate() + 14);
+  }
+  while(cursor <= finMes) {
+    if(cursor >= inicioMes) dias.push(cursor.getDate());
+    cursor.setDate(cursor.getDate() + 14);
+  }
+
+  return dias;
+}
+
+function obtenerDetalleDiasPagoMes(mesKey) {
+  let { mes, anio } = parseMesKey(mesKey);
+  let mesIdx = ORDEN_MESES.indexOf(mes);
+  let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
+  let out = {};
+
+  function asegurarDia(dia) {
+    if(!out[dia]) out[dia] = { real: false, arrastre: false };
+  }
+
+  appData.ingresosList.forEach(i => {
+    obtenerDiasPagoIngresoEnMes(i, mesKey).forEach(d => {
+      asegurarDia(d);
+      out[d].real = true;
+    });
+  });
+
+  appData.primasList
+    .filter(p => p.mesKey === mesKey)
+    .forEach(p => {
+      let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
+      asegurarDia(dia);
+      out[dia].real = true;
+    });
+
+  let mesPrevio = mesKeyAnterior(mesKey);
+  let prevData = parseMesKey(mesPrevio);
+  let prevMesIdx = ORDEN_MESES.indexOf(prevData.mes);
+  let prevDiasMes = new Date(prevData.anio, prevMesIdx + 1, 0).getDate();
+
+  appData.ingresosList.forEach(i => {
+    let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
+    diasPrevios.forEach(d => {
+      if(d >= 29) {
+        asegurarDia(1);
+        out[1].arrastre = true;
+      }
+    });
+  });
+
+  appData.primasList
+    .filter(p => p.mesKey === mesPrevio)
+    .forEach(p => {
+      let d = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, prevData.anio, prevMesIdx, prevDiasMes);
+      if(d >= 29) {
+        asegurarDia(1);
+        out[1].arrastre = true;
+      }
+    });
+
+  return out;
+}
+
 function obtenerEventosIngresoDelMes(mesKey) {
   let eventos = [];
   appData.ingresosList.forEach(i => {
-    let dia = getDiaIngreso(i);
-    if(dia <= 28) {
-      eventos.push({ id: i.id, nombre: i.nombre, valor: i.valor, dia: dia, origen: 'normal' });
-    }
+    let dias = obtenerDiasPagoIngresoEnMes(i, mesKey);
+    dias.forEach((dia, idx) => {
+      if(dia <= 28) {
+        eventos.push({ id: `${i.id}-${mesKey}-${idx}`, nombre: i.nombre, valor: i.valor, dia: dia, origen: 'normal' });
+      }
+    });
   });
 
   let mesPrevio = mesKeyAnterior(mesKey);
   appData.ingresosList.forEach(i => {
-    let dia = getDiaIngreso(i);
-    if(dia >= 29) {
-      eventos.push({
-        id: `arrastre-${i.id}`,
-        nombre: `${i.nombre} (arrastre mes anterior)`,
-        valor: i.valor,
-        dia: 1,
-        origen: 'arrastre'
-      });
-    }
+    let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
+    diasPrevios.forEach((dia, idx) => {
+      if(dia >= 29) {
+        eventos.push({
+          id: `arrastre-${i.id}-${mesPrevio}-${idx}`,
+          nombre: `${i.nombre} (arrastre mes anterior)`,
+          valor: i.valor,
+          dia: 1,
+          origen: 'arrastre'
+        });
+      }
+    });
   });
 
   // Primas: ingreso no recurrente con mes/día explícitos.
   appData.primasList.forEach(p => {
-    let dia = parseInt(p.diaPago, 10);
+    let { mes, anio } = parseMesKey(mesKey);
+    let mesIdx = ORDEN_MESES.indexOf(mes);
+    let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
+    let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
     if(p.mesKey === mesKey && dia >= 1 && dia <= 28) {
       eventos.push({ id: `prima-${p.id}`, nombre: p.nombre, valor: p.valor, dia: dia, origen: 'prima' });
     }
@@ -608,7 +732,10 @@ function obtenerEventosIngresoDelMes(mesKey) {
 
   // Si la prima cae 29-31, se arrastra al día 1 del siguiente mes.
   appData.primasList.forEach(p => {
-    let dia = parseInt(p.diaPago, 10);
+    let { mes, anio } = parseMesKey(mesPrevio);
+    let mesIdx = ORDEN_MESES.indexOf(mes);
+    let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
+    let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
     if(p.mesKey === mesPrevio && dia >= 29 && dia <= 31) {
       eventos.push({
         id: `arrastre-prima-${p.id}`,
@@ -914,8 +1041,14 @@ function renderIngresosResumen() {
   appData.ingresosList.forEach(i => {
     let nombreSeguro = escapeHTML(i.nombre);
     let diaIngreso = getDiaIngreso(i);
-    let impacto = diaIngreso >= 29 ? 'Impacta mes siguiente (arrastre día 1)' : `Pago día ${diaIngreso}`;
-    let tag = i.periodo === 'q1' ? 'Quincena 1' : (i.periodo === 'q2' ? 'Quincena 2' : 'Ambas Quincenas (50/50)');
+    let impacto = i.periodo === 'biweekly'
+      ? `Cada 14 días (ancla día ${diaIngreso})`
+      : (diaIngreso >= 29 ? 'Impacta mes siguiente (arrastre día 1)' : `Pago día ${diaIngreso}`);
+    let tag = i.periodo === 'q1'
+      ? 'Quincena 1'
+      : (i.periodo === 'q2'
+        ? 'Quincena 2'
+        : (i.periodo === 'biweekly' ? 'Quincenal real (14 días)' : 'Ambas Quincenas (50/50)'));
     container.innerHTML += `
       <div class="row">
         <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag} · ${impacto}</div></div>
@@ -978,6 +1111,7 @@ function renderConfigIngresos() {
         <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'periodo', this.value)">
           <option value="q1" ${i.periodo === 'q1' ? 'selected' : ''}>Cae en Quincena 1 (Días 1-14)</option>
           <option value="q2" ${i.periodo === 'q2' ? 'selected' : ''}>Cae en Quincena 2 (Días 15-31)</option>
+          <option value="biweekly" ${i.periodo === 'biweekly' ? 'selected' : ''}>Quincenal real (cada 14 días)</option>
           <option value="todo" ${i.periodo === 'todo' ? 'selected' : ''}>Dividir en Ambas Quincenas (50/50)</option>
         </select>
         </div>
@@ -1325,6 +1459,8 @@ function renderCalendario(compromisosMes) {
     mapaDias[d].push(c);
   });
 
+  let detallePago = obtenerDetalleDiasPagoMes(mesActivoGlobal);
+
   for(let dia=1; dia<=totalDias; dia++) {
     let item = document.createElement('div'); 
     item.className = 'cal-day';
@@ -1333,6 +1469,22 @@ function renderCalendario(compromisosMes) {
     let numDia = document.createElement('span'); 
     numDia.innerText = dia; 
     item.appendChild(numDia);
+
+      if(detallePago[dia]) {
+        let esReal = detallePago[dia].real;
+        let esArrastre = detallePago[dia].arrastre;
+        let payMark = document.createElement('div');
+        payMark.className = 'cal-pay-mark';
+        payMark.innerText = '$';
+        if(esReal && esArrastre) {
+          payMark.title = 'Día de pago real + impacto de arrastre del mes anterior';
+        } else if(esReal) {
+          payMark.title = 'Día de pago real de ingreso';
+        } else {
+          payMark.title = 'Día con impacto de arrastre del mes anterior';
+        }
+        item.appendChild(payMark);
+      }
 
     // Si el día tiene compromisos financieros asignados
     if(mapaDias[dia] && mapaDias[dia].length > 0) {
@@ -1369,28 +1521,52 @@ function renderVistaDiaria(compromisosMes) {
     return d === diaSeleccionadoActivo;
   });
 
+  // Filtrar ingresos que entran este día (incluye primas y arrastres)
+  let ingresosDia = obtenerEventosIngresoDelMes(mesActivoGlobal)
+    .filter(e => e.dia === diaSeleccionadoActivo);
+
   secTitulo.innerText = `Detalle del Día ${diaSeleccionadoActivo} de ${mesActivoGlobal}`;
   secTitulo.style.display = 'flex';
   cardContenedor.style.display = 'block';
 
-  if(deEsteDia.length === 0) {
+  if(deEsteDia.length === 0 && ingresosDia.length === 0) {
     cardContenedor.innerHTML = `
       <div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding: 10px 0;">
-        ¡Día libre! No tienes ninguna obligación de pago programada para esta fecha. 🎉
+        ¡Día libre! No tienes ingresos ni obligaciones programadas para esta fecha. 🎉
       </div>
     `;
     return;
   }
 
   let totalDiaSum = deEsteDia.reduce((acc, c) => acc + c.valor, 0);
-  let totalPagadoDia = deEsteDia.filter(c => c.pagado).reduce((acc, c) => acc + c.valor, 0);
+  let totalIngresoDia = ingresosDia.reduce((acc, e) => acc + e.valor, 0);
 
   let html = `
     <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--color-text-secondary); margin-bottom:10px; border-bottom:1px dashed var(--color-border-secondary); padding-bottom:6px;">
-      <span>Compromisos: <strong>${deEsteDia.length}</strong></span>
-      <span>Total: <strong class="neg">${formatCOP(totalDiaSum)}</strong></span>
+      <span>Ingresos: <strong class="pos">${formatCOP(totalIngresoDia)}</strong></span>
+      <span>Pagos: <strong class="neg">${formatCOP(totalDiaSum)}</strong></span>
     </div>
   `;
+
+  if(ingresosDia.length > 0) {
+    html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Pagos recibidos este día:</div>`;
+    ingresosDia.forEach(i => {
+      let nombreSeguro = escapeHTML(i.nombre);
+      let subtipo = i.origen === 'arrastre' || i.origen === 'prima-arrastre'
+        ? 'arrastre'
+        : (i.origen === 'prima' ? 'prima' : 'ingreso');
+      html += `
+        <div class="row">
+          <div class="rn"><i class="ti ti-arrow-down-right"></i> ${nombreSeguro}</div>
+          <div class="ra pos">${formatCOP(i.valor)} <span class="rm">(${subtipo})</span></div>
+        </div>
+      `;
+    });
+  }
+
+  if(deEsteDia.length > 0) {
+    html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin:8px 0 6px;">Obligaciones a pagar este día:</div>`;
+  }
 
   deEsteDia.forEach(c => {
     let nombreSeguro = escapeHTML(c.nombre);
