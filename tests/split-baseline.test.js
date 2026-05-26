@@ -6,6 +6,7 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_JS = path.join(ROOT, 'app.js');
+const APP_RULES_JS = path.join(ROOT, 'app.rules.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
 test('parseMontoInput soporta formatos comunes y casos invalidos', () => {
@@ -19,8 +20,8 @@ test('parseMontoInput soporta formatos comunes y casos invalidos', () => {
 
 test('parseMesKey y utilidades de mes calculan indice y suma de meses', () => {
   const ctx = loadFunctionsFromFile(
-    APP_JS,
-    ['parseMesKey', 'mesKeyToIndex', 'indexToMesKey', 'sumarMesesMesKey'],
+    APP_RULES_JS,
+    ['parseMesKeySafe', 'mesKeyToNumericIndex', 'numericIndexToMesKey', 'addMonthsToMesKey'],
     {
       ORDEN_MESES: [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -29,19 +30,19 @@ test('parseMesKey y utilidades de mes calculan indice y suma de meses', () => {
     }
   );
 
-  const parsed = ctx.parseMesKey('Mayo 2026');
+  const parsed = ctx.parseMesKeySafe('Mayo 2026');
   assert.equal(parsed.mes, 'Mayo');
   assert.equal(parsed.anio, 2026);
 
-  const idx = ctx.mesKeyToIndex('Mayo 2026');
-  assert.equal(ctx.indexToMesKey(idx), 'Mayo 2026');
-  assert.equal(ctx.sumarMesesMesKey('Diciembre 2026', 1), 'Enero 2027');
+  const idx = ctx.mesKeyToNumericIndex('Mayo 2026');
+  assert.equal(ctx.numericIndexToMesKey(idx), 'Mayo 2026');
+  assert.equal(ctx.addMonthsToMesKey('Diciembre 2026', 1), 'Enero 2027');
 });
 
 test('calcularBalanceSemanal usa ingresos por dias y pre-mes en semana 1', () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['calcularBalanceSemanal'], {
+  const ctx = loadFunctionsFromFile(APP_RULES_JS, ['calculateWeeklyBalance'], {
     mesActivoGlobal: 'Mayo 2026',
-    obtenerEventosIngresoDelMes: () => [
+    getIncomeEventsForMonth: () => [
       { dia: 1, valor: 1000 },
       { dia: 3, valor: 500 },
       { dia: 7, valor: 300 }
@@ -55,7 +56,7 @@ test('calcularBalanceSemanal usa ingresos por dias y pre-mes en semana 1', () =>
     { dia: 10, valor: 999 }
   ];
 
-  const out = ctx.calcularBalanceSemanal(compromisos, semana1);
+  const out = ctx.calculateWeeklyBalance(compromisos, semana1);
   assert.equal(out.ingresosSemana, 1500);
   assert.equal(out.gastosSemana, 500);
   assert.equal(out.balanceSemana, 1000);

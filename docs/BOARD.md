@@ -27,7 +27,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-038 Split dominio reglas financieras y calculos
+- [ ] TKT-043 Saneamiento historico de Git y datos sensibles
+- [ ] TKT-044 Seed anonima final para version publica
 - [ ] TKT-039 Split dominio acciones de usuario y formularios
 - [ ] TKT-040 QA de regresion post-split y saneamiento
 
@@ -41,6 +42,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [x] TKT-037 Split dominio render y navegacion
 - [x] TKT-036 Split dominio datos y persistencia
@@ -533,6 +535,40 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Persistir historial en almacenamiento principal
    - [ ] Implementar UI de historial con opcion de revertir
 
+### TKT-043 - Saneamiento historico de Git y datos sensibles
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Se reescribe todo el historial Git desde el primer commit con data real para eliminar datos sensibles de forma permanente.
+   - Se publica historial saneado mediante force push y las referencias antiguas dejan de estar disponibles en remoto.
+   - El estado final conserva comportamiento funcional manteniendo la data actual durante desarrollo activo.
+- Checklist:
+   - [ ] Identificar commit base donde aparece data sensible y definir ventana de reescritura
+   - [ ] Definir politica de anonimización (campos permitidos/prohibidos)
+   - [ ] Aplicar reescritura historica (filter-repo o equivalente) sobre ramas/tags relevantes
+   - [ ] Validar que no queden rastros de datos sensibles en todo el historial reescrito
+   - [ ] Publicar historial saneado con force push
+   - [ ] Documentar impacto para clones existentes (re-clone o hard reset al nuevo historial)
+
+### TKT-044 - Seed anonima final para version publica
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Al cierre del desarrollo se reemplaza la data real por una seed anonima estable para publicacion.
+   - La seed anonima mantiene estructura, volumen y fechas clave para conservar comportamiento funcional de demo.
+   - El usuario puede reiniciar datos con seed de prueba sin exponer informacion sensible real.
+- Checklist:
+   - [ ] Definir mapeo de nombres/montos anonimizados
+   - [ ] Reemplazar datos reales en defaults/fixtures por seed anonima
+   - [ ] Validar flujos funcionales con seed anonima
+   - [ ] Documentar estrategia de reset/seed para entorno publico
+
 ### TKT-042 - Base de localizacion (i18n) para transicion a ingles
 
 - Estado: Done
@@ -612,7 +648,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-038 - Split dominio reglas financieras y calculos
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -621,9 +657,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Las funciones puras pueden invocarse con datos de prueba sin inicializar UI.
    - Resultados de calculo no presentan regresiones visibles en pantallas principales.
 - Checklist:
-   - [ ] Extraer funciones de calculo y normalizacion financiera
-   - [ ] Eliminar dependencias de document/window dentro de reglas de negocio
-   - [ ] Comparar resultados antes/despues en escenarios representativos
+   - [x] Extraer funciones de calculo y normalizacion financiera
+   - [x] Eliminar dependencias de document/window dentro de reglas de negocio
+   - [x] Comparar resultados antes/despues en escenarios representativos
 
 ### TKT-039 - Split dominio acciones de usuario y formularios
 
@@ -660,6 +696,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-038 completado: modulo app.rules.js agregado para reglas financieras/calculos con wrappers compatibles y pruebas dedicadas.
+1. TKT-044 agregado: seed anonima final separada del saneamiento historico para ejecutar al cierre del desarrollo.
+1. TKT-043 ajustado: se mantiene data real durante desarrollo y la reescritura historica se deja para fase de publicacion.
+1. TKT-043 ajustado: como el repo ya es publico, el alcance pasa a reescritura historica completa de Git + force push para eliminar datos sensibles pasados.
 1. TKT-042 completado: base i18n implementada con autodeteccion por locale/región del navegador y switch manual de idioma en cabecera.
 1. TKT-037 completado: modulo app.render.js agregado para navegacion/render con wrappers compatibles y pruebas dedicadas.
 1. TKT-036 completado: modulo app.data.js agregado con wrappers compatibles en app.js y cache actualizada para offline.

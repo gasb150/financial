@@ -411,58 +411,39 @@ function normalizarIngresosConDia() {
 }
 
 function esMesKeyValido(mesKey) {
-  if(!mesKey || typeof mesKey !== 'string') return false;
-  let [mes, anioStr] = mesKey.split(' ');
-  return ORDEN_MESES.includes(mes) && !isNaN(parseInt(anioStr, 10));
+  return window.FinancialRules.isValidMesKey(mesKey);
 }
 
 function obtenerMesInicioIngreso(ing) {
-  return esMesKeyValido(ing.mesInicio) ? ing.mesInicio : (mesesLineaTiempo[0] || mesActivoGlobal);
+  return window.FinancialRules.getIncomeStartMonth(ing);
 }
 
 function obtenerMesFinIngreso(ing) {
-  if(ing.mesFinIndefinido) return null;
-  return esMesKeyValido(ing.mesFin) ? ing.mesFin : null;
+  return window.FinancialRules.getIncomeEndMonth(ing);
 }
 
 function ingresoActivoEnMes(ing, mesKey) {
-  let idxMes = mesKeyToIndex(mesKey);
-  let idxInicio = mesKeyToIndex(obtenerMesInicioIngreso(ing));
-  if(idxMes < idxInicio) return false;
-  let mesFin = obtenerMesFinIngreso(ing);
-  if(!mesFin) return true;
-  return idxMes <= mesKeyToIndex(mesFin);
+  return window.FinancialRules.isIncomeActiveInMonth(ing, mesKey);
 }
 
 function parseMesKey(mesKey) {
-  let [mes, anioStr] = mesKey.split(' ');
-  return { mes, anio: parseInt(anioStr, 10) };
+  return window.FinancialRules.parseMesKeySafe(mesKey);
 }
 
 function mesKeyToIndex(mesKey) {
-  let { mes, anio } = parseMesKey(mesKey);
-  return (anio * 12) + ORDEN_MESES.indexOf(mes);
+  return window.FinancialRules.mesKeyToNumericIndex(mesKey);
 }
 
 function indexToMesKey(indexMes) {
-  let anio = Math.floor(indexMes / 12);
-  let mesIdx = ((indexMes % 12) + 12) % 12;
-  return `${ORDEN_MESES[mesIdx]} ${anio}`;
+  return window.FinancialRules.numericIndexToMesKey(indexMes);
 }
 
 function sumarMesesMesKey(mesKey, cantidad) {
-  return indexToMesKey(mesKeyToIndex(mesKey) + cantidad);
+  return window.FinancialRules.addMonthsToMesKey(mesKey, cantidad);
 }
 
 function asegurarLineaTiempoHastaMes(mesKeyObjetivo) {
-  if(!mesesLineaTiempo.length) return;
-  let idxObjetivo = mesKeyToIndex(mesKeyObjetivo);
-  let idxUltimo = mesKeyToIndex(mesesLineaTiempo[mesesLineaTiempo.length - 1]);
-
-  while(idxUltimo < idxObjetivo) {
-    idxUltimo += 1;
-    mesesLineaTiempo.push(indexToMesKey(idxUltimo));
-  }
+  return window.FinancialRules.ensureTimelineUntilMonth(mesKeyObjetivo);
 }
 
 function obtenerMaxIdNumericoCompromisos() {
@@ -598,249 +579,39 @@ function normalizarRecurrenciasCompromisos() {
 }
 
 function mesKeyAnterior(mesKey) {
-  let { mes, anio } = parseMesKey(mesKey);
-  let idx = ORDEN_MESES.indexOf(mes);
-  if(idx <= 0) return `${ORDEN_MESES[11]} ${anio - 1}`;
-  return `${ORDEN_MESES[idx - 1]} ${anio}`;
+  return window.FinancialRules.previousMesKey(mesKey);
 }
 
 function ultimoDiaHabilMes(anio, mesIdx) {
-  let d = new Date(anio, mesIdx + 1, 0);
-  let dow = d.getDay();
-  if(dow === 6) d.setDate(d.getDate() - 1);
-  if(dow === 0) d.setDate(d.getDate() - 2);
-  return d.getDate();
+  return window.FinancialRules.lastBusinessDayOfMonth(anio, mesIdx);
 }
 
 function siguienteViernes(fecha) {
-  let d = new Date(fecha);
-  let dow = d.getDay();
-  let diff = (5 - dow + 7) % 7;
-  d.setDate(d.getDate() + diff);
-  return d;
+  return window.FinancialRules.nextFriday(fecha);
 }
 
 function normalizarDiaPagoDeMes(diaBase, anio, mesIdx, diasMes) {
-  let dia = Math.min(Math.max(diaBase, 1), diasMes);
-  if(dia >= 28) return ultimoDiaHabilMes(anio, mesIdx);
-  return dia;
+  return window.FinancialRules.normalizeIncomeDayOfMonth(diaBase, anio, mesIdx, diasMes);
 }
 
 function obtenerDiasPagoIngresoEnMes(ing, mesKey) {
-  let { mes, anio } = parseMesKey(mesKey);
-  let mesIdx = ORDEN_MESES.indexOf(mes);
-  let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
-
-  if(ing.periodo !== 'biweekly') {
-    let dia = normalizarDiaPagoDeMes(getDiaIngreso(ing), anio, mesIdx, diasMes);
-    return [dia];
-  }
-
-  if(!ing.anchorDate) {
-    return [Math.min(getDiaIngreso(ing), diasMes)];
-  }
-
-  let anchor = new Date(`${ing.anchorDate}T00:00:00`);
-  anchor = siguienteViernes(anchor);
-  let inicioMes = new Date(anio, mesIdx, 1);
-  let finMes = new Date(anio, mesIdx, diasMes);
-  let dias = [];
-
-  let cursor = new Date(anchor);
-  while(cursor < inicioMes) {
-    cursor.setDate(cursor.getDate() + 14);
-  }
-  while(cursor <= finMes) {
-    if(cursor >= inicioMes) dias.push(cursor.getDate());
-    cursor.setDate(cursor.getDate() + 14);
-  }
-
-  return dias;
+  return window.FinancialRules.getIncomePaymentDaysInMonth(ing, mesKey);
 }
 
 function obtenerDetalleDiasPagoMes(mesKey) {
-  let { mes, anio } = parseMesKey(mesKey);
-  let mesIdx = ORDEN_MESES.indexOf(mes);
-  let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
-  let out = {};
-
-  function asegurarDia(dia) {
-    if(!out[dia]) out[dia] = { real: false, arrastre: false };
-  }
-
-  appData.ingresosList.forEach(i => {
-    if(!ingresoActivoEnMes(i, mesKey)) return;
-    obtenerDiasPagoIngresoEnMes(i, mesKey).forEach(d => {
-      asegurarDia(d);
-      out[d].real = true;
-    });
-  });
-
-  appData.primasList
-    .filter(p => p.mesKey === mesKey)
-    .forEach(p => {
-      let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
-      asegurarDia(dia);
-      out[dia].real = true;
-    });
-
-  let mesPrevio = mesKeyAnterior(mesKey);
-  let prevData = parseMesKey(mesPrevio);
-  let prevMesIdx = ORDEN_MESES.indexOf(prevData.mes);
-  let prevDiasMes = new Date(prevData.anio, prevMesIdx + 1, 0).getDate();
-
-  appData.ingresosList.forEach(i => {
-    if(!ingresoActivoEnMes(i, mesPrevio)) return;
-    let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
-    diasPrevios.forEach(d => {
-      if(d >= 29) {
-        asegurarDia(1);
-        out[1].arrastre = true;
-      }
-    });
-  });
-
-  appData.primasList
-    .filter(p => p.mesKey === mesPrevio)
-    .forEach(p => {
-      let d = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, prevData.anio, prevMesIdx, prevDiasMes);
-      if(d >= 29) {
-        asegurarDia(1);
-        out[1].arrastre = true;
-      }
-    });
-
-  return out;
+  return window.FinancialRules.getMonthlyPaymentDayDetails(mesKey);
 }
 
 function obtenerEventosIngresoDelMes(mesKey) {
-  let eventos = [];
-  appData.ingresosList.forEach(i => {
-    if(!ingresoActivoEnMes(i, mesKey)) return;
-    let dias = obtenerDiasPagoIngresoEnMes(i, mesKey);
-    dias.forEach((dia, idx) => {
-      if(dia <= 28) {
-        eventos.push({
-          id: `${i.id}-${mesKey}-${idx}`,
-          nombre: i.nombre,
-          valor: i.valor,
-          dia: dia,
-          origen: 'normal',
-          fuenteTipo: 'ingreso',
-          fuenteId: i.id
-        });
-      }
-    });
-  });
-
-  let mesPrevio = mesKeyAnterior(mesKey);
-  appData.ingresosList.forEach(i => {
-    if(!ingresoActivoEnMes(i, mesPrevio)) return;
-    let diasPrevios = obtenerDiasPagoIngresoEnMes(i, mesPrevio);
-    diasPrevios.forEach((dia, idx) => {
-      if(dia >= 29) {
-        eventos.push({
-          id: `arrastre-${i.id}-${mesPrevio}-${idx}`,
-          nombre: `${i.nombre} (arrastre mes anterior)`,
-          valor: i.valor,
-          dia: 1,
-          origen: 'arrastre',
-          fuenteTipo: 'ingreso',
-          fuenteId: i.id
-        });
-      }
-    });
-  });
-
-  // Primas: ingreso no recurrente con mes/día explícitos.
-  appData.primasList.forEach(p => {
-    let { mes, anio } = parseMesKey(mesKey);
-    let mesIdx = ORDEN_MESES.indexOf(mes);
-    let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
-    let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
-    if(p.mesKey === mesKey && dia >= 1 && dia <= 28) {
-      eventos.push({
-        id: `prima-${p.id}`,
-        nombre: p.nombre,
-        valor: p.valor,
-        dia: dia,
-        origen: 'prima',
-        fuenteTipo: 'prima',
-        fuenteId: p.id
-      });
-    }
-  });
-
-  // Si la prima cae 29-31, se arrastra al día 1 del siguiente mes.
-  appData.primasList.forEach(p => {
-    let { mes, anio } = parseMesKey(mesPrevio);
-    let mesIdx = ORDEN_MESES.indexOf(mes);
-    let diasMes = new Date(anio, mesIdx + 1, 0).getDate();
-    let dia = normalizarDiaPagoDeMes(parseInt(p.diaPago, 10) || 1, anio, mesIdx, diasMes);
-    if(p.mesKey === mesPrevio && dia >= 29 && dia <= 31) {
-      eventos.push({
-        id: `arrastre-prima-${p.id}`,
-        nombre: `${p.nombre} (arrastre mes anterior)`,
-        valor: p.valor,
-        dia: 1,
-        origen: 'prima-arrastre',
-        fuenteTipo: 'prima',
-        fuenteId: p.id
-      });
-    }
-  });
-
-  return eventos;
+  return window.FinancialRules.getIncomeEventsForMonth(mesKey);
 }
 
 function calcularBalanceSemanal(compromisosMes, semana) {
-  let ingresosEventos = obtenerEventosIngresoDelMes(mesActivoGlobal);
-  let ingresosSemana = ingresosEventos
-    .filter(e => semana.dias.includes(e.dia))
-    .reduce((acc, e) => acc + e.valor, 0);
-
-  let gastosSemana = compromisosMes
-    .filter(c => {
-      let dVal = parseInt(c.dia, 10);
-      if (dVal === -1 && semana.id === 'sem-1') return true;
-      return semana.dias.includes(dVal);
-    })
-    .reduce((acc, c) => acc + c.valor, 0);
-
-  return {
-    ingresosSemana,
-    gastosSemana,
-    balanceSemana: ingresosSemana - gastosSemana,
-    ingresosEventos
-  };
+  return window.FinancialRules.calculateWeeklyBalance(compromisosMes, semana);
 }
 
 function obtenerSemanasDelMesActivo() {
-  let partes = mesActivoGlobal.split(" ");
-  let nombreMes = partes[0];
-  let anio = parseInt(partes[1]);
-  const mesesIndices = {"Enero":0,"Febrero":1,"Marzo":2,"Abril":3,"Mayo":4,"Junio":5,"Julio":6,"Agosto":7,"Septiembre":8,"Octubre":9,"Noviembre":10,"Diciembre":11};
-  let mesIdx = mesesIndices[nombreMes];
-  let totalDias = new Date(anio, mesIdx + 1, 0).getDate();
-  let semanas = [];
-  let diasAcumulados = [];
-  let numSemanaFicticia = 1;
-  
-  for(let d=1; d<=totalDias; d++) {
-    diasAcumulados.push(d);
-    let diaSemanaSistemas = new Date(anio, mesIdx, d).getDay();
-    if(diaSemanaSistemas === 0 || d === totalDias) {
-      semanas.push({
-        id: `sem-${numSemanaFicticia}`,
-        nombre: `Tramo Semanal ${numSemanaFicticia}`,
-        rango: `${nombreMes.substring(0,3)} ${diasAcumulados[0]} - ${nombreMes.substring(0,3)} ${diasAcumulados[diasAcumulados.length - 1]}`,
-        dias: [...diasAcumulados]
-      });
-      diasAcumulados = [];
-      numSemanaFicticia++;
-    }
-  }
-  return semanas;
+  return window.FinancialRules.getWeeksForActiveMonth();
 }
 
 function cambiarMesDeVisualizacion(nuevoMes) {
