@@ -459,8 +459,39 @@ const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
+const APP_SCHEMA_VERSION = 2;
 
-let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault;
+const APP_SCHEMA_MIGRATORS = {
+  1: (data) => {
+    if(!Array.isArray(data.ingresosList)) data.ingresosList = [];
+    if(!Array.isArray(data.compromisos)) data.compromisos = [];
+    if(!Array.isArray(data.primasList)) data.primasList = [];
+    if(!Array.isArray(data.lineaTiempoGuardada) || data.lineaTiempoGuardada.length === 0) {
+      data.lineaTiempoGuardada = [...mesesLineaTiempo];
+    }
+    if(!data.migraciones || typeof data.migraciones !== 'object') data.migraciones = {};
+    return data;
+  },
+  2: (data) => {
+    let mesBase = (Array.isArray(data.lineaTiempoGuardada) && data.lineaTiempoGuardada[0])
+      ? data.lineaTiempoGuardada[0]
+      : 'Junio 2026';
+
+    if(Array.isArray(data.ingresosList)) {
+      data.ingresosList.forEach((ing) => {
+        if(!ing || typeof ing !== 'object') return;
+        if(!ing.mesInicio) ing.mesInicio = mesBase;
+        if(ing.mesFin === undefined) ing.mesFin = null;
+        if(ing.mesFinIndefinido === undefined) {
+          ing.mesFinIndefinido = !ing.mesFin;
+        }
+      });
+    }
+    return data;
+  }
+};
+
+let appData = aplicarMigracionesSchema(JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault);
 let idbReady = false;
 let idbPromise = null;
 
@@ -469,6 +500,25 @@ normalizarEstadoCargado();
 const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
+
+function aplicarMigracionesSchema(dataIn) {
+  let data = dataIn && typeof dataIn === 'object'
+    ? dataIn
+    : JSON.parse(JSON.stringify(datosDefault));
+
+  let versionActual = Number.isInteger(data.schemaVersion) ? data.schemaVersion : 0;
+  while(versionActual < APP_SCHEMA_VERSION) {
+    let versionObjetivo = versionActual + 1;
+    let migrador = APP_SCHEMA_MIGRATORS[versionObjetivo];
+    if(typeof migrador === 'function') {
+      data = migrador(data) || data;
+    }
+    data.schemaVersion = versionObjetivo;
+    versionActual = versionObjetivo;
+  }
+
+  return data;
+}
 
 function normalizarEstadoCargado() {
   if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
@@ -532,8 +582,10 @@ async function hidratarDataDesdeIndexedDB() {
     let raw = await idbGetRaw(STORAGE_KEY);
     if(raw) {
       let parsed = JSON.parse(raw);
-      if(validarDataPrincipal(parsed)) {
-        appData = parsed;
+      let migrada = aplicarMigracionesSchema(parsed);
+      if(validarDataPrincipal(migrada)) {
+        appData = migrada;
+        await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
       }
     } else {
       await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
@@ -613,6 +665,7 @@ function validarPayloadRespaldo(payload) {
 function buildBackupPayload() {
   return {
     version: 1,
+    dataSchemaVersion: appData.schemaVersion || APP_SCHEMA_VERSION,
     savedAt: new Date().toISOString(),
     data: appData
   };
@@ -668,7 +721,7 @@ function importarRespaldoArchivo(event) {
         alert('El archivo no tiene un formato de respaldo válido.');
         return;
       }
-      appData = candidato;
+      appData = aplicarMigracionesSchema(candidato);
       if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
       mesesLineaTiempo = appData.lineaTiempoGuardada;
       diaSeleccionadoActivo = null;
@@ -698,7 +751,7 @@ function restaurarUltimoRespaldoLocal() {
       alert('El auto-respaldo local está incompleto.');
       return;
     }
-    appData = candidato;
+    appData = aplicarMigracionesSchema(candidato);
     if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
     mesesLineaTiempo = appData.lineaTiempoGuardada;
     diaSeleccionadoActivo = null;
@@ -1417,6 +1470,7 @@ function initApp() {
   aplicarCorreccionMesBaseSiAplica();
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
+  appData.schemaVersion = APP_SCHEMA_VERSION;
   let marcaGuardado = new Date().toISOString();
   persistirDataPrincipalConFallback();
   persistirAuxiliaresConFallback(marcaGuardado);

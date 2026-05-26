@@ -14,7 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-005 Versionado de esquema y migraciones
 - [ ] TKT-006 Integridad de backup (validacion + checksum)
 - [ ] TKT-007 Selector IA OFF / LOCAL / API
 - [ ] TKT-008 Integracion IA local con Ollama
@@ -35,6 +34,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-005 Versionado de esquema y migraciones
 - [x] TKT-004 Migracion de localStorage a IndexedDB
 - [x] TKT-003 Indicador de ultimo guardado
 - [x] TKT-002 Service worker offline cache
@@ -103,7 +103,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-005 - Versionado de esquema y migraciones
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 2
 - Owner: Gustavo
@@ -111,8 +111,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Cada cambio de datos incrementa version.
    - Migraciones reproducibles por version.
 - Checklist:
-   - [ ] Crear registro de version
-   - [ ] Definir migradores por version
+   - [x] Crear registro de version
+   - [x] Definir migradores por version
 
 ### TKT-006 - Integridad de backup (validacion + checksum)
 
@@ -209,6 +209,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-005 completado: schemaVersion y migradores v1/v2 aplicados en carga/import/restore.
 1. TKT-004 completado: IndexedDB como almacenamiento principal con migracion y fallback.
 1. TKT-003 completado: timestamp de ultimo guardado persistido y visible en Config.
 1. TKT-002 completado: cache offline base con service worker registrado.
