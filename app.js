@@ -20,49 +20,28 @@ let iaPanelState = {
   rebalanceSemana: { loading: false, error: '', result: '', actions: [] }
 };
 
-const datosDefault = {
-  ingresosList: [
-    { id: 1, nombre: "Salario Demo (Q1)", valor: 3200000, periodo: "q1" },
-    { id: 2, nombre: "Salario Demo (Q2)", valor: 3200000, periodo: "q2" },
-    { id: 3, nombre: "Renta Demo", valor: 400000, periodo: "q2" }
-  ],
+function clonarJSONSeguro(data) {
+  try {
+    return JSON.parse(JSON.stringify(data));
+  } catch(_e) {
+    return null;
+  }
+}
+
+function resolverDatosDefaultExternos() {
+  let local = window.__FINANZAS_SEED_LOCAL_DATA__;
+  let publico = window.__FINANZAS_SEED_DATA__;
+
+  if(local && typeof local === 'object') return clonarJSONSeguro(local);
+  if(publico && typeof publico === 'object') return clonarJSONSeguro(publico);
+
+  return null;
+}
+
+const datosDefault = resolverDatosDefaultExternos() || {
+  ingresosList: [],
   primasList: [],
-  compromisos: [
-    { id: 1, nombre: "Internet Hogar", valor: 360000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 2, nombre: "Plan Datos", valor: 55000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 3, nombre: "Gas (servicios)", valor: 190000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 4, nombre: "Servicio Energia", valor: 110000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 5, nombre: "Comida", valor: 1200000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 6, nombre: "Alquiler", valor: 1800000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 7, nombre: "Casa", valor: 1250000, dia: 14, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 12, nombre: "Gas Propiedad", valor: 720000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 13, nombre: "Administracion Propiedad", valor: 374000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 14, nombre: "Prestamo Familiar", valor: 1300000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 15, nombre: "Internet M", valor: 106000, dia: 12, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 16, nombre: "Colegio Demo", valor: 339000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 17, nombre: "Gasolina", valor: 600000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 21, nombre: "Acueducto", valor: 700000, dia: 15, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 101, nombre: "Colegio Hija", valor: 678000, dia: 1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
-    { id: 102, nombre: "Extra Colegio", valor: 678000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 103, nombre: "Gastos Varios A", valor: 300000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 104, nombre: "Regalo Evento", valor: 200000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 105, nombre: "Aporte Familiar", valor: 200000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 106, nombre: "Deuda Particular A", valor: 250000, dia: 16, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 107, nombre: "Deuda Particular B", valor: 500000, dia: 16, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 108, nombre: "Cumpleano 1", valor: 150000, dia: 10, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 109, nombre: "Cumpleano 2", valor: 150000, dia: 13, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 110, nombre: "Cumpleano 3", valor: 150000, dia: 20, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 111, nombre: "Ropa Escolar", valor: 150000, dia: 15, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 112, nombre: "Gasto Hija", valor: 74000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 113, nombre: "Gasto Hogar", valor: 500000, dia: 1, pagado: false, tipo: "variable", mesKey: "Mayo 2026" },
-    { id: 8, nombre: "Tarjeta Credito Banco", valor: 620000, dia: 1, pagado: false, tipo: "credito", faltantes: 12, totales: 24, mesKey: "Mayo 2026" },
-    { id: 9, nombre: "Credito Banco 1", valor: 600000, dia: 1, pagado: false, tipo: "credito", faltantes: 6, totales: 12, mesKey: "Mayo 2026" },
-    { id: 10, nombre: "Credito Banco 2", valor: 980000, dia: 1, pagado: false, tipo: "credito", faltantes: 24, totales: 48, mesKey: "Mayo 2026" },
-    { id: 11, nombre: "Tienda Hogar", valor: 676688, dia: 1, pagado: false, tipo: "credito", faltantes: 4, totales: 6, mesKey: "Mayo 2026" },
-    { id: 18, nombre: "Tienda Retail", valor: 220000, dia: 15, pagado: false, tipo: "credito", faltantes: 3, totales: 12, mesKey: "Mayo 2026" },
-    { id: 19, nombre: "Credito Vehiculo", valor: 1450000, dia: 5, pagado: false, tipo: "credito", faltantes: 36, totales: 60, mesKey: "Mayo 2026" },
-    { id: 20, nombre: "Credito Banco 3", valor: 250000, dia: 5, pagado: false, tipo: "credito", faltantes: 8, totales: 24, mesKey: "Mayo 2026" }
-  ],
+  compromisos: [],
   lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"],
   iaConfig: {
     mode: 'off',
