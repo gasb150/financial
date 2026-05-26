@@ -49,7 +49,9 @@ self.addEventListener('fetch', (event) => {
             // no-cors cross-origin CSS responses are opaque (status 0) but still cacheable.
             if (!(res.ok || res.type === 'opaque')) return res;
             const copy = res.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
+            caches.open(CACHE_VERSION)
+              .then((cache) => cache.put(req, copy))
+              .catch(() => {});
             return res;
           })
           .catch(() => cached || Response.error());
@@ -69,7 +71,9 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (!res || res.status !== 200 || res.type !== 'basic') return res;
           const copy = res.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
+          caches.open(CACHE_VERSION)
+            .then((cache) => cache.put(req, copy))
+            .catch(() => {});
           return res;
         })
         .catch(() => caches.match('./finanzas_tavo_app.html'));
