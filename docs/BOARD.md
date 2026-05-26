@@ -739,7 +739,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se valida carga en frio offline tras instalacion.
 - Checklist:
    - [ ] Reemplazar CDN mutable por asset local/versionado
-   - [ ] Ajustar service worker para cubrir asset de iconos/tabler
+   - [ ] Ajustar service worker para cubrir asset de iconos/tablero
    - [ ] Validar PWA offline en movil/escritorio
 
 ### TKT-049 - Cobertura de pruebas de integracion critica
