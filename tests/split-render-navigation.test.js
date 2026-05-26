@@ -33,6 +33,7 @@ test('renderLastSavedIndicator handles no data and invalid date cases', () => {
   const storage = { value: null };
 
   const ctx = loadFunctionsFromFile(RENDER_JS, ['renderLastSavedIndicator'], {
+    window: {},
     STORAGE_LAST_SAVE_KEY: 'last-save',
     document: {
       getElementById: (id) => id === 'last-save-indicator' ? node : null

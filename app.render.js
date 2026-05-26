@@ -5,19 +5,35 @@
     let node = document.getElementById('last-save-indicator');
     if(!node) return;
 
+    let tr = (window.FinancialI18n && typeof window.FinancialI18n.t === 'function')
+      ? window.FinancialI18n.t
+      : (key, vars = {}) => {
+        if(key === 'lastSave.none') return 'Ultimo guardado: sin registro aun.';
+        if(key === 'lastSave.invalid') return 'Ultimo guardado: formato invalido.';
+        if(key === 'lastSave.ok') return `Ultimo guardado: ${vars.value || ''}`;
+        return key;
+      };
+
     let raw = localStorage.getItem(STORAGE_LAST_SAVE_KEY);
     if(!raw) {
-      node.innerText = 'Ultimo guardado: sin registro aun.';
+      node.innerText = tr('lastSave.none');
       return;
     }
 
     let dt = new Date(raw);
     if(isNaN(dt.getTime())) {
-      node.innerText = 'Ultimo guardado: formato invalido.';
+      node.innerText = tr('lastSave.invalid');
       return;
     }
 
-    node.innerText = `Ultimo guardado: ${dt.toLocaleString('es-CO')}`;
+    node.innerText = tr('lastSave.ok', { value: dt.toLocaleString(getCurrentLocaleForDate()) });
+  }
+
+  function getCurrentLocaleForDate() {
+    let locale = (window.FinancialI18n && typeof window.FinancialI18n.getCurrentLocale === 'function')
+      ? window.FinancialI18n.getCurrentLocale()
+      : 'es-CO';
+    return locale || 'es-CO';
   }
 
   function changeDisplayedMonth(newMonth) {

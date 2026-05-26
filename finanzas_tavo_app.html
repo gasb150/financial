@@ -17,23 +17,31 @@
   <div class="header">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:12px;color:var(--color-text-secondary)">Hola Tavo!</div>
-        <div style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Mis Finanzas</div>
+        <div id="app-greeting" style="font-size:12px;color:var(--color-text-secondary)">Hola Tavo!</div>
+        <div id="app-title" style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Mis Finanzas</div>
       </div>
       <div style="text-align:right">
         <select id="global-mes-filtro" class="selector-mes-principal" onchange="cambiarMesDeVisualizacion(this.value)">
         </select>
-        <div style="color:var(--color-text-tertiary);font-size:11px;margin-top:2px">TRM: $4.180</div>
+        <div id="app-trm" style="color:var(--color-text-tertiary);font-size:11px;margin-top:2px">TRM: $4.180</div>
+        <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:4px;">
+          <span id="lang-switch-label" style="font-size:11px;color:var(--color-text-tertiary)">Idioma</span>
+          <select id="lang-switch" class="input-app" style="width:110px;padding:4px 6px;font-size:11px;" onchange="setAppLocale(this.value)">
+            <option value="auto">Auto</option>
+            <option value="es-CO">Español</option>
+            <option value="en-US">English</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="nav">
-    <button class="nb on" onclick="sw('resumen',this)"><i class="ti ti-home" style="font-size:16px;display:block;margin:0 auto 2px"></i>Resumen</button>
-    <button class="nb" onclick="sw('semanal',this)"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i>Semanas</button>
-    <button class="nb" onclick="sw('quincena',this)"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i>Quincenas</button>
-    <button class="nb" onclick="sw('deudas',this)"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i>Deudas</button>
-    <button class="nb" onclick="sw('config',this)"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i>Config</button>
+    <button class="nb on" onclick="sw('resumen',this)"><i class="ti ti-home" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-summary-label">Resumen</span></button>
+    <button class="nb" onclick="sw('semanal',this)"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-weeks-label">Semanas</span></button>
+    <button class="nb" onclick="sw('quincena',this)"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-fortnights-label">Quincenas</span></button>
+    <button class="nb" onclick="sw('deudas',this)"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-debts-label">Deudas</span></button>
+    <button class="nb" onclick="sw('config',this)"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-settings-label">Config</span></button>
   </div>
 
   <div id="s-resumen" class="screen on">
@@ -337,6 +345,7 @@
 <script src="./app.js"></script>
 <script src="./app.data.js"></script>
 <script src="./app.render.js"></script>
+<script src="./app.i18n.js"></script>
 <script src="./app.ia.js"></script>
 </body>
 </html>

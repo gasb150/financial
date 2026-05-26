@@ -1190,6 +1190,10 @@ function limpiarFiltroFechaDeudas(soloEstado = false) {
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
+  if(window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
+    window.FinancialI18n.initializeLocale();
+  }
+
   aplicarCorreccionMesBaseSiAplica();
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
@@ -1251,6 +1255,11 @@ function initApp() {
   renderIAPanelDeudas();
   renderUltimoGuardado();
   aplicarFormatoMonedaInputs();
+
+  if(window.FinancialI18n && typeof window.FinancialI18n.applyStaticTranslations === 'function') {
+    window.FinancialI18n.applyStaticTranslations();
+    window.FinancialI18n.setupLanguageSwitcher();
+  }
   
   // Mantener la vista diaria actualizada si hay un día seleccionado
   if(diaSeleccionadoActivo !== null) {
@@ -2197,6 +2206,10 @@ window.addEventListener('appinstalled', () => {
 });
 
 window.onload = function() {
+  if(window.FinancialI18n && typeof window.FinancialI18n.initializeLocale === 'function') {
+    window.FinancialI18n.initializeLocale();
+  }
+
   hidratarDataDesdeIndexedDB().finally(() => {
     initApp();
     registrarServiceWorker();

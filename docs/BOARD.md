@@ -27,7 +27,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [ ] TKT-038 Split dominio reglas financieras y calculos
 - [ ] TKT-039 Split dominio acciones de usuario y formularios
 - [ ] TKT-040 QA de regresion post-split y saneamiento
@@ -42,6 +41,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
 - [x] TKT-037 Split dominio render y navegacion
 - [x] TKT-036 Split dominio datos y persistencia
 - [x] TKT-041 Baseline de pruebas automatizadas pre-split
@@ -535,18 +535,20 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-042 - Base de localizacion (i18n) para transicion a ingles
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Existe un diccionario base de textos para separar idioma de logica funcional.
-   - El proyecto define locale por defecto y estrategia de fallback.
-   - Nuevos cambios de split pueden migrar mensajes gradualmente sin romper UI.
+   - El proyecto define locale por defecto y estrategia de fallback con autodeteccion por locale/región del navegador.
+   - Existe switch manual de idioma en UI para cambiar entre español e ingles.
 - Checklist:
-   - [ ] Definir estructura de recursos por locale (es-CO, en-US)
-   - [ ] Crear helper central de traduccion con fallback
-   - [ ] Migrar primer bloque de mensajes de prueba
+   - [x] Definir estructura de recursos por locale (es-CO, en-US)
+   - [x] Crear helper central de traduccion con fallback
+   - [x] Migrar primer bloque de mensajes de prueba
+   - [x] Agregar switch manual de idioma en UI
+   - [x] Agregar autodeteccion de locale por entorno del navegador
 
 ### TKT-036 - Split dominio datos y persistencia
 
@@ -658,9 +660,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-042 completado: base i18n implementada con autodeteccion por locale/región del navegador y switch manual de idioma en cabecera.
 1. TKT-037 completado: modulo app.render.js agregado para navegacion/render con wrappers compatibles y pruebas dedicadas.
 1. TKT-036 completado: modulo app.data.js agregado con wrappers compatibles en app.js y cache actualizada para offline.
-1. TKT-042 agregado: base i18n para soportar migracion progresiva de textos/funciones hacia ingles.
 1. TKT-041 completado: baseline de pruebas automatizadas agregado para validar refactors de split con comando unico (`npm test`).
 1. TKT-035 completado: split base de IA en app.ia.js con carga en HTML y cache v4 en service worker.
 1. Backlog de modularizacion agregado: TKT-035/TKT-036/TKT-037/TKT-038/TKT-039/TKT-040 para dividir app.js por dominios y ejecutar QA de regresion antes de nuevos features.
