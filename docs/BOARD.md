@@ -14,7 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-004 Migracion de localStorage a IndexedDB
 - [ ] TKT-005 Versionado de esquema y migraciones
 - [ ] TKT-006 Integridad de backup (validacion + checksum)
 - [ ] TKT-007 Selector IA OFF / LOCAL / API
@@ -36,6 +35,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-004 Migracion de localStorage a IndexedDB
 - [x] TKT-003 Indicador de ultimo guardado
 - [x] TKT-002 Service worker offline cache
 - [x] TKT-001 PWA base (manifest + install)
@@ -89,7 +89,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-004 - Migracion de localStorage a IndexedDB
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 2
 - Owner: Gustavo
@@ -97,9 +97,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Datos existentes migran automaticamente sin perdida.
    - Lectura/escritura principal sobre IndexedDB.
 - Checklist:
-   - [ ] Implementar capa de acceso a datos
-   - [ ] Script de migracion inicial
-   - [ ] Fallback seguro a localStorage
+   - [x] Implementar capa de acceso a datos
+   - [x] Script de migracion inicial
+   - [x] Fallback seguro a localStorage
 
 ### TKT-005 - Versionado de esquema y migraciones
 
@@ -209,6 +209,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-004 completado: IndexedDB como almacenamiento principal con migracion y fallback.
 1. TKT-003 completado: timestamp de ultimo guardado persistido y visible en Config.
 1. TKT-002 completado: cache offline base con service worker registrado.
 1. TKT-001 completado: manifest, iconos y flujo de instalacion base agregados.

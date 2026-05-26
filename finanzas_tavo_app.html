@@ -456,15 +456,116 @@ const datosDefault = {
 const STORAGE_KEY = 'finanzas_linea_tiempo_v7';
 const STORAGE_BACKUP_KEY = 'finanzas_linea_tiempo_v7_backup';
 const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
+const IDB_NAME = 'financial_app_db';
+const IDB_VERSION = 1;
+const IDB_STORE = 'kv';
 
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault;
-if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
-if(!Array.isArray(appData.primasList)) appData.primasList = [];
-if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+let idbReady = false;
+let idbPromise = null;
+
+normalizarEstadoCargado();
 
 const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
+
+function normalizarEstadoCargado() {
+  if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
+  if(!Array.isArray(appData.primasList)) appData.primasList = [];
+  if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+}
+
+function validarDataPrincipal(payload) {
+  if(!payload || typeof payload !== 'object') return false;
+  if(!Array.isArray(payload.ingresosList)) return false;
+  if(!Array.isArray(payload.compromisos)) return false;
+  if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
+  return true;
+}
+
+function abrirIndexedDB() {
+  if(!('indexedDB' in window)) {
+    return Promise.reject(new Error('indexedDB no disponible'));
+  }
+  if(idbPromise) return idbPromise;
+
+  idbPromise = new Promise((resolve, reject) => {
+    let req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = (event) => {
+      let db = event.target.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('No se pudo abrir indexedDB'));
+  });
+
+  return idbPromise;
+}
+
+async function idbGetRaw(key) {
+  let db = await abrirIndexedDB();
+  return new Promise((resolve, reject) => {
+    let tx = db.transaction(IDB_STORE, 'readonly');
+    let store = tx.objectStore(IDB_STORE);
+    let req = store.get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error || new Error('Error lectura indexedDB'));
+  });
+}
+
+async function idbSetRaw(key, value) {
+  let db = await abrirIndexedDB();
+  return new Promise((resolve, reject) => {
+    let tx = db.transaction(IDB_STORE, 'readwrite');
+    let store = tx.objectStore(IDB_STORE);
+    let req = store.put(value, key);
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error || new Error('Error escritura indexedDB'));
+  });
+}
+
+async function hidratarDataDesdeIndexedDB() {
+  try {
+    let raw = await idbGetRaw(STORAGE_KEY);
+    if(raw) {
+      let parsed = JSON.parse(raw);
+      if(validarDataPrincipal(parsed)) {
+        appData = parsed;
+      }
+    } else {
+      await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
+    }
+    idbReady = true;
+  } catch(_e) {
+    idbReady = false;
+  }
+
+  normalizarEstadoCargado();
+}
+
+function persistirDataPrincipalConFallback() {
+  let serializada = JSON.stringify(appData);
+  if(idbReady) {
+    idbSetRaw(STORAGE_KEY, serializada).catch(() => {
+      localStorage.setItem(STORAGE_KEY, serializada);
+    });
+  }
+  localStorage.setItem(STORAGE_KEY, serializada);
+}
+
+function persistirAuxiliaresConFallback(marcaGuardadoISO) {
+  let backup = JSON.stringify(buildBackupPayload());
+  localStorage.setItem(STORAGE_BACKUP_KEY, backup);
+  localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO);
+
+  if(idbReady) {
+    idbSetRaw(STORAGE_BACKUP_KEY, backup).catch(() => {});
+    idbSetRaw(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO).catch(() => {});
+  }
+}
 
 function parseMontoInput(valor) {
   if(typeof valor === 'number') return isNaN(valor) ? NaN : valor;
@@ -1317,9 +1418,8 @@ function initApp() {
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
   let marcaGuardado = new Date().toISOString();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-  localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(buildBackupPayload()));
-  localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardado);
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(marcaGuardado);
   actualizarSelectoresDeMes();
   
   document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
@@ -2304,8 +2404,10 @@ window.addEventListener('appinstalled', () => {
 });
 
 window.onload = function() {
-  initApp();
-  registrarServiceWorker();
+  hidratarDataDesdeIndexedDB().finally(() => {
+    initApp();
+    registrarServiceWorker();
+  });
 };
 </script>
 </body>
