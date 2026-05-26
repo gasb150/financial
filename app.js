@@ -14,7 +14,9 @@ let iaPanelState = {
   deudas: { loading: false, error: '', result: '' },
   gastosMes: { loading: false, error: '', result: '' },
   gastosQuincena: { loading: false, error: '', result: '' },
-  gastosSemana: { loading: false, error: '', result: '' }
+  gastosSemana: { loading: false, error: '', result: '' },
+  rebalanceQuincena: { loading: false, error: '', result: '' },
+  rebalanceSemana: { loading: false, error: '', result: '' }
 };
 
 const datosDefault = {
@@ -1567,6 +1569,263 @@ function construirPromptRecorteVariables(items) {
   ].join('\n');
 }
 
+function obtenerResumenTramosSemanales(compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  let semanas = obtenerSemanasDelMesActivo();
+  let saldoArrastre = 0;
+
+  return semanas.map((semana) => {
+    let stats = calcularBalanceSemanal(base, semana);
+    let saldoInicial = saldoArrastre;
+    let saldoCierre = saldoInicial + stats.balanceSemana;
+    saldoArrastre = saldoCierre;
+    return {
+      id: semana.id,
+      codigo: semana.id.replace('sem-', 'S'),
+      nombre: semana.nombre,
+      rango: semana.rango,
+      dias: [...semana.dias],
+      ingresos: stats.ingresosSemana,
+      gastos: stats.gastosSemana,
+      saldoInicial,
+      saldoCierre
+    };
+  });
+}
+
+function obtenerResumenTramosQuincena(compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  let eventosIngresosMes = obtenerEventosIngresoDelMes(mesActivoGlobal);
+
+  let ingQ1 = eventosIngresosMes
+    .filter(e => e.dia >= 1 && e.dia <= 14)
+    .reduce((acc, e) => acc + e.valor, 0);
+  let ingQ2 = eventosIngresosMes
+    .filter(e => e.dia >= 15)
+    .reduce((acc, e) => acc + e.valor, 0);
+
+  let tramos = [
+    {
+      id: 'pre',
+      codigo: 'PRE',
+      nombre: 'Pre-Mes',
+      dias: [-1],
+      ingresos: 0,
+      gastos: base.filter(c => parseInt(c.dia, 10) === -1).reduce((acc, c) => acc + c.valor, 0)
+    },
+    {
+      id: 'q1',
+      codigo: 'Q1',
+      nombre: 'Quincena 1',
+      dias: Array.from({ length: 14 }, (_, i) => i + 1),
+      ingresos: ingQ1,
+      gastos: base.filter(c => {
+        let d = parseInt(c.dia, 10);
+        return d >= 1 && d <= 14;
+      }).reduce((acc, c) => acc + c.valor, 0)
+    },
+    {
+      id: 'q2',
+      codigo: 'Q2',
+      nombre: 'Quincena 2',
+      dias: Array.from({ length: 17 }, (_, i) => i + 15),
+      ingresos: ingQ2,
+      gastos: base.filter(c => parseInt(c.dia, 10) >= 15).reduce((acc, c) => acc + c.valor, 0)
+    }
+  ];
+
+  let saldoArrastre = 0;
+  return tramos.map((t) => {
+    let saldoInicial = saldoArrastre;
+    let saldoCierre = saldoInicial + t.ingresos - t.gastos;
+    saldoArrastre = saldoCierre;
+    return { ...t, saldoInicial, saldoCierre };
+  });
+}
+
+function obtenerResumenTramos(scope, compromisosMes) {
+  if(scope === 'semana') return obtenerResumenTramosSemanales(compromisosMes);
+  return obtenerResumenTramosQuincena(compromisosMes);
+}
+
+function obtenerTramoCompromiso(scope, comp, tramos) {
+  let dia = parseInt(comp.dia, 10);
+  let listaTramos = Array.isArray(tramos) && tramos.length ? tramos : obtenerResumenTramos(scope);
+
+  if(scope === 'semana') {
+    if(dia === -1) return listaTramos[0] ? listaTramos[0].id : null;
+    let tramo = listaTramos.find(t => Array.isArray(t.dias) && t.dias.includes(dia));
+    return tramo ? tramo.id : null;
+  }
+
+  if(dia === -1) return 'pre';
+  if(dia >= 1 && dia <= 14) return 'q1';
+  return 'q2';
+}
+
+function obtenerDiaRepresentativoTramo(scope, tramoId, tramos) {
+  if(scope === 'quincena') {
+    if(tramoId === 'pre') return -1;
+    if(tramoId === 'q1') return 10;
+    return 20;
+  }
+
+  let listaTramos = Array.isArray(tramos) && tramos.length ? tramos : obtenerResumenTramosSemanales(getCompromisosMesActual());
+  let tramo = listaTramos.find(t => t.id === tramoId);
+  if(!tramo || !Array.isArray(tramo.dias) || !tramo.dias.length) return 1;
+  return tramo.dias[0];
+}
+
+function obtenerCompromisosMovibles(scope, tramos, compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  return base
+    .filter(c => !c.pagado && c.tipo === 'variable')
+    .map(c => {
+      let tramoId = obtenerTramoCompromiso(scope, c, tramos);
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        valor: c.valor,
+        dia: c.dia,
+        tipo: c.tipo,
+        tramoId
+      };
+    })
+    .filter(c => !!c.tramoId)
+    .sort((a, b) => b.valor - a.valor);
+}
+
+function construirPromptRebalanceoTramos(scope, tramos, movibles) {
+  let nombreScope = scope === 'semana' ? 'tramos semanales' : 'tramos de quincena';
+  let resumen = tramos.map(t => {
+    return `${t.codigo} | ingresos ${formatCOP(t.ingresos)} | gastos ${formatCOP(t.gastos)} | saldo cierre ${formatCOP(t.saldoCierre)}`;
+  }).join('\n');
+  let moviblesTxt = movibles.length
+    ? movibles.slice(0, 15).map((m, idx) => `${idx + 1}. ${m.nombre} - ${formatCOP(m.valor)} - tramo actual ${String(m.tramoId).toUpperCase()} - dia ${m.dia === -1 ? 'pre-mes' : m.dia}`).join('\n')
+    : 'Sin compromisos variables movibles en este mes.';
+
+  return [
+    'Actua como estratega financiero y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Objetivo: rebalancear ${nombreScope} moviendo obligaciones no criticas desde tramos deficitarios a tramos con capacidad.`,
+    'Restricciones obligatorias:',
+    '- No mover gastos tipo fijo ni credito.',
+    '- No cambiar el monto; solo mover fecha/tramo.',
+    '- Priorizar mover el menor numero de items para aliviar deficit.',
+    'Resumen de tramos (antes):',
+    resumen,
+    'Compromisos movibles:',
+    moviblesTxt,
+    'Devuelve maximo 3 sugerencias en este formato exacto:',
+    '- Accion: mover "NOMBRE" de TRAMO_ORIGEN a TRAMO_DESTINO (dia sugerido X)',
+    '  Impacto: TRAMO_ORIGEN $antes -> $despues | TRAMO_DESTINO $antes -> $despues',
+    '  Motivo: texto corto',
+    'Si no hay movimiento viable, explica por que y sugiere recorte alterno.'
+  ].join('\n');
+}
+
+function simularMovimientoEntreTramos(scope, compromisoId, tramoDestinoId) {
+  let base = getCompromisosMesActual();
+  let tramosAntes = obtenerResumenTramos(scope, base);
+  let compOriginal = base.find(c => c.id === compromisoId);
+  if(!compOriginal) return null;
+
+  let tramoOrigenId = obtenerTramoCompromiso(scope, compOriginal, tramosAntes);
+  if(!tramoOrigenId || tramoOrigenId === tramoDestinoId) return null;
+
+  let nuevoDia = obtenerDiaRepresentativoTramo(scope, tramoDestinoId, tramosAntes);
+  let simulados = base.map(c => c.id === compromisoId ? { ...c, dia: nuevoDia } : { ...c });
+  let tramosDespues = obtenerResumenTramos(scope, simulados);
+
+  let origenAntes = tramosAntes.find(t => t.id === tramoOrigenId);
+  let destinoAntes = tramosAntes.find(t => t.id === tramoDestinoId);
+  let origenDespues = tramosDespues.find(t => t.id === tramoOrigenId);
+  let destinoDespues = tramosDespues.find(t => t.id === tramoDestinoId);
+
+  if(!origenAntes || !destinoAntes || !origenDespues || !destinoDespues) return null;
+
+  return {
+    scope,
+    item: { id: compOriginal.id, nombre: compOriginal.nombre, valor: compOriginal.valor },
+    origen: {
+      id: tramoOrigenId,
+      codigo: origenAntes.codigo,
+      antes: origenAntes.saldoCierre,
+      despues: origenDespues.saldoCierre
+    },
+    destino: {
+      id: tramoDestinoId,
+      codigo: destinoAntes.codigo,
+      antes: destinoAntes.saldoCierre,
+      despues: destinoDespues.saldoCierre
+    },
+    tramosAntes,
+    tramosDespues
+  };
+}
+
+function construirEscenarioBaseRebalanceo(scope, tramos, movibles) {
+  let deficitarios = tramos
+    .filter(t => t.saldoCierre < 0)
+    .sort((a, b) => a.saldoCierre - b.saldoCierre);
+  let conCapacidad = tramos
+    .filter(t => t.saldoCierre > 0)
+    .sort((a, b) => b.saldoCierre - a.saldoCierre);
+
+  for(let i = 0; i < deficitarios.length; i++) {
+    let origen = deficitarios[i];
+    let candidatosOrigen = movibles.filter(m => m.tramoId === origen.id);
+    if(!candidatosOrigen.length) continue;
+
+    for(let j = 0; j < candidatosOrigen.length; j++) {
+      let item = candidatosOrigen[j];
+      let destino = conCapacidad.find(t => t.id !== origen.id && t.saldoCierre >= Math.round(item.valor * 0.6));
+      if(!destino) continue;
+      let simulacion = simularMovimientoEntreTramos(scope, item.id, destino.id);
+      if(simulacion) return simulacion;
+    }
+  }
+
+  return null;
+}
+
+function renderResumenTramosParaCard(tramos) {
+  if(!tramos.length) return `<div class="ia-row"><div class="meta">No hay tramos disponibles para este mes.</div></div>`;
+  return tramos.map(t => `
+    <div class="ia-row">
+      <div>
+        <div class="nm">${escapeHTML(t.codigo)} · ${escapeHTML(t.nombre)}</div>
+        <div class="meta">Ingresos ${formatCOP(t.ingresos)} · Gastos ${formatCOP(t.gastos)}</div>
+      </div>
+      <div class="vl" style="color:${t.saldoCierre >= 0 ? '#81e6b8' : '#ff9a9a'}">${formatCOP(t.saldoCierre)}</div>
+    </div>
+  `).join('');
+}
+
+function formatearEscenarioBase(simulacion) {
+  if(!simulacion) return 'Escenario base automatico: no se encontro movimiento claro entre tramos con el contexto actual.';
+  return [
+    `Escenario base automatico: mover "${simulacion.item.nombre}" (${formatCOP(simulacion.item.valor)}) de ${simulacion.origen.codigo} a ${simulacion.destino.codigo}.`,
+    `Impacto esperado: ${simulacion.origen.codigo} ${formatCOP(simulacion.origen.antes)} -> ${formatCOP(simulacion.origen.despues)} | ${simulacion.destino.codigo} ${formatCOP(simulacion.destino.antes)} -> ${formatCOP(simulacion.destino.despues)}.`
+  ].join('\n');
+}
+
+function buildIACardRebalanceo(titulo, tramos, stateKey, actionFnName) {
+  let estado = iaPanelState[stateKey];
+  let resultado = estado.result
+    ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
+    : '';
+
+  return `
+    <div class="ia-card">
+      <div class="ttl">${titulo}</div>
+      ${renderResumenTramosParaCard(tramos)}
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Rebalancear entre tramos ↗'}</button>
+      ${resultado}
+    </div>
+  `;
+}
+
 function obtenerGastosVariablesPendientesMes() {
   return getCompromisosMesActual()
     .filter(c => !c.pagado && c.tipo === 'variable')
@@ -1659,14 +1918,22 @@ function renderIAPanelSemanal() {
   let nodo = document.getElementById('ia-panel-semanal');
   if(!nodo) return;
   let gastosSemana = obtenerGastosVariablesSemana();
-  nodo.innerHTML = buildIACardGastos('Gastos esta semana', gastosSemana, 'gastosSemana', 'analizarReduccionGastosSemanaIA');
+  let tramosSemana = obtenerResumenTramosSemanales(getCompromisosMesActual());
+  nodo.innerHTML = `
+    ${buildIACardGastos('Gastos esta semana', gastosSemana, 'gastosSemana', 'analizarReduccionGastosSemanaIA')}
+    ${buildIACardRebalanceo('Rebalanceo de tramos semanales', tramosSemana, 'rebalanceSemana', 'analizarRebalanceoSemanaIA')}
+  `;
 }
 
 function renderIAPanelQuincena() {
   let nodo = document.getElementById('ia-panel-quincena');
   if(!nodo) return;
   let gastosQuincena = obtenerGastosVariablesQuincena();
-  nodo.innerHTML = buildIACardGastos('Gastos esta quincena', gastosQuincena, 'gastosQuincena', 'analizarReduccionGastosQuincenaIA');
+  let tramosQuincena = obtenerResumenTramosQuincena(getCompromisosMesActual());
+  nodo.innerHTML = `
+    ${buildIACardGastos('Gastos esta quincena', gastosQuincena, 'gastosQuincena', 'analizarReduccionGastosQuincenaIA')}
+    ${buildIACardRebalanceo('Rebalanceo entre quincenas', tramosQuincena, 'rebalanceQuincena', 'analizarRebalanceoQuincenaIA')}
+  `;
 }
 
 function renderIAPanelDeudas() {
@@ -1774,6 +2041,68 @@ async function analizarReduccionGastosQuincenaIA() {
 
 async function analizarReduccionGastosSemanaIA() {
   return analizarReduccionGastosIA('semana');
+}
+
+async function analizarRebalanceoIA(scope) {
+  let stateKey = scope === 'semana' ? 'rebalanceSemana' : 'rebalanceQuincena';
+  let tramos = obtenerResumenTramos(scope);
+  let movibles = obtenerCompromisosMovibles(scope, tramos, getCompromisosMesActual());
+  let hayDeficit = tramos.some(t => t.saldoCierre < 0);
+  let haySuperavit = tramos.some(t => t.saldoCierre > 0);
+
+  if(!hayDeficit) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay tramos deficitarios para rebalancear en este mes.' };
+    renderIAPanelSemanal();
+    renderIAPanelQuincena();
+    return;
+  }
+
+  if(!haySuperavit) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay tramos con capacidad para recibir movimientos.' };
+    renderIAPanelSemanal();
+    renderIAPanelQuincena();
+    return;
+  }
+
+  if(!movibles.length) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay obligaciones variables pendientes para mover entre tramos.' };
+    renderIAPanelSemanal();
+    renderIAPanelQuincena();
+    return;
+  }
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+
+  try {
+    let prompt = construirPromptRebalanceoTramos(scope, tramos, movibles);
+    let out = await ejecutarConsultaIA(prompt);
+    let escenarioBase = construirEscenarioBaseRebalanceo(scope, tramos, movibles);
+    let resumenEscenario = formatearEscenarioBase(escenarioBase);
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '',
+      result: `${resumenEscenario}\n\nSugerencias IA:\n${out.message || 'Sin respuesta.'}`
+    };
+  } catch(err) {
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '1',
+      result: err && err.message ? err.message : 'No se pudo generar rebalanceo entre tramos.'
+    };
+  }
+
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+}
+
+async function analizarRebalanceoSemanaIA() {
+  return analizarRebalanceoIA('semana');
+}
+
+async function analizarRebalanceoQuincenaIA() {
+  return analizarRebalanceoIA('quincena');
 }
 
 function agregarIngresoDinamico() {

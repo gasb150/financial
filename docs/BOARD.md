@@ -20,7 +20,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
-- [ ] TKT-017 Rebalanceo IA entre tramos (semana/quincena)
 - [ ] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
 - [ ] TKT-019 Recortes IA item a item accionables
 
@@ -34,6 +33,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-017 Rebalanceo IA entre tramos (semana/quincena)
 - [x] TKT-021 Robustez IA local (config + errores + timeout)
 - [x] TKT-020 IA contextual por pantalla (resumen/semanal/quincena/deudas)
 - [x] TKT-016 Recomendaciones IA por categoria (deudas/variables)
@@ -274,7 +274,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-017 - Rebalanceo IA entre tramos (semana/quincena)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -283,9 +283,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - IA sugiere mover obligaciones no criticas de un tramo deficitario a otro con capacidad.
    - Cada sugerencia muestra impacto esperado antes/despues por tramo (saldo cierre).
 - Checklist:
-   - [ ] Construir contexto financiero por tramo (S1..Sn, Q1/Q2, pre-mes)
-   - [ ] Prompt para estrategia de reubicacion con restricciones de negocio
-   - [ ] Mostrar propuestas con impacto cuantificado por tramo
+   - [x] Construir contexto financiero por tramo (S1..Sn, Q1/Q2, pre-mes)
+   - [x] Prompt para estrategia de reubicacion con restricciones de negocio
+   - [x] Mostrar propuestas con impacto cuantificado por tramo
 
 ### TKT-018 - Aplicar sugerencias IA (boton + preview + undo)
 
@@ -321,6 +321,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-017 completado: rebalanceo IA semanal/quincenal con deteccion de deficit/superavit y salida con impacto antes/despues por tramo.
 1. TKT-021 completado: robustez de IA local con configuracion persistente, diagnosticos y migracion de timeout legacy.
 1. TKT-020 completado: paneles IA contextualizados por pantalla y uso de contexto visible en semana/quincena.
 1. TKT-016 completado: recomendaciones IA por categoria operativas (deudas/variables) con prompts y resultados en panel.
