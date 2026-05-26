@@ -373,6 +373,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     <div class="sec">Respaldo de Datos</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
+      <div id="last-save-indicator" class="rm" style="margin-bottom:8px;">Ultimo guardado: pendiente...</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-action" style="padding:8px 10px;" onclick="exportarRespaldoJSON()">Exportar respaldo</button>
         <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" onclick="document.getElementById('import-backup-file').click()">Importar respaldo</button>
@@ -454,6 +455,7 @@ const datosDefault = {
 
 const STORAGE_KEY = 'finanzas_linea_tiempo_v7';
 const STORAGE_BACKUP_KEY = 'finanzas_linea_tiempo_v7_backup';
+const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault;
 if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
@@ -513,6 +515,25 @@ function buildBackupPayload() {
     savedAt: new Date().toISOString(),
     data: appData
   };
+}
+
+function renderUltimoGuardado() {
+  let nodo = document.getElementById('last-save-indicator');
+  if(!nodo) return;
+
+  let raw = localStorage.getItem(STORAGE_LAST_SAVE_KEY);
+  if(!raw) {
+    nodo.innerText = 'Ultimo guardado: sin registro aun.';
+    return;
+  }
+
+  let dt = new Date(raw);
+  if(isNaN(dt.getTime())) {
+    nodo.innerText = 'Ultimo guardado: formato invalido.';
+    return;
+  }
+
+  nodo.innerText = `Ultimo guardado: ${dt.toLocaleString('es-CO')}`;
 }
 
 function exportarRespaldoJSON() {
@@ -1295,8 +1316,10 @@ function initApp() {
   aplicarCorreccionMesBaseSiAplica();
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
+  let marcaGuardado = new Date().toISOString();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
   localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(buildBackupPayload()));
+  localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardado);
   actualizarSelectoresDeMes();
   
   document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
@@ -1344,6 +1367,7 @@ function initApp() {
   renderSelectoresVigenciaIngreso();
   renderConfigIngresos();
   renderConfigPrimas();
+  renderUltimoGuardado();
   aplicarFormatoMonedaInputs();
   
   // Mantener la vista diaria actualizada si hay un día seleccionado

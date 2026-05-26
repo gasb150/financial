@@ -14,7 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-003 Indicador de ultimo guardado
 - [ ] TKT-004 Migracion de localStorage a IndexedDB
 - [ ] TKT-005 Versionado de esquema y migraciones
 - [ ] TKT-006 Integridad de backup (validacion + checksum)
@@ -37,6 +36,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-003 Indicador de ultimo guardado
 - [x] TKT-002 Service worker offline cache
 - [x] TKT-001 PWA base (manifest + install)
 - [x] OPS-001 Repo personal publicado y push estable
@@ -77,15 +77,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-003 - Indicador de ultimo guardado
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 1
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Mostrar fecha/hora del ultimo guardado visible en Config.
 - Checklist:
-   - [ ] Persistir timestamp ultimo guardado
-   - [ ] Mostrar timestamp en UI
+   - [x] Persistir timestamp ultimo guardado
+   - [x] Mostrar timestamp en UI
 
 ### TKT-004 - Migracion de localStorage a IndexedDB
 
@@ -209,6 +209,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-003 completado: timestamp de ultimo guardado persistido y visible en Config.
 1. TKT-002 completado: cache offline base con service worker registrado.
 1. TKT-001 completado: manifest, iconos y flujo de instalacion base agregados.
 1. OPS-001 completado: push estable a repo personal.
