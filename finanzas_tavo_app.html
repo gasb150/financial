@@ -316,6 +316,32 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 
     <div class="sec">Listado y Edición de Ingresos</div>
     <div id="lista-config-ingresos"></div>
+
+    <div class="sec">Primas / Ingresos no recurrentes</div>
+    <div class="card">
+      <label class="sl">Nombre de la Prima</label>
+      <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio">
+
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <div style="flex:1">
+          <label class="sl">Valor ($)</label>
+          <input type="number" id="new-prima-valor" class="input-app" placeholder="1450000">
+        </div>
+        <div style="width:92px;">
+          <label class="sl">Día</label>
+          <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        <label class="sl">Mes de pago</label>
+        <select id="new-prima-mes" class="input-app"></select>
+      </div>
+
+      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" onclick="agregarPrimaNoRecurrente()">Añadir Prima</button>
+    </div>
+
+    <div id="lista-config-primas"></div>
     
     <div class="sec">Línea de Tiempo del Sistema</div>
     <div class="card">
@@ -347,6 +373,7 @@ const datosDefault = {
     { id: 2, nombre: "Salario Demo (Q2)", valor: 3200000, periodo: "q2" },
     { id: 3, nombre: "Renta Demo", valor: 400000, periodo: "q2" }
   ],
+  primasList: [],
   compromisos: [
     { id: 1, nombre: "Internet Hogar", valor: 360000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
     { id: 2, nombre: "Plan Datos", valor: 55000, dia: -1, pagado: false, tipo: "fijo", mesKey: "Mayo 2026" },
@@ -388,6 +415,7 @@ const datosDefault = {
 
 let appData = JSON.parse(localStorage.getItem('finanzas_linea_tiempo_v7')) || datosDefault;
 if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
+if(!Array.isArray(appData.primasList)) appData.primasList = [];
 
 const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
@@ -556,7 +584,7 @@ function obtenerEventosIngresoDelMes(mesKey) {
     }
   });
 
-  let _mesPrevio = mesKeyAnterior(mesKey);
+  let mesPrevio = mesKeyAnterior(mesKey);
   appData.ingresosList.forEach(i => {
     let dia = getDiaIngreso(i);
     if(dia >= 29) {
@@ -566,6 +594,28 @@ function obtenerEventosIngresoDelMes(mesKey) {
         valor: i.valor,
         dia: 1,
         origen: 'arrastre'
+      });
+    }
+  });
+
+  // Primas: ingreso no recurrente con mes/día explícitos.
+  appData.primasList.forEach(p => {
+    let dia = parseInt(p.diaPago, 10);
+    if(p.mesKey === mesKey && dia >= 1 && dia <= 28) {
+      eventos.push({ id: `prima-${p.id}`, nombre: p.nombre, valor: p.valor, dia: dia, origen: 'prima' });
+    }
+  });
+
+  // Si la prima cae 29-31, se arrastra al día 1 del siguiente mes.
+  appData.primasList.forEach(p => {
+    let dia = parseInt(p.diaPago, 10);
+    if(p.mesKey === mesPrevio && dia >= 29 && dia <= 31) {
+      eventos.push({
+        id: `arrastre-prima-${p.id}`,
+        nombre: `${p.nombre} (arrastre mes anterior)`,
+        valor: p.valor,
+        dia: 1,
+        origen: 'prima-arrastre'
       });
     }
   });
@@ -645,15 +695,19 @@ function extenderAnioLineaTiempo() {
 function actualizarSelectoresDeMes() {
   let selectPrincipal = document.getElementById('global-mes-filtro');
   let selectFormulario = document.getElementById('add-mes-destino');
+  let selectPrima = document.getElementById('new-prima-mes');
   let cachePrincipal = selectPrincipal.value || mesActivoGlobal;
   
   selectPrincipal.innerHTML = '';
-  selectFormulario.innerHTML = '';
+  if(selectFormulario) selectFormulario.innerHTML = '';
+  if(selectPrima) selectPrima.innerHTML = '';
   mesesLineaTiempo.forEach(m => {
     selectPrincipal.innerHTML += `<option value="${m}">${m}</option>`;
-    selectFormulario.innerHTML += `<option value="${m}">${m}</option>`;
+    if(selectFormulario) selectFormulario.innerHTML += `<option value="${m}">${m}</option>`;
+    if(selectPrima) selectPrima.innerHTML += `<option value="${m}">${m}</option>`;
   });
   selectPrincipal.value = cachePrincipal;
+  if(selectPrima && !selectPrima.value) selectPrima.value = mesActivoGlobal;
 }
 
 function sw(id, btn) {
@@ -840,6 +894,7 @@ function initApp() {
   renderMenuSemanas();
   renderSemanaActiva(compromisosMesActual);
   renderConfigIngresos();
+  renderConfigPrimas();
   
   // Mantener la vista diaria actualizada si hay un día seleccionado
   if(diaSeleccionadoActivo !== null) {
@@ -868,6 +923,20 @@ function renderIngresosResumen() {
       </div>
     `;
   });
+
+  appData.primasList
+    .filter(p => p.mesKey === mesActivoGlobal)
+    .forEach(p => {
+      let nombreSeguro = escapeHTML(p.nombre);
+      let dia = parseInt(p.diaPago, 10);
+      let impacto = dia >= 29 ? `Pago día ${dia} · arrastre mes siguiente` : `Pago día ${dia}`;
+      container.innerHTML += `
+        <div class="row">
+          <div><div class="rn">${nombreSeguro}</div><div class="rm">Prima no recurrente · ${impacto}</div></div>
+          <div class="ra pos">${formatCOP(p.valor)}</div>
+        </div>
+      `;
+    });
 }
 
 function agregarIngresoDinamico() {
@@ -920,6 +989,97 @@ function renderConfigIngresos() {
     `;
     container.appendChild(card);
   });
+}
+
+function agregarPrimaNoRecurrente() {
+  let nombre = document.getElementById('new-prima-nombre').value.trim();
+  let valor = parseFloat(document.getElementById('new-prima-valor').value);
+  let diaPago = parseInt(document.getElementById('new-prima-dia').value, 10);
+  let mesKey = document.getElementById('new-prima-mes').value;
+
+  if(!nombre || isNaN(valor) || valor <= 0) {
+    alert('Datos inválidos para la prima.');
+    return;
+  }
+  if(isNaN(diaPago) || diaPago < 1 || diaPago > 31) {
+    alert('El día de pago de la prima debe estar entre 1 y 31.');
+    return;
+  }
+
+  appData.primasList.push({
+    id: Date.now(),
+    nombre,
+    valor,
+    diaPago,
+    mesKey
+  });
+
+  document.getElementById('new-prima-nombre').value = '';
+  document.getElementById('new-prima-valor').value = '';
+  document.getElementById('new-prima-dia').value = '15';
+  initApp();
+}
+
+function eliminarPrima(id) {
+  if(confirm('¿Eliminar esta prima?')) {
+    appData.primasList = appData.primasList.filter(p => p.id !== id);
+    initApp();
+  }
+}
+
+function modificarPrimaPropiedad(id, campo, nuevoValor) {
+  let prima = appData.primasList.find(p => p.id === id);
+  if(!prima) return;
+
+  if(campo === 'nombre') prima.nombre = nuevoValor.trim();
+  if(campo === 'valor') prima.valor = parseFloat(nuevoValor) || 0;
+  if(campo === 'diaPago') {
+    let d = parseInt(nuevoValor, 10);
+    if(!isNaN(d) && d >= 1 && d <= 31) prima.diaPago = d;
+  }
+  if(campo === 'mesKey') prima.mesKey = nuevoValor;
+  initApp();
+}
+
+function renderConfigPrimas() {
+  let container = document.getElementById('lista-config-primas');
+  if(!container) return;
+
+  container.innerHTML = '';
+  if(appData.primasList.length === 0) {
+    container.innerHTML = `<div class="card" style="padding:12px;color:var(--color-text-tertiary);font-size:12px;">No hay primas registradas aún.</div>`;
+    return;
+  }
+
+  appData.primasList
+    .slice()
+    .sort((a, b) => mesKeyToIndex(a.mesKey) - mesKeyToIndex(b.mesKey))
+    .forEach(p => {
+      let nombreSeguro = escapeHTML(p.nombre);
+      let mesOptions = mesesLineaTiempo.map(m => `<option value="${m}" ${p.mesKey === m ? 'selected' : ''}>${m}</option>`).join('');
+      let card = document.createElement('div');
+      card.className = 'card';
+      card.style.padding = '12px';
+      card.style.marginBottom = '8px';
+      card.innerHTML = `
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+          <button class="btn-del" onclick="eliminarPrima(${p.id})"><i class="ti ti-trash"></i></button>
+          <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'nombre', this.value)">
+          <input type="number" value="${p.valor}" class="input-inline" style="width:100px;text-align:right;color:#1D9E75;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
+        </div>
+        <div style="display:flex; gap:8px; align-items:end; padding-left:24px;">
+          <div style="width:88px;">
+            <label class="sl" style="display:block; margin-bottom:2px;">Día pago</label>
+            <input type="number" min="1" max="31" class="input-app" style="margin:0;padding:4px;font-size:12px;" value="${p.diaPago}" onchange="modificarPrimaPropiedad(${p.id}, 'diaPago', this.value)">
+          </div>
+          <div style="flex:1;">
+            <label class="sl" style="display:block; margin-bottom:2px;">Mes</label>
+            <select class="input-app" style="margin:0;padding:4px;font-size:12px;" onchange="modificarPrimaPropiedad(${p.id}, 'mesKey', this.value)">${mesOptions}</select>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
 }
 
 function modificarIngresoPropiedad(id, campo, nuevoValor) {
