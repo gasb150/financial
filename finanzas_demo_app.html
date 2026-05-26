@@ -150,8 +150,8 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
   <div id="s-quincena" class="screen">
     <div class="qs">
       <button class="qb on" id="q-pre" onclick="showQ('pre')">Pre-Gastos / Fijos</button>
-      <button class="qb" id="q-1" onclick="showQ('q1')">Tramo 1 (Días 1-14)</button>
-      <button class="qb" id="q-2" onclick="showQ('q2')">Tramo 2 (Días 15-31)</button>
+      <button class="qb" id="q-q1" onclick="showQ('q1')">Tramo 1 (Días 1-14)</button>
+      <button class="qb" id="q-q2" onclick="showQ('q2')">Tramo 2 (Días 15-31)</button>
     </div>
     <div id="qp-pre"><div class="card" id="lista-pre-quincena"></div></div>
     <div id="qp-q1" style="display:none"><div class="card" id="lista-q1-quincena"></div></div>
@@ -317,6 +317,19 @@ if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
 
+function escapeHTML(texto) {
+  return String(texto)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getCompromisosMesActual() {
+  return appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
+}
+
 function obtenerSemanasDelMesActivo() {
   let partes = mesActivoGlobal.split(" ");
   let nombreMes = partes[0];
@@ -387,7 +400,8 @@ function sw(id, btn) {
 function showQ(q) {
   ['pre','q1','q2'].forEach(k => {
     document.getElementById('qp-' + k).style.display = k === q ? 'block' : 'none';
-    document.getElementById('q-' + k).classList.toggle('on', k === q);
+    let btn = document.getElementById('q-' + k);
+    if(btn) btn.classList.toggle('on', k === q);
   });
 }
 
@@ -406,6 +420,14 @@ function toggleCheckPago(id) {
   }
 }
 
+function cambiarFiltroDeuda(tipo) {
+  filtroDeudaActivo = tipo;
+  ['todas','fijas','variables','creditos','pendientes'].forEach(f => {
+    document.getElementById('f-' + f).classList.toggle('on', f === tipo);
+  });
+  renderDeudasModulo(getCompromisosMesActual());
+}
+
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
@@ -415,7 +437,7 @@ function initApp() {
   document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
   document.getElementById('tit-semanas-dinamico').innerText = `Línea de Semanas - ${mesActivoGlobal}`;
 
-  let compromisosMesActual = appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
+  let compromisosMesActual = getCompromisosMesActual();
   compromisosMesGlobalCache = compromisosMesActual;
 
   let totalIngresos = appData.ingresosList.reduce((acc, i) => acc + i.valor, 0);
@@ -461,10 +483,11 @@ function renderIngresosResumen() {
   let container = document.getElementById('lista-ingresos-resumen');
   container.innerHTML = '';
   appData.ingresosList.forEach(i => {
+    let nombreSeguro = escapeHTML(i.nombre);
     let tag = i.periodo === 'q1' ? 'Quincena 1' : (i.periodo === 'q2' ? 'Quincena 2' : 'Ambas Quincenas (50/50)');
     container.innerHTML += `
       <div class="row">
-        <div><div class="rn">${i.nombre}</div><div class="rm">${tag}</div></div>
+        <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag}</div></div>
         <div class="ra pos">${formatCOP(i.valor)}</div>
       </div>
     `;
@@ -490,6 +513,7 @@ function renderConfigIngresos() {
   let container = document.getElementById('lista-config-ingresos');
   container.innerHTML = '';
   appData.ingresosList.forEach(i => {
+    let nombreSeguro = escapeHTML(i.nombre);
     let card = document.createElement('div');
     card.className = 'card';
     card.style.padding = '12px';
@@ -497,7 +521,7 @@ function renderConfigIngresos() {
     card.innerHTML = `
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px">
         <button class="btn-del" onclick="eliminarIngreso(${i.id})"><i class="ti ti-trash"></i></button>
-        <input type="text" value="${i.nombre}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
+        <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
         <input type="number" value="${i.valor}" class="input-inline" style="width:90px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
       </div>
       <div style="padding-left:24px;">
@@ -561,6 +585,7 @@ function renderDeudasModulo(compromisosMes) {
   }
 
   deudasFiltradas.forEach(c => {
+    let nombreSeguro = escapeHTML(c.nombre);
     let card = document.createElement('div');
     card.className = 'card';
     if(c.pagado) card.style.opacity = '0.65';
@@ -570,7 +595,7 @@ function renderDeudasModulo(compromisosMes) {
       <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px">
         <div style="display:flex; align-items:center; gap:4px; flex:1">
           <button class="btn-del" onclick="eliminarCompromiso(${c.id})"><i class="ti ti-trash"></i></button>
-          <input type="text" value="${c.nombre}" class="input-inline" style="width:100%;" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
+          <input type="text" value="${nombreSeguro}" class="input-inline" style="width:100%;" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
         </div>
         <input type="number" value="${c.valor}" class="input-inline" style="width:90px; text-align:right; color:#E24B4A; font-weight:600" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
       </div>
@@ -618,11 +643,12 @@ function buildQuincenaHtml(container, list, titulo, fondoDisponible = null) {
   }
 
   list.forEach(c => {
+    let nombreSeguro = escapeHTML(c.nombre);
     html += `
       <div class="row ${c.pagado ? 'row-paid' : ''}">
         <div class="rn">
           <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
-          <div><div>${c.nombre}</div></div>
+          <div><div>${nombreSeguro}</div></div>
         </div>
         <div class="ra neg">${formatCOP(c.valor)}</div>
       </div>
@@ -723,12 +749,13 @@ function renderVistaDiaria(compromisosMes) {
   `;
 
   deEsteDia.forEach(c => {
+    let nombreSeguro = escapeHTML(c.nombre);
     html += `
       <div class="row ${c.pagado ? 'row-paid' : ''}">
         <div class="rn">
           <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
           <div>
-            <div style="font-size:13px; font-weight:500;">${c.nombre}</div>
+            <div style="font-size:13px; font-weight:500;">${nombreSeguro}</div>
             <div class="rm" style="text-transform: capitalize;">${c.tipo}</div>
           </div>
         </div>
@@ -773,9 +800,10 @@ function renderSemanaActiva(compromisosMes) {
 
   let html = `<div style="margin-bottom:8px"><strong>${configSemana.nombre}</strong> (${configSemana.rango})</div>`;
   deSemana.forEach(c => {
+    let nombreSeguro = escapeHTML(c.nombre);
     html += `
       <div class="row ${c.pagado ? 'row-paid' : ''}">
-        <div class="rn"><input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> ${c.nombre}</div>
+        <div class="rn"><input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> ${nombreSeguro}</div>
         <div class="ra neg">${formatCOP(c.valor)}</div>
       </div>
     `;
@@ -786,14 +814,45 @@ function renderSemanaActiva(compromisosMes) {
 function procesarNuevoGasto() {
   let nombre = document.getElementById('add-nombre').value.trim();
   let valor = parseFloat(document.getElementById('add-valor').value);
-  let dia = parseInt(document.getElementById('add-dia').value);
+  let dia = parseInt(document.getElementById('add-dia').value, 10);
   let tipoGasto = document.getElementById('add-tipo-gasto').value;
   let mesDestino = document.getElementById('add-mes-destino').value;
+  let faltantes = parseInt(document.getElementById('add-faltantes').value, 10);
+  let totales = parseInt(document.getElementById('add-totales').value, 10);
 
-  if(!nombre || isNaN(valor)) return;
-  appData.compromisos.push({
-    id: Date.now(), nombre: nombre, valor: valor, dia: dia, pagado: false, tipo: tipoGasto, mesKey: mesDestino
-  });
+  if(!nombre || isNaN(valor) || valor <= 0) {
+    alert("Debes ingresar un nombre y un valor mayor que 0.");
+    return;
+  }
+
+  if(dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31)) {
+    alert("El día debe ser -1 o estar entre 1 y 31.");
+    return;
+  }
+
+  if(tipoGasto === 'credito') {
+    if(isNaN(faltantes) || isNaN(totales) || faltantes <= 0 || totales <= 0 || faltantes > totales) {
+      alert("Para créditos, valida cuotas restantes y totales.");
+      return;
+    }
+  }
+
+  let nuevoCompromiso = {
+    id: Date.now(),
+    nombre: nombre,
+    valor: valor,
+    dia: dia,
+    pagado: false,
+    tipo: tipoGasto,
+    mesKey: mesDestino
+  };
+
+  if(tipoGasto === 'credito') {
+    nuevoCompromiso.faltantes = faltantes;
+    nuevoCompromiso.totales = totales;
+  }
+
+  appData.compromisos.push(nuevoCompromiso);
   initApp();
 }
 
