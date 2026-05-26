@@ -3,7 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "description": "Baseline tests for split-safe refactors",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "globals": "^16.1.0"
   }
 }

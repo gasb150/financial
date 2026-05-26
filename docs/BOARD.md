@@ -47,6 +47,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-047 Eliminacion de handlers inline en HTML
 - [x] TKT-048 Endurecimiento offline/PWA y dependencia CDN
 - [x] TKT-049 Cobertura de pruebas de integracion critica
+- [x] TKT-051 Estandarizar linters y calidad de codigo
 - [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
@@ -772,6 +773,21 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Completar claves de traduccion por pantalla
    - [ ] Agregar pruebas de fallback y cobertura minima por locale
 
+### TKT-051 - Estandarizar linters y calidad de codigo
+
+- Estado: Done
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe configuracion de linter para JS y validacion basica de estilos/errores comunes.
+   - Se expone comando unico para ejecutar lint localmente antes de push/PR.
+   - El proyecto documenta reglas base y excepciones para evitar regresiones de estilo/calidad.
+- Checklist:
+   - [x] Definir stack de lint (ESLint y reglas base del proyecto)
+   - [x] Agregar script de lint en package.json
+   - [x] Corregir hallazgos criticos iniciales y documentar uso
+
 ### TKT-040 - QA de regresion post-split y saneamiento
 
 - Estado: Done
@@ -791,6 +807,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-051 completado: ESLint configurado con reglas base, scripts `npm run lint`/`npm run lint:fix`, e ignores de entorno para evitar ruido de infraestructura.
 1. TKT-049 completado: pruebas de integracion critica agregadas para `initApp`/render principal, flujo IA simulado y escenarios de cache/offline del service worker.
 1. TKT-048 completado: dependencia CDN mutable removida (@latest -> version fija) y cache endurecida en service worker para asset externo estable.
 1. TKT-047 completado: eliminados handlers inline en HTML y migrados a listeners delegados con data-action en bootstrap de JS.
