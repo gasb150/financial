@@ -68,6 +68,14 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .cal-dot.all-paid{background:#1D9E75}
 .semana-badge{background:var(--color-background-tertiary);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;color:var(--color-text-secondary)}
 .selector-mes-principal {background:#534AB7; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;}
+.filtro-fecha{display:flex;gap:8px;align-items:end;margin-bottom:10px}
+.filtro-fecha .campo{flex:1}
+.resumen-semanas{margin-bottom:10px;border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.resumen-semanas .r{display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:8px;padding:8px 10px;font-size:11px;border-bottom:1px solid var(--color-border-tertiary);align-items:center}
+.resumen-semanas .r:last-child{border-bottom:none}
+.resumen-semanas .h{background:var(--color-background-secondary);font-weight:600;color:var(--color-text-secondary)}
+.badge-pos{color:#1D9E75;font-weight:600}
+.badge-neg{color:#E24B4A;font-weight:600}
 </style>
 </head>
 <body>
@@ -76,7 +84,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
   <div class="header">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:12px;color:var(--color-text-secondary)">Panel de Control</div>
+        <div style="font-size:12px;color:var(--color-text-secondary)">Hola Tavo!</div>
         <div style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Mis Finanzas</div>
       </div>
       <div style="text-align:right">
@@ -141,6 +149,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 
   <div id="s-semanal" class="screen">
     <div class="sec" id="tit-semanas-dinamico">Semanas correspondientes</div>
+    <div class="card" style="padding:10px 12px;">
+      <div class="rm">El balance semanal usa fecha exacta de ingreso. Pagos en día 29-31 se mueven al día 1 del mes siguiente.</div>
+    </div>
     <div class="qs" id="nav-semanas-botones"></div>
     <div id="contenedor-vista-semanal">
       <div class="card" id="lista-semana-activa"></div>
@@ -168,6 +179,21 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
     </div>
 
     <div class="sec" id="titulo-modulo-deudas">Gestión de Obligaciones</div>
+    <div class="card" style="padding:10px 12px;">
+      <label class="sl">Filtrar por fecha tentativa (día del mes)</label>
+      <div class="filtro-fecha">
+        <div class="campo">
+          <label class="sl">Desde</label>
+          <input type="number" id="f-dia-desde" class="input-app" min="1" max="31" placeholder="1" onchange="aplicarFiltroFechaDeudas()">
+        </div>
+        <div class="campo">
+          <label class="sl">Hasta</label>
+          <input type="number" id="f-dia-hasta" class="input-app" min="1" max="31" placeholder="31" onchange="aplicarFiltroFechaDeudas()">
+        </div>
+        <button class="btn-action" style="height:34px;margin-bottom:1px" onclick="limpiarFiltroFechaDeudas()">Limpiar</button>
+      </div>
+      <div id="deudas-fecha-info" class="rm"></div>
+    </div>
     <div id="lista-deudas-modulo"></div>
 
     <div class="sec">Añadir Compromiso / Gasto Planificado</div>
@@ -240,6 +266,10 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
           </select>
         </div>
       </div>
+      <div style="margin-top:8px;">
+        <label class="sl">Día exacto de pago (1-31)</label>
+        <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
+      </div>
       <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" onclick="agregarIngresoDinamico()">Añadir Ingreso</button>
     </div>
 
@@ -266,6 +296,8 @@ let mesActivoGlobal = "Mayo 2026";
 let filtroDeudaActivo = "todas";
 let semanaSeleccionadaIndex = 0;
 let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista diaria
+let filtroDiaDesde = null;
+let filtroDiaHasta = null;
 
 const datosDefault = {
   ingresosList: [
@@ -315,6 +347,8 @@ const datosDefault = {
 let appData = JSON.parse(localStorage.getItem('finanzas_linea_tiempo_v7')) || datosDefault;
 if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
 
+const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
 
 function escapeHTML(texto) {
@@ -328,6 +362,80 @@ function escapeHTML(texto) {
 
 function getCompromisosMesActual() {
   return appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
+}
+
+function getDiaIngreso(ing) {
+  let dia = parseInt(ing.diaPago, 10);
+  if(!isNaN(dia) && dia >= 1 && dia <= 31) return dia;
+  if(ing.periodo === 'q1') return 7;
+  if(ing.periodo === 'q2') return 22;
+  return 15;
+}
+
+function normalizarIngresosConDia() {
+  appData.ingresosList.forEach(i => {
+    i.diaPago = getDiaIngreso(i);
+  });
+}
+
+function parseMesKey(mesKey) {
+  let [mes, anioStr] = mesKey.split(' ');
+  return { mes, anio: parseInt(anioStr, 10) };
+}
+
+function mesKeyAnterior(mesKey) {
+  let { mes, anio } = parseMesKey(mesKey);
+  let idx = ORDEN_MESES.indexOf(mes);
+  if(idx <= 0) return `${ORDEN_MESES[11]} ${anio - 1}`;
+  return `${ORDEN_MESES[idx - 1]} ${anio}`;
+}
+
+function obtenerEventosIngresoDelMes(mesKey) {
+  let eventos = [];
+  appData.ingresosList.forEach(i => {
+    let dia = getDiaIngreso(i);
+    if(dia <= 28) {
+      eventos.push({ id: i.id, nombre: i.nombre, valor: i.valor, dia: dia, origen: 'normal' });
+    }
+  });
+
+  let _mesPrevio = mesKeyAnterior(mesKey);
+  appData.ingresosList.forEach(i => {
+    let dia = getDiaIngreso(i);
+    if(dia >= 29) {
+      eventos.push({
+        id: `arrastre-${i.id}`,
+        nombre: `${i.nombre} (arrastre mes anterior)`,
+        valor: i.valor,
+        dia: 1,
+        origen: 'arrastre'
+      });
+    }
+  });
+
+  return eventos;
+}
+
+function calcularBalanceSemanal(compromisosMes, semana) {
+  let ingresosEventos = obtenerEventosIngresoDelMes(mesActivoGlobal);
+  let ingresosSemana = ingresosEventos
+    .filter(e => semana.dias.includes(e.dia))
+    .reduce((acc, e) => acc + e.valor, 0);
+
+  let gastosSemana = compromisosMes
+    .filter(c => {
+      let dVal = parseInt(c.dia, 10);
+      if (dVal === -1 && semana.id === 'sem-1') return true;
+      return semana.dias.includes(dVal);
+    })
+    .reduce((acc, c) => acc + c.valor, 0);
+
+  return {
+    ingresosSemana,
+    gastosSemana,
+    balanceSemana: ingresosSemana - gastosSemana,
+    ingresosEventos
+  };
 }
 
 function obtenerSemanasDelMesActivo() {
@@ -362,6 +470,7 @@ function cambiarMesDeVisualizacion(nuevoMes) {
   mesActivoGlobal = nuevoMes;
   semanaSeleccionadaIndex = 0; 
   diaSeleccionadoActivo = null; // Resetea el día seleccionado si cambia de mes
+  limpiarFiltroFechaDeudas(true);
   initApp();
 }
 
@@ -428,9 +537,28 @@ function cambiarFiltroDeuda(tipo) {
   renderDeudasModulo(getCompromisosMesActual());
 }
 
+function aplicarFiltroFechaDeudas() {
+  let desde = parseInt(document.getElementById('f-dia-desde').value, 10);
+  let hasta = parseInt(document.getElementById('f-dia-hasta').value, 10);
+  filtroDiaDesde = isNaN(desde) ? null : Math.min(Math.max(desde, 1), 31);
+  filtroDiaHasta = isNaN(hasta) ? null : Math.min(Math.max(hasta, 1), 31);
+  renderDeudasModulo(getCompromisosMesActual());
+}
+
+function limpiarFiltroFechaDeudas(soloEstado = false) {
+  filtroDiaDesde = null;
+  filtroDiaHasta = null;
+  let iDesde = document.getElementById('f-dia-desde');
+  let iHasta = document.getElementById('f-dia-hasta');
+  if(iDesde) iDesde.value = '';
+  if(iHasta) iHasta.value = '';
+  if(!soloEstado) renderDeudasModulo(getCompromisosMesActual());
+}
+
 let compromisosMesGlobalCache = []; // Cache para simplificar refrescos de UI
 
 function initApp() {
+  normalizarIngresosConDia();
   localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
   actualizarSelectoresDeMes();
   
@@ -440,7 +568,7 @@ function initApp() {
   let compromisosMesActual = getCompromisosMesActual();
   compromisosMesGlobalCache = compromisosMesActual;
 
-  let totalIngresos = appData.ingresosList.reduce((acc, i) => acc + i.valor, 0);
+  let totalIngresos = obtenerEventosIngresoDelMes(mesActivoGlobal).reduce((acc, e) => acc + e.valor, 0);
   let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
   let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
   let balance = totalIngresos - totalGastos;
@@ -484,10 +612,12 @@ function renderIngresosResumen() {
   container.innerHTML = '';
   appData.ingresosList.forEach(i => {
     let nombreSeguro = escapeHTML(i.nombre);
+    let diaIngreso = getDiaIngreso(i);
+    let impacto = diaIngreso >= 29 ? 'Impacta mes siguiente (arrastre día 1)' : `Pago día ${diaIngreso}`;
     let tag = i.periodo === 'q1' ? 'Quincena 1' : (i.periodo === 'q2' ? 'Quincena 2' : 'Ambas Quincenas (50/50)');
     container.innerHTML += `
       <div class="row">
-        <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag}</div></div>
+        <div><div class="rn">${nombreSeguro}</div><div class="rm">${tag} · ${impacto}</div></div>
         <div class="ra pos">${formatCOP(i.valor)}</div>
       </div>
     `;
@@ -498,10 +628,13 @@ function agregarIngresoDinamico() {
   let nombre = document.getElementById('new-ing-nombre').value.trim();
   let valor = parseFloat(document.getElementById('new-ing-valor').value);
   let periodo = document.getElementById('new-ing-periodo').value;
+  let diaPago = parseInt(document.getElementById('new-ing-dia').value, 10);
   if(!nombre || isNaN(valor) || valor <= 0) { alert("Datos inválidos"); return; }
-  appData.ingresosList.push({ id: Date.now(), nombre: nombre, valor: valor, periodo: periodo });
+  if(isNaN(diaPago) || diaPago < 1 || diaPago > 31) { alert("El día de pago del ingreso debe estar entre 1 y 31."); return; }
+  appData.ingresosList.push({ id: Date.now(), nombre: nombre, valor: valor, periodo: periodo, diaPago: diaPago });
   document.getElementById('new-ing-nombre').value = '';
   document.getElementById('new-ing-valor').value = '';
+  document.getElementById('new-ing-dia').value = '30';
   initApp();
 }
 
@@ -524,13 +657,19 @@ function renderConfigIngresos() {
         <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
         <input type="number" value="${i.valor}" class="input-inline" style="width:90px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
       </div>
-      <div style="padding-left:24px;">
+      <div style="padding-left:24px; display:flex; gap:8px; align-items:end;">
+        <div style="flex:1;">
         <label class="sl" style="display:block; margin-bottom:2px">Asignación de Tramo:</label>
         <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'periodo', this.value)">
           <option value="q1" ${i.periodo === 'q1' ? 'selected' : ''}>Cae en Quincena 1 (Días 1-14)</option>
           <option value="q2" ${i.periodo === 'q2' ? 'selected' : ''}>Cae en Quincena 2 (Días 15-31)</option>
           <option value="todo" ${i.periodo === 'todo' ? 'selected' : ''}>Dividir en Ambas Quincenas (50/50)</option>
         </select>
+        </div>
+        <div style="width:92px;">
+          <label class="sl" style="display:block; margin-bottom:2px">Día pago</label>
+          <input type="number" min="1" max="31" class="input-app" style="margin:0; padding:4px; font-size:12px;" value="${getDiaIngreso(i)}" onchange="modificarIngresoPropiedad(${i.id}, 'diaPago', this.value)">
+        </div>
       </div>
     `;
     container.appendChild(card);
@@ -543,6 +682,10 @@ function modificarIngresoPropiedad(id, campo, nuevoValor) {
     if(campo === 'valor') ing.valor = parseFloat(nuevoValor) || 0;
     if(campo === 'nombre') ing.nombre = nuevoValor.trim();
     if(campo === 'periodo') ing.periodo = nuevoValor;
+    if(campo === 'diaPago') {
+      let d = parseInt(nuevoValor, 10);
+      if(!isNaN(d) && d >= 1 && d <= 31) ing.diaPago = d;
+    }
     initApp();
   }
 }
@@ -567,6 +710,7 @@ function modificarCompromisoPropiedad(id, campo, nuevoValor) {
 
 function renderDeudasModulo(compromisosMes) {
   let container = document.getElementById('lista-deudas-modulo');
+  let fechaInfo = document.getElementById('deudas-fecha-info');
   if(!container) return;
   container.innerHTML = '';
   
@@ -577,7 +721,22 @@ function renderDeudasModulo(compromisosMes) {
     if (filtroDeudaActivo === 'creditos') return c.tipo === 'credito';
     if (filtroDeudaActivo === 'pendientes') return !c.pagado;
     return true;
+  }).filter(c => {
+    let diaNormalizado = parseInt(c.dia, 10) === -1 ? 1 : parseInt(c.dia, 10);
+    if(filtroDiaDesde !== null && diaNormalizado < filtroDiaDesde) return false;
+    if(filtroDiaHasta !== null && diaNormalizado > filtroDiaHasta) return false;
+    return true;
   });
+
+  if(fechaInfo) {
+    if(filtroDiaDesde === null && filtroDiaHasta === null) {
+      fechaInfo.innerText = 'Mostrando todos los días del mes.';
+    } else {
+      let desdeTxt = filtroDiaDesde === null ? '1' : filtroDiaDesde;
+      let hastaTxt = filtroDiaHasta === null ? '31' : filtroDiaHasta;
+      fechaInfo.innerText = `Rango activo: día ${desdeTxt} a día ${hastaTxt}.`;
+    }
+  }
 
   if(deudasFiltradas.length === 0) {
     container.innerHTML = `<div class="card" style="text-align:center; padding:20px; color:var(--color-text-tertiary); font-size:12px;">Sin registros.</div>`;
@@ -792,13 +951,63 @@ function renderSemanaActiva(compromisosMes) {
   let configSemana = semanas[semanaSeleccionadaIndex];
   if(!configSemana) return;
 
+  let resumenSemanal = semanas.map(s => ({ ...s, ...calcularBalanceSemanal(compromisosMes, s) }));
+  let saldoArrastre = 0;
+  let resumenConArrastre = resumenSemanal.map(s => {
+    let saldoInicial = saldoArrastre;
+    let saldoCierre = saldoInicial + s.balanceSemana;
+    saldoArrastre = saldoCierre;
+    return {
+      ...s,
+      saldoInicial,
+      saldoCierre
+    };
+  });
+  let datosSemanaActiva = resumenConArrastre[semanaSeleccionadaIndex];
+
   let deSemana = compromisosMes.filter(c => {
     let dVal = parseInt(c.dia);
     if (dVal === -1 && semanaSeleccionadaIndex === 0) return true;
     return configSemana.dias.includes(dVal);
   });
 
-  let html = `<div style="margin-bottom:8px"><strong>${configSemana.nombre}</strong> (${configSemana.rango})</div>`;
+  let ingresosSemanaActiva = datosSemanaActiva.ingresosEventos.filter(e => configSemana.dias.includes(e.dia));
+
+  let html = `<div style="margin-bottom:8px"><strong>Balance semana a semana</strong></div>`;
+  html += `<div class="resumen-semanas">
+    <div class="r h"><div>Semana</div><div>Ingresos</div><div>Gastos</div><div>Saldo cierre</div></div>
+  `;
+  resumenConArrastre.forEach((s, idx) => {
+    let claseBal = s.saldoCierre >= 0 ? 'badge-pos' : 'badge-neg';
+    html += `<div class="r" style="background:${idx === semanaSeleccionadaIndex ? '#EEEDFE' : 'transparent'}">
+      <div>S${idx + 1}</div>
+      <div class="badge-pos">${formatCOP(s.ingresosSemana)}</div>
+      <div class="badge-neg">${formatCOP(s.gastosSemana)}</div>
+      <div class="${claseBal}">${formatCOP(s.saldoCierre)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<div style="margin-bottom:8px"><strong>${configSemana.nombre}</strong> (${configSemana.rango})</div>`;
+  html += `<div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px;">`;
+  html += `Arrastre previo: <span class="${datosSemanaActiva.saldoInicial >= 0 ? 'pos' : 'neg'}">${formatCOP(datosSemanaActiva.saldoInicial)}</span> · `;
+  html += `Ingresos: <span class="pos">${formatCOP(datosSemanaActiva.ingresosSemana)}</span> · `;
+  html += `Gastos: <span class="neg">${formatCOP(datosSemanaActiva.gastosSemana)}</span> · `;
+  html += `Neto semana: <span class="${datosSemanaActiva.balanceSemana >= 0 ? 'pos' : 'neg'}">${formatCOP(datosSemanaActiva.balanceSemana)}</span> · `;
+  html += `Saldo cierre: <span class="${datosSemanaActiva.saldoCierre >= 0 ? 'pos' : 'neg'}">${formatCOP(datosSemanaActiva.saldoCierre)}</span>`;
+  html += `</div>`;
+
+  if(ingresosSemanaActiva.length > 0) {
+    html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Ingresos con fecha exacta:</div>`;
+    ingresosSemanaActiva.forEach(i => {
+      html += `<div class="row"><div class="rn"><i class="ti ti-arrow-down-right"></i> ${escapeHTML(i.nombre)} (día ${i.dia})</div><div class="ra pos">${formatCOP(i.valor)}</div></div>`;
+    });
+  }
+
+  if(datosSemanaActiva.ingresosEventos.some(i => i.origen === 'arrastre')) {
+    html += `<div class="rm" style="margin:8px 0 10px;">Nota: ingresos de día 29-31 se aplican como arrastre al día 1 del mes actual.</div>`;
+  }
+
   deSemana.forEach(c => {
     let nombreSeguro = escapeHTML(c.nombre);
     html += `
