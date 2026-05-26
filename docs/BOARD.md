@@ -21,6 +21,12 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
 - [ ] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
+- [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
+- [ ] TKT-030 Balance quincena a quincena con rebalanceo
+- [ ] TKT-031 Pre-Mes integrado a Q1 con indicador de origen
+- [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
+- [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
+- [ ] TKT-034 Historial persistente de acciones IA y revertir
 
 ## En curso
 
@@ -32,6 +38,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-028 Undo del ultimo cambio aplicado por IA
+- [x] TKT-027 Flujo de confirmacion y ejecucion transaccional IA
+- [x] TKT-026 Motor de preview de impacto por accion IA
+- [x] TKT-025 Contrato JSON de acciones IA unificado
+- [x] TKT-024 Simplificar UX semanal: solo boton de rebalanceo
+- [x] TKT-023 Reubicar rebalanceo semanal bajo balance semana a semana
+- [x] TKT-022 Visibilidad condicional de rebalanceo por deficit
 - [x] TKT-019 Recortes IA item a item accionables
 - [x] TKT-017 Rebalanceo IA entre tramos (semana/quincena)
 - [x] TKT-021 Robustez IA local (config + errores + timeout)
@@ -317,10 +330,216 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [x] Agregar botones por item para aplicar recorte/movimiento
    - [x] Recalcular resumen global y por tramo tras cada aplicacion
 
+### TKT-022 - Visibilidad condicional de rebalanceo por deficit
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - La opcion de rebalanceo solo se muestra cuando exista al menos un tramo en deficit.
+   - Si no hay deficit, no aparece CTA de rebalanceo ni tarjeta asociada.
+   - El criterio se evalua en tiempo real al cambiar mes, pagos o montos.
+- Checklist:
+   - [x] Calcular flag global de deficit por contexto (semanal/quincenal)
+   - [x] Condicionar render de rebalanceo al flag
+   - [x] Validar comportamiento al alternar escenarios con/sin deficit
+
+### TKT-023 - Reubicar rebalanceo semanal bajo balance semana a semana
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - El control de rebalanceo semanal aparece inmediatamente despues del bloque "Balance semana a semana".
+   - Se elimina duplicidad visual entre panel IA semanal y bloque de balance semanal.
+   - La accion mantiene el mismo resultado funcional actual.
+- Checklist:
+   - [x] Mover CTA de rebalanceo al modulo semanal de balance
+   - [x] Remover ubicacion anterior para evitar duplicados
+   - [x] Verificar flujo completo desde el nuevo punto de entrada
+
+### TKT-024 - Simplificar UX semanal: solo boton de rebalanceo
+
+- Estado: Done
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - En la vista semanal no se muestra tarjeta redundante de rebalanceo.
+   - Solo se muestra el boton "Rebalancear entre tramos ↗" en el punto definido del modulo semanal.
+   - El boton conserva estados de carga y error de forma clara.
+- Checklist:
+   - [x] Sustituir tarjeta semanal de rebalanceo por CTA unico
+   - [x] Mantener feedback de estado (loading/error/resultado)
+   - [x] Ajustar estilos para integracion limpia con el bloque semanal
+
+### TKT-025 - Contrato JSON de acciones IA unificado
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe un schema unico para acciones IA (reducir, posponer, mover_tramo).
+   - Todas las respuestas IA se validan contra el schema antes de habilitar CTA de aplicar.
+   - En caso de payload invalido se aplica fallback controlado y mensaje claro en UI.
+- Checklist:
+   - [x] Definir schema versionado para acciones IA
+   - [x] Implementar validador y normalizador central
+   - [x] Integrar validacion en recortes y rebalanceo
+
+### TKT-026 - Motor de preview de impacto por accion IA
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Antes de aplicar una accion IA se muestra preview de impacto (saldo tramo/mes, ahorro esperado).
+   - Preview funciona para reducir, posponer y mover_tramo.
+   - El calculo de preview no modifica datos persistidos.
+- Checklist:
+   - [x] Construir simulador puro por tipo de accion
+   - [x] Mostrar diff antes/despues en UI
+   - [x] Validar consistencia preview vs resultado aplicado
+
+### TKT-027 - Flujo de confirmacion y ejecucion transaccional IA
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Cada accion IA requiere confirmacion explicita de usuario.
+   - Si falla una aplicacion, el estado no queda parcialmente actualizado.
+   - Se registra resultado de aplicacion (ok/error) por accion.
+- Checklist:
+   - [x] Implementar modal/paso de confirmacion previo
+   - [x] Aplicar cambios con estrategia transaccional
+   - [x] Persistir y mostrar estado final por accion
+
+### TKT-028 - Undo del ultimo cambio aplicado por IA
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Usuario puede deshacer el ultimo cambio aplicado por IA.
+   - Undo restaura valor/dia/tramo previo sin corrupcion de datos.
+   - Undo se deshabilita cuando no exista accion reversible.
+- Checklist:
+   - [x] Guardar snapshot minimo pre-aplicacion
+   - [x] Implementar accion de rollback en UI
+   - [x] Validar restauracion y persistencia tras undo
+
+### TKT-029 - QA funcional de sugerencias IA y reglas de visibilidad
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe matriz de pruebas para escenarios con/sin deficit y con/sin sugerencias.
+   - Se valida no-regresion de reglas de visibilidad (TKT-022/023/024).
+   - Se documentan casos borde y resultados esperados.
+- Checklist:
+   - [ ] Definir matriz de escenarios criticos
+   - [ ] Ejecutar pruebas manuales guiadas y registrar evidencia
+   - [ ] Ajustar criterios de aceptacion segun hallazgos
+
+### TKT-030 - Balance quincena a quincena con rebalanceo
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe vista "Balance quincena a quincena" con estructura equivalente a "Balance semana a semana".
+   - La vista muestra saldo inicial, ingresos, gastos, neto y saldo de cierre por tramo (Q1/Q2).
+   - Incluye CTA de "Rebalancear entre tramos" con el mismo flujo funcional de rebalanceo ya existente.
+- Checklist:
+   - [ ] Crear bloque visual quincena a quincena en la pantalla de Quincena
+   - [ ] Reusar/ajustar calculos de saldos por tramo quincenal
+   - [ ] Integrar CTA de rebalanceo quincenal con estado (loading/error/resultado)
+
+### TKT-031 - Pre-Mes integrado a Q1 con indicador de origen
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Los cargos Pre-Mes impactan dentro del bloque de gastos de Q1.
+   - Cada item Pre-Mes mantiene marcador visual de "viene del mes anterior".
+   - El usuario puede distinguir claramente cargo Q1 nativo vs cargo arrastrado Pre-Mes.
+- Checklist:
+   - [ ] Consolidar Pre-Mes dentro del calculo/render de Q1
+   - [ ] Agregar badge/etiqueta de origen en listas y tarjetas
+   - [ ] Verificar que no haya doble conteo en resumenes
+
+### TKT-032 - Indicadores de fecha real en listado/edicion de ingresos
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - El listado y edicion de ingresos muestra "fecha real de pago" y "fecha de impacto en flujo".
+   - Se identifica cuando un ingreso cae en 29-31 y se arrastra al dia 1 del mes siguiente.
+   - El indicador permite lectura rapida sin abrir otras vistas.
+- Checklist:
+   - [ ] Agregar metadatos visibles en tarjetas de configuracion de ingresos
+   - [ ] Mostrar estado de arrastre/impacto en resumen de ingresos
+   - [ ] Alinear textos con reglas actuales de flujo
+
+### TKT-033 - Fecha real de pago para gastos unicos y diferidos
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Gastos unicos pueden registrar una fecha real de pago distinta a la fecha de impacto en flujo.
+   - La app permite modelar gastos que se pagan dias despues sin romper balances.
+   - La UI muestra claramente ambas fechas cuando existan diferencias.
+- Checklist:
+   - [ ] Definir campos de fecha real/fecha impacto para compromisos aplicables
+   - [ ] Ajustar calculos de calendario, quincenas y semana a semana
+   - [ ] Mostrar indicador visual en listas y modulo de edicion
+
+### TKT-034 - Historial persistente de acciones IA y revertir
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Las sugerencias/aplicaciones IA quedan registradas en un historial persistente (no se pierden al reiniciar).
+   - Se puede revertir una o varias acciones previas desde el historial, con orden y trazabilidad.
+   - El historial muestra accion, item afectado, timestamp y estado (aplicada/revertida).
+- Checklist:
+   - [ ] Definir modelo de datos para historial IA (acciones y metadatos)
+   - [ ] Persistir historial en almacenamiento principal
+   - [ ] Implementar UI de historial con opcion de revertir
+
 ## Bitacora de avance
 
 ### 2026-05-26
 
+1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-028 completado: undo del ultimo cambio IA aplicado con restauracion de snapshot.
+1. TKT-027 completado: confirmacion previa y aplicacion transaccional en acciones IA de recorte.
+1. TKT-026 completado: preview antes/despues por accion IA (mes y tramo).
+1. TKT-025 completado: contrato JSON unificado y validacion central para acciones IA.
+1. Backlog ampliado: TKT-030/TKT-031/TKT-032/TKT-033 para balance quincenal, integracion de Pre-Mes e indicadores de fecha real.
+1. TKT-024 completado: UX semanal simplificada eliminando tarjeta redundante y dejando CTA unico de rebalanceo.
+1. TKT-023 completado: CTA semanal de rebalanceo reubicado inmediatamente despues de "Balance semana a semana".
+1. TKT-022 completado: rebalanceo visible solo cuando hay deficit por tramo.
+1. Backlog ampliado: TKT-025/TKT-026/TKT-027/TKT-028/TKT-029 para descomponer TKT-018 en piezas paralelizables y verificables.
+1. Backlog UX agregado: TKT-022/TKT-023/TKT-024 para visibilidad condicional y simplificacion del rebalanceo semanal.
 1. TKT-019 completado: recortes IA item a item con acciones aplicables (reducir/posponer/mover) y recálculo inmediato tras aplicar.
 1. TKT-017 completado: rebalanceo IA semanal/quincenal con deteccion de deficit/superavit y salida con impacto antes/despues por tramo.
 1. TKT-021 completado: robustez de IA local con configuracion persistente, diagnosticos y migracion de timeout legacy.
