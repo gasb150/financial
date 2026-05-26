@@ -767,6 +767,14 @@ function showQ(q) {
   renderIAPanelQuincena();
 }
 
+function renderMenuSemanas() {
+  return window.FinancialRender.renderWeeklyMenu();
+}
+
+function renderSemanaActiva(compromisosMes) {
+  return window.FinancialRender.renderActiveWeek(compromisosMes);
+}
+
 function toggleCuotasInput(val) {
   return window.FinancialActions.toggleInstallmentFields(val);
 }

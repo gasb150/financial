@@ -27,7 +27,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-040 QA de regresion post-split y saneamiento
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
 - [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
 - [ ] TKT-047 Eliminacion de handlers inline en HTML
@@ -47,6 +46,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
+- [x] TKT-040 QA de regresion post-split y saneamiento
 - [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
@@ -774,7 +774,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-040 - QA de regresion post-split y saneamiento
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -783,14 +783,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se validan errores de consola, carga offline y rutas de IA principales.
    - Se documentan hallazgos y fixes necesarios antes de retomar nuevos features.
 - Checklist:
-   - [ ] Ejecutar smoke test funcional completo (Resumen, Semanas, Quincenas, Deudas, Config)
-   - [ ] Validar cache offline y carga en frio tras cambio de version
-   - [ ] Registrar incidencias y aplicar correcciones de saneamiento
+   - [x] Ejecutar smoke test funcional completo (Resumen, Semanas, Quincenas, Deudas, Config)
+   - [x] Validar cache offline y carga en frio tras cambio de version
+   - [x] Registrar incidencias y aplicar correcciones de saneamiento
 
 ## Bitacora de avance
 
 ### 2026-05-26
 
+1. TKT-040 completado: QA de regresion ejecutado (tests + smoke funcional + verificacion service worker/cache) con correccion de runtime en render semanal (`renderMenuSemanas` y `renderSemanaActiva`).
 1. TKT-050 agregado: cobertura i18n completa para eliminar textos hardcodeados en UI.
 1. TKT-049 agregado: pruebas de integracion critica (init/render/IA/offline).
 1. TKT-048 agregado: endurecimiento offline/PWA removiendo dependencia CDN mutable.
