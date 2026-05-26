@@ -382,6 +382,19 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
       <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" onchange="importarRespaldoArchivo(event)">
     </div>
 
+    <div class="sec">Asistente IA</div>
+    <div class="card">
+      <label class="sl">Modo IA</label>
+      <select id="ia-mode-selector" class="input-app" onchange="setModoIA(this.value)">
+        <option value="off">OFF (sin llamadas IA)</option>
+        <option value="local">LOCAL (IA Local)</option>
+        <option value="api">API externa</option>
+      </select>
+      <div id="ia-mode-help" class="rm" style="margin-top:8px;"></div>
+      <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" onclick="probarIAConfigurada()">Probar modo IA</button>
+      <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
+    </div>
+
     <div class="sec">Línea de Tiempo del Sistema</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
@@ -450,7 +463,11 @@ const datosDefault = {
     { id: 19, nombre: "Credito Vehiculo", valor: 1450000, dia: 5, pagado: false, tipo: "credito", faltantes: 36, totales: 60, mesKey: "Mayo 2026" },
     { id: 20, nombre: "Credito Banco 3", valor: 250000, dia: 5, pagado: false, tipo: "credito", faltantes: 8, totales: 24, mesKey: "Mayo 2026" }
   ],
-  lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"]
+  lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"],
+  iaConfig: {
+    mode: 'off',
+    updatedAt: null
+  }
 };
 
 const STORAGE_KEY = 'finanzas_linea_tiempo_v7';
@@ -460,6 +477,7 @@ const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
 const APP_SCHEMA_VERSION = 2;
+const IA_MODES = ['off', 'local', 'api'];
 
 const APP_SCHEMA_MIGRATORS = {
   1: (data) => {
@@ -524,6 +542,9 @@ function normalizarEstadoCargado() {
   if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
   if(!Array.isArray(appData.primasList)) appData.primasList = [];
   if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+  if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+  if(!IA_MODES.includes(appData.iaConfig.mode)) appData.iaConfig.mode = 'off';
+  if(!appData.iaConfig.updatedAt) appData.iaConfig.updatedAt = null;
 }
 
 function validarDataPrincipal(payload) {
@@ -1404,6 +1425,72 @@ function sw(id, btn) {
   btn.classList.add('on');
 }
 
+function getModoIA() {
+  if(!appData || !appData.iaConfig || !IA_MODES.includes(appData.iaConfig.mode)) return 'off';
+  return appData.iaConfig.mode;
+}
+
+function textoModoIA(modo) {
+  if(modo === 'local') return 'Modo LOCAL activo. Se habilitan llamadas a proveedor local (TKT-008).';
+  if(modo === 'api') return 'Modo API activo. Se habilitan llamadas a gateway/proveedor externo (TKT-012).';
+  return 'Modo OFF activo. Toda llamada IA queda bloqueada.';
+}
+
+function renderConfigIA() {
+  let sel = document.getElementById('ia-mode-selector');
+  let help = document.getElementById('ia-mode-help');
+  if(!sel || !help) return;
+  let modo = getModoIA();
+  sel.value = modo;
+  help.innerText = textoModoIA(modo);
+}
+
+function setModoIA(modoNuevo) {
+  let modo = IA_MODES.includes(modoNuevo) ? modoNuevo : 'off';
+  if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+  appData.iaConfig.mode = modo;
+  appData.iaConfig.updatedAt = new Date().toISOString();
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+  renderConfigIA();
+
+  let salida = document.getElementById('ia-test-result');
+  if(salida) salida.innerText = `Modo IA guardado: ${modo.toUpperCase()}.`;
+}
+
+async function ejecutarConsultaIA(prompt) {
+  let modo = getModoIA();
+  if(modo === 'off') {
+    throw new Error('Modo IA en OFF. Activa LOCAL o API para usar funciones IA.');
+  }
+  if(modo === 'local') {
+    return {
+      ok: false,
+      mode: modo,
+      message: 'Proveedor LOCAL aun no integrado. Se habilitara en TKT-008.',
+      prompt
+    };
+  }
+  return {
+    ok: false,
+    mode: modo,
+    message: 'Gateway/API externa aun no integrada. Se habilitara en TKT-012.',
+    prompt
+  };
+}
+
+async function probarIAConfigurada() {
+  let out = document.getElementById('ia-test-result');
+  if(!out) return;
+
+  try {
+    let res = await ejecutarConsultaIA('Prueba rapida de disponibilidad IA');
+    out.innerText = `Resultado (${String(res.mode || '').toUpperCase()}): ${res.message}`;
+  } catch(err) {
+    out.innerText = `Bloqueado: ${err && err.message ? err.message : 'No disponible'}`;
+  }
+}
+
 function instalarAppPWA() {
   if(!deferredInstallPrompt) {
     alert('La instalacion directa no esta disponible en este navegador. Usa "Agregar a pantalla de inicio".');
@@ -1608,6 +1695,7 @@ function initApp() {
   renderSelectoresVigenciaIngreso();
   renderConfigIngresos();
   renderConfigPrimas();
+  renderConfigIA();
   renderUltimoGuardado();
   aplicarFormatoMonedaInputs();
   

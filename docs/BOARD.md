@@ -14,7 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-007 Selector IA OFF / LOCAL / API
 - [ ] TKT-008 Integracion IA local con Ollama
 - [ ] TKT-009 Asistente IA: resumen mensual
 - [ ] TKT-010 Asistente IA: alertas de deficit
@@ -33,6 +32,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-007 Selector IA OFF / LOCAL / API
 - [x] TKT-006 Integridad de backup (validacion + checksum)
 - [x] TKT-005 Versionado de esquema y migraciones
 - [x] TKT-004 Migracion de localStorage a IndexedDB
@@ -128,7 +128,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-007 - Selector IA OFF / LOCAL / API
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 3
 - Owner: Gustavo
@@ -136,8 +136,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Usuario puede cambiar modo IA en Config.
    - Modo OFF desactiva llamadas IA.
 - Checklist:
-   - [ ] Crear setting de modo IA
-   - [ ] Conectar selector en UI
+   - [x] Crear setting de modo IA
+   - [x] Conectar selector en UI
 
 ### TKT-008 - Integracion IA local con Ollama
 
@@ -209,6 +209,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-007 completado: selector IA OFF/LOCAL/API persistido y guardas para bloquear IA en OFF.
 1. TKT-006 completado: checksum SHA-256 agregado y validado en import/restore.
 1. TKT-005 completado: schemaVersion y migradores v1/v2 aplicados en carga/import/restore.
 1. TKT-004 completado: IndexedDB como almacenamiento principal con migracion y fallback.
