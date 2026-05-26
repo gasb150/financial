@@ -97,3 +97,15 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .pill-credito{background:#efecff;color:#4339a2;border-color:#cdc7ff}
 .deuda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .deuda-sub{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.ia-stack{display:grid;gap:10px;margin-bottom:10px}
+.ia-card{background:linear-gradient(180deg,#313131 0%,#2a2a2a 100%);color:#f5f5f5;border:1px solid #4a4a4a;border-radius:12px;padding:12px 12px 10px}
+.ia-card .ttl{font-size:11px;font-weight:700;letter-spacing:.06em;color:#b9b9b9;text-transform:uppercase;margin-bottom:8px}
+.ia-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.ia-row:last-child{border-bottom:none}
+.ia-row .nm{font-size:13px;color:#f0f0f0}
+.ia-row .meta{font-size:11px;color:#b8b8b8}
+.ia-row .vl{font-size:14px;font-weight:700;color:#ff5f5f}
+.ia-cta{width:100%;margin-top:10px;background:#1f1f1f;color:#ffffff;border:1px solid #5a5a5a;border-radius:9px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.ia-cta:disabled{opacity:.6;cursor:not-allowed}
+.ia-result{margin-top:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 9px;font-size:11px;color:#f3f3f3;white-space:pre-wrap;line-height:1.45}
+.ia-result.error{border-color:#ff8d8d;color:#ffd6d6}

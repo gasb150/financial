@@ -14,15 +14,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-008 Integracion IA local con Ollama
 - [ ] TKT-009 Asistente IA: resumen mensual
 - [ ] TKT-010 Asistente IA: alertas de deficit
 - [ ] TKT-011 Asistente IA: simulador de escenarios
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
-- [ ] TKT-015 Panel IA accionable (tarjetas + CTA)
-- [ ] TKT-016 Recomendaciones IA por categoria (deudas/variables)
+- [ ] TKT-017 Rebalanceo IA entre tramos (semana/quincena)
+- [ ] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
+- [ ] TKT-019 Recortes IA item a item accionables
 
 ## En curso
 
@@ -34,6 +34,11 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-021 Robustez IA local (config + errores + timeout)
+- [x] TKT-020 IA contextual por pantalla (resumen/semanal/quincena/deudas)
+- [x] TKT-016 Recomendaciones IA por categoria (deudas/variables)
+- [x] TKT-015 Panel IA accionable (tarjetas + CTA)
+- [x] TKT-008 Integracion IA local con Ollama
 - [x] TKT-007 Selector IA OFF / LOCAL / API
 - [x] TKT-006 Integridad de backup (validacion + checksum)
 - [x] TKT-005 Versionado de esquema y migraciones
@@ -143,15 +148,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-008 - Integracion IA local con Ollama
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 3
 - Owner: Gustavo
 - Criterio de aceptacion:
    - App responde via endpoint local cuando modo LOCAL este activo.
 - Checklist:
-   - [ ] Crear cliente IA local
-   - [ ] Manejo de timeout/reintento
+   - [x] Crear cliente IA local
+   - [x] Manejo de timeout/reintento
 
 ### TKT-009 - Asistente IA: resumen mensual
 
@@ -209,22 +214,22 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-015 - Panel IA accionable (tarjetas + CTA)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
 - Criterio de aceptacion:
-   - Vista IA tipo tarjeta por tema financiero (ej: deudas pendientes, gastos variables).
+   - Vista IA tipo tarjeta por tema financiero (ej: deudas pendientes, gastos variables), distribuida en pantallas relevantes.
    - Cada tarjeta incluye CTA claro para ejecutar analisis IA.
    - Diseño visual consistente con mobile y legible en modo oscuro.
 - Checklist:
-   - [ ] Definir layout de tarjetas IA en Resumen
-   - [ ] Agregar CTA por tarjeta (accion primaria)
-   - [ ] Conectar estado de carga/error por tarjeta
+   - [x] Definir layout de tarjetas IA en Resumen
+   - [x] Agregar CTA por tarjeta (accion primaria)
+   - [x] Conectar estado de carga/error por tarjeta
 
 ### TKT-016 - Recomendaciones IA por categoria (deudas/variables)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -233,14 +238,95 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Boton "Analizar qué puedo reducir" sugiere recortes por impacto/riesgo.
    - Respuesta mostrada en formato accionable y corto (pasos concretos).
 - Checklist:
-   - [ ] Crear prompt/entrada para estrategia de deuda
-   - [ ] Crear prompt/entrada para analisis de recorte variable
-   - [ ] Renderizar resultados en panel IA
+   - [x] Crear prompt/entrada para estrategia de deuda
+   - [x] Crear prompt/entrada para analisis de recorte variable
+   - [x] Renderizar resultados en panel IA
+
+### TKT-020 - IA contextual por pantalla (resumen/semanal/quincena/deudas)
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Tarjetas IA se muestran en la pantalla funcional correspondiente (Resumen, Semanal, Quincena, Deudas).
+   - La recomendacion de recorte en Semanal/Quincena toma el contexto visible activo.
+   - El cambio no rompe navegacion ni render base de cada pantalla.
+- Checklist:
+   - [x] Reubicar contenedores IA por pantalla
+   - [x] Conectar render y estado por panel
+   - [x] Usar contexto activo (semana seleccionada y tab de quincena)
+
+### TKT-021 - Robustez IA local (config + errores + timeout)
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Config LOCAL editable/persistida (endpoint, modelo, timeout, reintentos).
+   - Mensajes de error distinguen conexion, timeout y modelo inexistente.
+   - Se evita timeout demasiado corto por migraciones legacy.
+- Checklist:
+   - [x] Exponer y guardar configuracion LOCAL en UI
+   - [x] Mejorar manejo de errores HTTP/red/timeout
+   - [x] Aplicar normalizacion y migracion de timeout legacy
+
+### TKT-017 - Rebalanceo IA entre tramos (semana/quincena)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - IA detecta tramos con deficit y tramos con superavit en el mes activo.
+   - IA sugiere mover obligaciones no criticas de un tramo deficitario a otro con capacidad.
+   - Cada sugerencia muestra impacto esperado antes/despues por tramo (saldo cierre).
+- Checklist:
+   - [ ] Construir contexto financiero por tramo (S1..Sn, Q1/Q2, pre-mes)
+   - [ ] Prompt para estrategia de reubicacion con restricciones de negocio
+   - [ ] Mostrar propuestas con impacto cuantificado por tramo
+
+### TKT-018 - Aplicar sugerencias IA (boton + preview + undo)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Cada recomendacion IA incluye CTA para aplicar cambio real (ej: mover dia/tramo o ajustar monto).
+   - Antes de aplicar, usuario ve preview de impacto y puede confirmar/cancelar.
+   - Se puede deshacer ultimo cambio aplicado por IA sin perder integridad de datos.
+- Checklist:
+   - [ ] Definir esquema de sugerencia estructurada (JSON de acciones)
+   - [ ] Implementar UI de preview/confirmacion por accion
+   - [ ] Implementar undo transaccional para acciones IA
+
+### TKT-019 - Recortes IA item a item accionables
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - IA entrega recortes por item con prioridad, ahorro estimado y riesgo.
+   - Cada item tiene accion directa (reducir monto, posponer, mover de tramo).
+   - Resultado final muestra ahorro total proyectado y nuevo balance por tramo.
+- Checklist:
+   - [ ] Generar recomendaciones por item con metadata accionable
+   - [ ] Agregar botones por item para aplicar recorte/movimiento
+   - [ ] Recalcular resumen global y por tramo tras cada aplicacion
 
 ## Bitacora de avance
 
 ### 2026-05-26
 
+1. TKT-021 completado: robustez de IA local con configuracion persistente, diagnosticos y migracion de timeout legacy.
+1. TKT-020 completado: paneles IA contextualizados por pantalla y uso de contexto visible en semana/quincena.
+1. TKT-016 completado: recomendaciones IA por categoria operativas (deudas/variables) con prompts y resultados en panel.
+1. TKT-015 completado: panel IA en Resumen con tarjetas accionables, CTA y estados de carga/error por tarjeta.
+1. TKT-008 completado: cliente LOCAL Ollama operativo con timeout configurable y reintentos.
+1. Backlog ampliado: TKT-017/TKT-018/TKT-019 para rebalanceo entre tramos y aplicacion accionable de sugerencias IA.
 1. Backlog ampliado: TKT-015 y TKT-016 agregados para UX IA accionable (tarjetas + CTA por categoria).
 1. TKT-007 completado: selector IA OFF/LOCAL/API persistido y guardas para bloquear IA en OFF.
 1. TKT-006 completado: checksum SHA-256 agregado y validado en import/restore.

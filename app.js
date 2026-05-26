@@ -10,6 +10,12 @@ let filtroDiaDesde = null;
 let filtroDiaHasta = null;
 let modoAltaDeuda = 'rapido';
 let deferredInstallPrompt = null;
+let iaPanelState = {
+  deudas: { loading: false, error: '', result: '' },
+  gastosMes: { loading: false, error: '', result: '' },
+  gastosQuincena: { loading: false, error: '', result: '' },
+  gastosSemana: { loading: false, error: '', result: '' }
+};
 
 const datosDefault = {
   ingresosList: [
@@ -57,6 +63,10 @@ const datosDefault = {
   lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"],
   iaConfig: {
     mode: 'off',
+    providerLocalEndpoint: 'http://localhost:11434/api/generate',
+    providerLocalModel: 'llama3.1:8b',
+    timeoutMs: 45000,
+    retries: 1,
     updatedAt: null
   }
 };
@@ -135,6 +145,19 @@ function normalizarEstadoCargado() {
   if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
   if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
   if(!IA_MODES.includes(appData.iaConfig.mode)) appData.iaConfig.mode = 'off';
+  if(typeof appData.iaConfig.providerLocalEndpoint !== 'string' || !appData.iaConfig.providerLocalEndpoint.trim()) {
+    appData.iaConfig.providerLocalEndpoint = 'http://localhost:11434/api/generate';
+  }
+  if(typeof appData.iaConfig.providerLocalModel !== 'string' || !appData.iaConfig.providerLocalModel.trim()) {
+    appData.iaConfig.providerLocalModel = 'llama3.1:8b';
+  }
+  let timeoutNum = parseInt(appData.iaConfig.timeoutMs, 10);
+  let timeoutNormalizado = isNaN(timeoutNum) ? 45000 : Math.min(Math.max(timeoutNum, 10000), 180000);
+  // Migra configuraciones legacy de 12s, insuficientes para primer arranque de modelos locales.
+  if(timeoutNormalizado === 12000) timeoutNormalizado = 45000;
+  appData.iaConfig.timeoutMs = timeoutNormalizado;
+  let retriesNum = parseInt(appData.iaConfig.retries, 10);
+  appData.iaConfig.retries = isNaN(retriesNum) ? 1 : Math.min(Math.max(retriesNum, 0), 4);
   if(!appData.iaConfig.updatedAt) appData.iaConfig.updatedAt = null;
 }
 
@@ -1022,18 +1045,46 @@ function getModoIA() {
 }
 
 function textoModoIA(modo) {
-  if(modo === 'local') return 'Modo LOCAL activo. Se habilitan llamadas a proveedor local (TKT-008).';
+  if(modo === 'local') return 'Modo LOCAL activo. Las consultas se envian a IA Local configurado abajo.';
   if(modo === 'api') return 'Modo API activo. Se habilitan llamadas a gateway/proveedor externo (TKT-012).';
   return 'Modo OFF activo. Toda llamada IA queda bloqueada.';
+}
+
+function normalizarEndpointOllama(endpointRaw) {
+  let endpoint = String(endpointRaw || '').trim() || 'http://localhost:11434/api/generate';
+  if(endpoint.endsWith('/')) endpoint = endpoint.slice(0, -1);
+  if(!endpoint.endsWith('/api/generate')) {
+    endpoint = `${endpoint}/api/generate`;
+  }
+  return endpoint;
+}
+
+function getConfigIALocal() {
+  let cfg = appData.iaConfig || {};
+  return {
+    endpoint: normalizarEndpointOllama(cfg.providerLocalEndpoint),
+    model: String(cfg.providerLocalModel || 'llama3.1:8b').trim(),
+    timeoutMs: Math.min(Math.max(parseInt(cfg.timeoutMs, 10) || 45000, 10000), 180000),
+    retries: Math.min(Math.max(parseInt(cfg.retries, 10) || 1, 0), 4)
+  };
 }
 
 function renderConfigIA() {
   let sel = document.getElementById('ia-mode-selector');
   let help = document.getElementById('ia-mode-help');
+  let endpoint = document.getElementById('ia-local-endpoint');
+  let model = document.getElementById('ia-local-model');
+  let timeout = document.getElementById('ia-local-timeout');
+  let retries = document.getElementById('ia-local-retries');
   if(!sel || !help) return;
   let modo = getModoIA();
+  let cfg = getConfigIALocal();
   sel.value = modo;
   help.innerText = textoModoIA(modo);
+  if(endpoint) endpoint.value = cfg.endpoint;
+  if(model) model.value = cfg.model;
+  if(timeout) timeout.value = String(cfg.timeoutMs);
+  if(retries) retries.value = String(cfg.retries);
 }
 
 function setModoIA(modoNuevo) {
@@ -1049,18 +1100,101 @@ function setModoIA(modoNuevo) {
   if(salida) salida.innerText = `Modo IA guardado: ${modo.toUpperCase()}.`;
 }
 
+function guardarConfigIALocal() {
+  if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+
+  let endpointInput = document.getElementById('ia-local-endpoint');
+  let modelInput = document.getElementById('ia-local-model');
+  let timeoutInput = document.getElementById('ia-local-timeout');
+  let retriesInput = document.getElementById('ia-local-retries');
+
+  appData.iaConfig.providerLocalEndpoint = normalizarEndpointOllama(endpointInput ? endpointInput.value : '');
+  appData.iaConfig.providerLocalModel = String(modelInput && modelInput.value ? modelInput.value : 'llama3.1:8b').trim() || 'llama3.1:8b';
+  appData.iaConfig.timeoutMs = Math.min(Math.max(parseInt(timeoutInput && timeoutInput.value, 10) || 45000, 10000), 180000);
+  appData.iaConfig.retries = Math.min(Math.max(parseInt(retriesInput && retriesInput.value, 10) || 1, 0), 4);
+  appData.iaConfig.updatedAt = new Date().toISOString();
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+  renderConfigIA();
+
+  let salida = document.getElementById('ia-test-result');
+  if(salida) salida.innerText = 'Configuracion LOCAL guardada.';
+}
+
+async function consultarIALocal(prompt) {
+  let cfg = getConfigIALocal();
+  let intentosTotales = cfg.retries + 1;
+  let ultimoError = null;
+
+  for(let intento = 1; intento <= intentosTotales; intento++) {
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
+
+    try {
+      let resp = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: cfg.model,
+          prompt,
+          stream: false,
+          options: { temperature: 0.2 }
+        })
+      });
+
+      if(!resp.ok) {
+        let detalleHttp = '';
+        try {
+          let body = await resp.json();
+          if(body && body.error) detalleHttp = String(body.error);
+        } catch(_e) {
+          // Si no hay JSON valido, intentamos leer texto plano para diagnostico.
+          try {
+            detalleHttp = (await resp.text() || '').trim();
+          } catch(_e2) {}
+        }
+
+        if(resp.status === 404 && /model .* not found/i.test(detalleHttp)) {
+          throw new Error(`${detalleHttp}. Ejecuta: ollama pull ${cfg.model}`);
+        }
+
+        throw new Error(detalleHttp ? `HTTP ${resp.status} en IA Local: ${detalleHttp}` : `HTTP ${resp.status} en IA Local`);
+      }
+      let data = await resp.json();
+      let txt = String(data && data.response ? data.response : '').trim();
+      if(!txt) throw new Error('IA Local no devolvio texto util.');
+
+      clearTimeout(timeoutId);
+      return { ok: true, mode: 'local', message: txt };
+    } catch(err) {
+      clearTimeout(timeoutId);
+      ultimoError = err;
+      if(intento < intentosTotales) continue;
+    }
+  }
+
+  let detalle = '';
+  if(ultimoError && ultimoError.name === 'AbortError') {
+    detalle = `Tiempo de espera agotado en proveedor local (${cfg.timeoutMs} ms).`;
+  } else if(ultimoError && ultimoError.name === 'TypeError') {
+    detalle = `No se pudo conectar con IA LOCAL en ${cfg.endpoint}. Verifica que el servidor este arriba y accesible.\nSugerencia: si usas IA Local, inicia el servicio y prueba de nuevo.`;
+  } else {
+    detalle = ultimoError && ultimoError.message
+      ? ultimoError.message
+      : 'Error desconocido al consultar IA local.';
+  }
+  throw new Error(detalle);
+}
+
 async function ejecutarConsultaIA(prompt) {
   let modo = getModoIA();
   if(modo === 'off') {
     throw new Error('Modo IA en OFF. Activa LOCAL o API para usar funciones IA.');
   }
   if(modo === 'local') {
-    return {
-      ok: false,
-      mode: modo,
-      message: 'Proveedor LOCAL aun no integrado. Se habilitara en TKT-008.',
-      prompt
-    };
+    return consultarIALocal(prompt);
   }
   return {
     ok: false,
@@ -1102,6 +1236,7 @@ function showQ(q) {
     let btn = document.getElementById('q-' + k);
     if(btn) btn.classList.toggle('on', k === q);
   });
+  renderIAPanelQuincena();
 }
 
 function toggleCuotasInput(val) {
@@ -1276,6 +1411,7 @@ function initApp() {
   }
   document.getElementById('res-pendiente').innerText = formatCOP(totalPendiente);
   renderSobrante(balance);
+  renderIAPanelResumen();
 
   renderIngresosResumen();
   renderCalendario(compromisosMesActual);
@@ -1287,6 +1423,9 @@ function initApp() {
   renderConfigIngresos();
   renderConfigPrimas();
   renderConfigIA();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+  renderIAPanelDeudas();
   renderUltimoGuardado();
   aplicarFormatoMonedaInputs();
   
@@ -1398,6 +1537,243 @@ function renderIngresosResumen() {
         </div>
       `;
     });
+}
+
+function construirPromptEstrategiaDeudas(items) {
+  let total = items.reduce((acc, it) => acc + it.valor, 0);
+  let lista = items.map((it, idx) => `${idx + 1}. ${it.nombre} - ${formatCOP(it.valor)} (dia ${it.dia === -1 ? 'pre-mes' : it.dia})`).join('\n');
+  return [
+    'Actua como asesor financiero personal y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Total de deudas personales en muestra: ${formatCOP(total)}.`,
+    'Lista de deudas:',
+    lista,
+    'Entrega una estrategia de pago en maximo 6 pasos concretos, priorizando impacto y urgencia.',
+    'Formato de salida: bullets cortos y accionables.'
+  ].join('\n');
+}
+
+function construirPromptRecorteVariables(items) {
+  let total = items.reduce((acc, it) => acc + it.valor, 0);
+  let lista = items.map((it, idx) => `${idx + 1}. ${it.nombre} - ${formatCOP(it.valor)} (dia ${it.dia === -1 ? 'pre-mes' : it.dia})`).join('\n');
+  return [
+    'Actua como analista de presupuesto familiar y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Total de gastos variables en muestra: ${formatCOP(total)}.`,
+    'Lista de gastos variables:',
+    lista,
+    'Entrega recomendaciones para recortar gastos sin afectar obligaciones criticas.',
+    'Incluye 5 acciones con ahorro estimado y prioridad alta/media/baja.'
+  ].join('\n');
+}
+
+function obtenerGastosVariablesPendientesMes() {
+  return getCompromisosMesActual()
+    .filter(c => !c.pagado && c.tipo === 'variable')
+    .sort((a, b) => b.valor - a.valor);
+}
+
+function obtenerDiaReferenciaMesActivo() {
+  let ahora = new Date();
+  let { mes, anio } = parseMesKey(mesActivoGlobal);
+  let mesIdx = ORDEN_MESES.indexOf(mes);
+  let totalDias = new Date(anio, mesIdx + 1, 0).getDate();
+  let mismoMes = ahora.getFullYear() === anio && ahora.getMonth() === mesIdx;
+  if(mismoMes) return Math.min(Math.max(ahora.getDate(), 1), totalDias);
+  return 1;
+}
+
+function obtenerGastosVariablesQuincena() {
+  let todos = obtenerGastosVariablesPendientesMes();
+
+  let qActiva = 'q1';
+  let btnPre = document.getElementById('q-pre');
+  let btnQ1 = document.getElementById('q-q1');
+  let btnQ2 = document.getElementById('q-q2');
+  if(btnPre && btnPre.classList.contains('on')) qActiva = 'pre';
+  if(btnQ1 && btnQ1.classList.contains('on')) qActiva = 'q1';
+  if(btnQ2 && btnQ2.classList.contains('on')) qActiva = 'q2';
+
+  return todos.filter(c => {
+    let dia = parseInt(c.dia, 10);
+    if(dia === -1) dia = 1;
+    if(qActiva === 'pre') return parseInt(c.dia, 10) === -1;
+    if(qActiva === 'q1') return dia >= 1 && dia <= 14;
+    return dia >= 15;
+  });
+}
+
+function obtenerGastosVariablesSemana() {
+  let todos = obtenerGastosVariablesPendientesMes();
+  let semanas = obtenerSemanasDelMesActivo();
+  if(!semanas.length) return [];
+  let idx = Math.min(Math.max(semanaSeleccionadaIndex, 0), semanas.length - 1);
+  let semanaActiva = semanas[idx] || semanas[0];
+  return todos.filter(c => {
+    let dia = parseInt(c.dia, 10);
+    if(dia === -1) dia = 1;
+    return semanaActiva.dias.includes(dia);
+  });
+}
+
+function renderItemsIACard(items, emptyText) {
+  if(!items.length) return `<div class="ia-row"><div class="meta">${escapeHTML(emptyText)}</div></div>`;
+  return items.slice(0, 8).map(it => `
+    <div class="ia-row">
+      <div>
+        <div class="nm">${escapeHTML(it.nombre)}</div>
+        <div class="meta">Dia ${it.dia === -1 ? 'pre-mes' : it.dia}</div>
+      </div>
+      <div class="vl">${formatCOP(it.valor)}</div>
+    </div>
+  `).join('');
+}
+
+function buildIACardGastos(titulo, items, stateKey, actionFnName) {
+  let estado = iaPanelState[stateKey];
+  let resultado = estado.result
+    ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
+    : '';
+  return `
+    <div class="ia-card">
+      <div class="ttl">${titulo}</div>
+      ${renderItemsIACard(items, `No hay gastos pendientes para ${titulo.toLowerCase()}.`)}
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Analizar qué puedo reducir ↗'}</button>
+      ${resultado}
+    </div>
+  `;
+}
+
+function renderIAPanelResumen() {
+  let nodo = document.getElementById('ia-panel-resumen');
+  if(!nodo) return;
+
+  let gastosMes = obtenerGastosVariablesPendientesMes();
+
+  nodo.innerHTML = `
+    ${buildIACardGastos('Gastos este mes', gastosMes, 'gastosMes', 'analizarReduccionGastosMesIA')}
+  `;
+}
+
+function renderIAPanelSemanal() {
+  let nodo = document.getElementById('ia-panel-semanal');
+  if(!nodo) return;
+  let gastosSemana = obtenerGastosVariablesSemana();
+  nodo.innerHTML = buildIACardGastos('Gastos esta semana', gastosSemana, 'gastosSemana', 'analizarReduccionGastosSemanaIA');
+}
+
+function renderIAPanelQuincena() {
+  let nodo = document.getElementById('ia-panel-quincena');
+  if(!nodo) return;
+  let gastosQuincena = obtenerGastosVariablesQuincena();
+  nodo.innerHTML = buildIACardGastos('Gastos esta quincena', gastosQuincena, 'gastosQuincena', 'analizarReduccionGastosQuincenaIA');
+}
+
+function renderIAPanelDeudas() {
+  let nodo = document.getElementById('ia-panel-deudas');
+  if(!nodo) return;
+
+  let deudasPendientes = getCompromisosMesActual()
+    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
+    .sort((a, b) => b.valor - a.valor);
+
+  let lista = renderItemsIACard(deudasPendientes, 'No hay deudas pendientes detectadas para este mes.');
+  let resultado = iaPanelState.deudas.result
+    ? `<div class="ia-result ${iaPanelState.deudas.error ? 'error' : ''}">${escapeHTML(iaPanelState.deudas.result)}</div>`
+    : '';
+
+  nodo.innerHTML = `
+    <div class="ia-card">
+      <div class="ttl">Deudas pendientes</div>
+      ${lista}
+      <button class="ia-cta" onclick="pedirEstrategiaDeudasIA()" ${iaPanelState.deudas.loading ? 'disabled' : ''}>${iaPanelState.deudas.loading ? 'Analizando...' : 'Pedir estrategia para pagar deudas ↗'}</button>
+      ${resultado}
+    </div>
+  `;
+}
+
+async function pedirEstrategiaDeudasIA() {
+  let items = getCompromisosMesActual()
+    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 8);
+
+  if(items.length === 0) {
+    iaPanelState.deudas = { loading: false, error: '', result: 'No se encontraron deudas personales para analizar en este mes.' };
+    renderIAPanelResumen();
+    renderIAPanelDeudas();
+    return;
+  }
+
+  iaPanelState.deudas = { loading: true, error: '', result: '' };
+  renderIAPanelResumen();
+  renderIAPanelDeudas();
+
+  try {
+    let prompt = construirPromptEstrategiaDeudas(items);
+    let out = await ejecutarConsultaIA(prompt);
+    iaPanelState.deudas = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+  } catch(err) {
+    iaPanelState.deudas = { loading: false, error: '1', result: err && err.message ? err.message : 'No se pudo generar estrategia.' };
+  }
+
+  renderIAPanelResumen();
+  renderIAPanelDeudas();
+}
+
+async function analizarReduccionGastosIA(scope) {
+  let items = [];
+  let stateKey = 'gastosMes';
+
+  if(scope === 'quincena') {
+    items = obtenerGastosVariablesQuincena();
+    stateKey = 'gastosQuincena';
+  } else if(scope === 'semana') {
+    items = obtenerGastosVariablesSemana();
+    stateKey = 'gastosSemana';
+  } else {
+    items = obtenerGastosVariablesPendientesMes();
+    stateKey = 'gastosMes';
+  }
+
+  items = items.slice(0, 10);
+
+  if(items.length === 0) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay gastos pendientes para analizar en este bloque.' };
+    renderIAPanelResumen();
+    renderIAPanelSemanal();
+    renderIAPanelQuincena();
+    return;
+  }
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  renderIAPanelResumen();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+
+  try {
+    let prompt = construirPromptRecorteVariables(items);
+    let out = await ejecutarConsultaIA(prompt);
+    iaPanelState[stateKey] = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+  } catch(err) {
+    iaPanelState[stateKey] = { loading: false, error: '1', result: err && err.message ? err.message : 'No se pudo analizar recortes.' };
+  }
+
+  renderIAPanelResumen();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+}
+
+async function analizarReduccionGastosMesIA() {
+  return analizarReduccionGastosIA('mes');
+}
+
+async function analizarReduccionGastosQuincenaIA() {
+  return analizarReduccionGastosIA('quincena');
+}
+
+async function analizarReduccionGastosSemanaIA() {
+  return analizarReduccionGastosIA('semana');
 }
 
 function agregarIngresoDinamico() {

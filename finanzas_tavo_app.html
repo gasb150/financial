@@ -79,6 +79,9 @@
     <div id="sec-vista-diaria" class="sec" style="display:none;">Detalle del Día Seleccionado</div>
     <div id="card-vista-diaria" class="card" style="display:none; border-left: 4px solid #534AB7;"></div>
 
+    <div class="sec">Asistente IA accionable</div>
+    <div id="ia-panel-resumen" class="ia-stack"></div>
+
     <div class="sec">Fuentes de Ingreso Registradas</div>
     <div class="card" id="lista-ingresos-resumen"></div>
   </div>
@@ -89,6 +92,8 @@
       <div class="rm">El balance semanal usa fecha exacta de ingreso. Fin de mes se toma en último día hábil y, si cae en 29-31, impacta al día 1 del mes siguiente. Quincenal real: viernes cada 14 días.</div>
     </div>
     <div class="qs" id="nav-semanas-botones"></div>
+    <div class="sec">Asistente IA accionable</div>
+    <div id="ia-panel-semanal" class="ia-stack"></div>
     <div id="contenedor-vista-semanal">
       <div class="card" id="lista-semana-activa"></div>
     </div>
@@ -103,6 +108,8 @@
     <div id="qp-pre"><div class="card" id="lista-pre-quincena"></div></div>
     <div id="qp-q1" style="display:none"><div class="card" id="lista-q1-quincena"></div></div>
     <div id="qp-q2" style="display:none"><div class="card" id="lista-q2-quincena"></div></div>
+    <div class="sec">Asistente IA accionable</div>
+    <div id="ia-panel-quincena" class="ia-stack"></div>
   </div>
 
   <div id="s-deudas" class="screen">
@@ -115,6 +122,8 @@
     </div>
 
     <div class="sec" id="titulo-modulo-deudas">Gestión de Obligaciones</div>
+    <div class="sec">Asistente IA accionable</div>
+    <div id="ia-panel-deudas" class="ia-stack"></div>
     <div class="card" style="padding:10px 12px;">
       <label class="sl">Filtrar por fecha tentativa (día del mes)</label>
       <div class="filtro-fecha">
@@ -291,6 +300,25 @@
         <option value="api">API externa</option>
       </select>
       <div id="ia-mode-help" class="rm" style="margin-top:8px;"></div>
+      <div style="margin-top:10px; border-top:1px dashed var(--color-border-secondary); padding-top:10px;">
+        <div class="sl" style="margin-bottom:6px;">Configuración LOCAL (IA Local)</div>
+        <label class="sl">Endpoint</label>
+        <input id="ia-local-endpoint" class="input-app" type="text" placeholder="http://localhost:11434/api/generate" onchange="guardarConfigIALocal()">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1;">
+            <label class="sl">Modelo</label>
+            <input id="ia-local-model" class="input-app" type="text" placeholder="llama3.1:8b" onchange="guardarConfigIALocal()">
+          </div>
+          <div style="width:110px;">
+            <label class="sl">Timeout ms</label>
+            <input id="ia-local-timeout" class="input-app" type="number" min="10000" max="180000" step="1000" onchange="guardarConfigIALocal()">
+          </div>
+          <div style="width:90px;">
+            <label class="sl">Reintentos</label>
+            <input id="ia-local-retries" class="input-app" type="number" min="0" max="4" step="1" onchange="guardarConfigIALocal()">
+          </div>
+        </div>
+      </div>
       <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" onclick="probarIAConfigurada()">Probar modo IA</button>
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>
