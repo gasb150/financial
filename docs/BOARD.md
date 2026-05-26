@@ -27,6 +27,11 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
+- [ ] TKT-036 Split dominio datos y persistencia
+- [ ] TKT-037 Split dominio render y navegacion
+- [ ] TKT-038 Split dominio reglas financieras y calculos
+- [ ] TKT-039 Split dominio acciones de usuario y formularios
+- [ ] TKT-040 QA de regresion post-split y saneamiento
 
 ## En curso
 
@@ -38,6 +43,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-035 Split base: extraer modulo IA de app.js
 - [x] TKT-028 Undo del ultimo cambio aplicado por IA
 - [x] TKT-027 Flujo de confirmacion y ejecucion transaccional IA
 - [x] TKT-026 Motor de preview de impacto por accion IA
@@ -525,11 +531,103 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Persistir historial en almacenamiento principal
    - [ ] Implementar UI de historial con opcion de revertir
 
+### TKT-035 - Split base: extraer modulo IA de app.js
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Las funciones IA quedan separadas en un archivo dedicado sin romper el comportamiento actual.
+   - El HTML carga el nuevo archivo en orden correcto y la app inicia sin errores de referencia.
+   - El service worker incluye el nuevo asset y refresca cache por version.
+- Checklist:
+   - [x] Extraer funciones IA desde app.js a modulo dedicado
+   - [x] Ajustar carga de scripts en HTML
+   - [x] Actualizar version y assets en service worker
+
+### TKT-036 - Split dominio datos y persistencia
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - La logica de acceso a datos (lectura, guardado, backup, migraciones) queda aislada en modulo propio.
+   - No se alteran contratos publicos usados por UI y calculos.
+   - Guardado/restore sigue funcionando en escenarios normales y con fallback.
+- Checklist:
+   - [ ] Extraer helpers y flujos de persistencia a archivo dedicado
+   - [ ] Mantener wrappers o adaptadores para compatibilidad temporal
+   - [ ] Ejecutar smoke test de guardar/importar/restaurar
+
+### TKT-037 - Split dominio render y navegacion
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Funciones de render y cambio de secciones quedan organizadas por pantalla/modulo.
+   - Se reduce acoplamiento entre render y mutacion de estado.
+   - Navegacion entre tabs/pantallas conserva comportamiento actual.
+- Checklist:
+   - [ ] Separar renderizadores de Resumen/Semanas/Quincenas/Deudas/Config
+   - [ ] Centralizar orquestacion de repaint por eventos de estado
+   - [ ] Validar flujos de navegacion y refresco
+
+### TKT-038 - Split dominio reglas financieras y calculos
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Calculos de balance, tramos, semanas y quincenas quedan en modulo de negocio sin dependencias directas del DOM.
+   - Las funciones puras pueden invocarse con datos de prueba sin inicializar UI.
+   - Resultados de calculo no presentan regresiones visibles en pantallas principales.
+- Checklist:
+   - [ ] Extraer funciones de calculo y normalizacion financiera
+   - [ ] Eliminar dependencias de document/window dentro de reglas de negocio
+   - [ ] Comparar resultados antes/despues en escenarios representativos
+
+### TKT-039 - Split dominio acciones de usuario y formularios
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Handlers de UI (crear/editar/eliminar/aplicar) quedan agrupados por dominio.
+   - El registro de eventos no depende del orden incidental de funciones en un unico archivo.
+   - Formularios mantienen validaciones y mensajes actuales.
+- Checklist:
+   - [ ] Separar handlers de compromisos, ingresos y configuracion
+   - [ ] Reordenar bootstrap de listeners y acciones globales
+   - [ ] Validar formularios criticos y atajos existentes
+
+### TKT-040 - QA de regresion post-split y saneamiento
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 4
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe checklist de regresion para los modulos impactados por el split.
+   - Se validan errores de consola, carga offline y rutas de IA principales.
+   - Se documentan hallazgos y fixes necesarios antes de retomar nuevos features.
+- Checklist:
+   - [ ] Ejecutar smoke test funcional completo (Resumen, Semanas, Quincenas, Deudas, Config)
+   - [ ] Validar cache offline y carga en frio tras cambio de version
+   - [ ] Registrar incidencias y aplicar correcciones de saneamiento
+
 ## Bitacora de avance
 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-035 completado: split base de IA en app.ia.js con carga en HTML y cache v4 en service worker.
+1. Backlog de modularizacion agregado: TKT-035/TKT-036/TKT-037/TKT-038/TKT-039/TKT-040 para dividir app.js por dominios y ejecutar QA de regresion antes de nuevos features.
 1. TKT-028 completado: undo del ultimo cambio IA aplicado con restauracion de snapshot.
 1. TKT-027 completado: confirmacion previa y aplicacion transaccional en acciones IA de recorte.
 1. TKT-026 completado: preview antes/despues por accion IA (mes y tramo).
