@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'finanzas-cache-v10';
+const CACHE_VERSION = 'finanzas-cache-v11';
+const STABLE_TABLER_CSS = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/tabler-icons.min.css';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -38,6 +39,27 @@ self.addEventListener('fetch', (event) => {
 
   if (req.method !== 'GET') return;
 
+  if (req.url === STABLE_TABLER_CSS) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req)
+          .then((res) => {
+            if (!res) return Response.error();
+            // no-cors cross-origin CSS responses are opaque (status 0) but still cacheable.
+            if (!(res.ok || res.type === 'opaque')) return res;
+            const copy = res.clone();
+            caches.open(CACHE_VERSION)
+              .then((cache) => cache.put(req, copy))
+              .catch(() => {});
+            return res;
+          })
+          .catch(() => cached || Response.error());
+      })
+    );
+    return;
+  }
+
   const url = new URL(req.url);
   const isSameOrigin = url.origin === self.location.origin;
   if (!isSameOrigin) return;
@@ -49,7 +71,9 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (!res || res.status !== 200 || res.type !== 'basic') return res;
           const copy = res.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
+          caches.open(CACHE_VERSION)
+            .then((cache) => cache.put(req, copy))
+            .catch(() => {});
           return res;
         })
         .catch(() => caches.match('./finanzas_tavo_app.html'));

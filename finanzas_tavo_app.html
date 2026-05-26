@@ -8,7 +8,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./assets/icons/icon-192.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./assets/icons/icon-192.svg">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/tabler-icons.min.css">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -21,12 +21,12 @@
         <div id="app-title" style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Mis Finanzas</div>
       </div>
       <div style="text-align:right">
-        <select id="global-mes-filtro" class="selector-mes-principal" onchange="cambiarMesDeVisualizacion(this.value)">
+        <select id="global-mes-filtro" class="selector-mes-principal" data-action="change-month">
         </select>
         <div id="app-trm" style="color:var(--color-text-tertiary);font-size:11px;margin-top:2px">TRM: $4.180</div>
         <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:4px;">
           <span id="lang-switch-label" style="font-size:11px;color:var(--color-text-tertiary)">Idioma</span>
-          <select id="lang-switch" class="input-app" style="width:110px;padding:4px 6px;font-size:11px;" onchange="setAppLocale(this.value)">
+          <select id="lang-switch" class="input-app" style="width:110px;padding:4px 6px;font-size:11px;" data-action="set-locale">
             <option value="auto">Auto</option>
             <option value="es-CO">Español</option>
             <option value="en-US">English</option>
@@ -37,11 +37,11 @@
   </div>
 
   <div class="nav">
-    <button class="nb on" onclick="sw('resumen',this)"><i class="ti ti-home" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-summary-label">Resumen</span></button>
-    <button class="nb" onclick="sw('semanal',this)"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-weeks-label">Semanas</span></button>
-    <button class="nb" onclick="sw('quincena',this)"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-fortnights-label">Quincenas</span></button>
-    <button class="nb" onclick="sw('deudas',this)"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-debts-label">Deudas</span></button>
-    <button class="nb" onclick="sw('config',this)"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-settings-label">Config</span></button>
+    <button class="nb on" data-action="switch-screen" data-value="resumen"><i class="ti ti-home" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-summary-label">Resumen</span></button>
+    <button class="nb" data-action="switch-screen" data-value="semanal"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-weeks-label">Semanas</span></button>
+    <button class="nb" data-action="switch-screen" data-value="quincena"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-fortnights-label">Quincenas</span></button>
+    <button class="nb" data-action="switch-screen" data-value="deudas"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-debts-label">Deudas</span></button>
+    <button class="nb" data-action="switch-screen" data-value="config"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-settings-label">Config</span></button>
   </div>
 
   <div id="s-resumen" class="screen on">
@@ -109,9 +109,9 @@
 
   <div id="s-quincena" class="screen">
     <div class="qs">
-      <button class="qb on" id="q-pre" onclick="showQ('pre')">Pre-Gastos / Fijos</button>
-      <button class="qb" id="q-q1" onclick="showQ('q1')">Tramo 1 (Días 1-14)</button>
-      <button class="qb" id="q-q2" onclick="showQ('q2')">Tramo 2 (Días 15-31)</button>
+      <button class="qb on" id="q-pre" data-action="show-quincena" data-value="pre">Pre-Gastos / Fijos</button>
+      <button class="qb" id="q-q1" data-action="show-quincena" data-value="q1">Tramo 1 (Días 1-14)</button>
+      <button class="qb" id="q-q2" data-action="show-quincena" data-value="q2">Tramo 2 (Días 15-31)</button>
     </div>
     <div id="qp-pre"><div class="card" id="lista-pre-quincena"></div></div>
     <div id="qp-q1" style="display:none"><div class="card" id="lista-q1-quincena"></div></div>
@@ -122,11 +122,11 @@
 
   <div id="s-deudas" class="screen">
     <div class="qs" style="margin-bottom: 14px;">
-      <button class="qb on" id="f-todas" onclick="cambiarFiltroDeuda('todas')">Todas</button>
-      <button class="qb" id="f-fijas" onclick="cambiarFiltroDeuda('fijas')">Fijos</button>
-      <button class="qb" id="f-variables" onclick="cambiarFiltroDeuda('variables')">Variables</button>
-      <button class="qb" id="f-creditos" onclick="cambiarFiltroDeuda('creditos')">Créditos 🏦</button>
-      <button class="qb" id="f-pendientes" onclick="cambiarFiltroDeuda('pendientes')">Por Pagar ⏳</button>
+      <button class="qb on" id="f-todas" data-action="filter-debt" data-value="todas">Todas</button>
+      <button class="qb" id="f-fijas" data-action="filter-debt" data-value="fijas">Fijos</button>
+      <button class="qb" id="f-variables" data-action="filter-debt" data-value="variables">Variables</button>
+      <button class="qb" id="f-creditos" data-action="filter-debt" data-value="creditos">Créditos 🏦</button>
+      <button class="qb" id="f-pendientes" data-action="filter-debt" data-value="pendientes">Por Pagar ⏳</button>
     </div>
 
     <div class="sec" id="titulo-modulo-deudas">Gestión de Obligaciones</div>
@@ -137,13 +137,13 @@
       <div class="filtro-fecha">
         <div class="campo">
           <label class="sl">Desde</label>
-          <input type="number" id="f-dia-desde" class="input-app" min="1" max="31" placeholder="1" onchange="aplicarFiltroFechaDeudas()">
+          <input type="number" id="f-dia-desde" class="input-app" min="1" max="31" placeholder="1" data-action="apply-debt-date-filter">
         </div>
         <div class="campo">
           <label class="sl">Hasta</label>
-          <input type="number" id="f-dia-hasta" class="input-app" min="1" max="31" placeholder="31" onchange="aplicarFiltroFechaDeudas()">
+          <input type="number" id="f-dia-hasta" class="input-app" min="1" max="31" placeholder="31" data-action="apply-debt-date-filter">
         </div>
-        <button class="btn-action" style="height:34px;margin-bottom:1px" onclick="limpiarFiltroFechaDeudas()">Limpiar</button>
+        <button class="btn-action" style="height:34px;margin-bottom:1px" data-action="clear-debt-date-filter">Limpiar</button>
       </div>
       <div id="deudas-fecha-info" class="rm"></div>
     </div>
@@ -152,27 +152,27 @@
     <div class="sec">Registrar Obligación</div>
     <div class="card">
       <div class="modo-alta">
-        <button id="modo-rapido" class="m on" onclick="setModoAltaDeuda('rapido')">Modo Rápido</button>
-        <button id="modo-avanzado" class="m" onclick="setModoAltaDeuda('avanzado')">Modo Avanzado</button>
+        <button id="modo-rapido" class="m on" data-action="set-debt-entry-mode" data-value="rapido">Modo Rápido</button>
+        <button id="modo-avanzado" class="m" data-action="set-debt-entry-mode" data-value="avanzado">Modo Avanzado</button>
       </div>
 
       <label class="sl">Nombre del Compromiso</label>
-      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Seguro Vehicular" oninput="actualizarPreviewNuevaDeuda()">
+      <input type="text" id="add-nombre" class="input-app" placeholder="Ej: Seguro Vehicular" data-action="update-debt-preview">
 
       <div style="display:flex;gap:10px;margin-top:8px">
         <div style="flex:1">
           <label class="sl">Valor Gasto ($)</label>
-          <input type="text" inputmode="numeric" id="add-valor" class="input-app money-input" placeholder="$450.000" oninput="actualizarPreviewNuevaDeuda()">
+          <input type="text" inputmode="numeric" id="add-valor" class="input-app money-input" placeholder="$450.000" data-action="update-debt-preview">
         </div>
         <div style="flex:1">
           <label class="sl">Día de Pago Tentativo</label>
-          <input type="number" id="add-dia" class="input-app" placeholder="15" value="1" min="-1" max="31" oninput="actualizarPreviewNuevaDeuda()">
+          <input type="number" id="add-dia" class="input-app" placeholder="15" value="1" min="-1" max="31" data-action="update-debt-preview">
         </div>
       </div>
 
       <div style="margin-top:8px">
         <label class="sl">Tipo de Obligación</label>
-        <select id="add-tipo-gasto" class="input-app" onchange="onTipoGastoAltaChange(this.value)">
+        <select id="add-tipo-gasto" class="input-app" data-action="debt-type-change">
           <option value="variable">Gasto Variable / Opcional</option>
           <option value="fijo">Gasto Fijo Recurrente</option>
           <option value="credito">Crédito Formal (A Plazos)</option>
@@ -185,11 +185,11 @@
             <div style="display:flex; gap:6px;">
               <div style="flex:1;">
                 <label class="sl">Cuotas Restantes</label>
-                <input type="number" id="add-faltantes" class="input-app" value="6" oninput="actualizarPreviewNuevaDeuda()">
+                <input type="number" id="add-faltantes" class="input-app" value="6" data-action="update-debt-preview">
               </div>
               <div style="flex:1;">
                 <label class="sl">Cuotas Totales</label>
-                <input type="number" id="add-totales" class="input-app" value="12" oninput="actualizarPreviewNuevaDeuda()">
+                <input type="number" id="add-totales" class="input-app" value="12" data-action="update-debt-preview">
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@
 
         <div style="margin-top:8px;">
           <label class="sl">Mes destino de este gasto</label>
-          <select id="add-mes-destino" class="input-app" onchange="actualizarPreviewNuevaDeuda()"></select>
+          <select id="add-mes-destino" class="input-app" data-action="update-debt-preview"></select>
         </div>
       </div>
 
@@ -209,7 +209,7 @@
       </div>
       <div class="warn-inline" id="add-warn-deuda"></div>
 
-      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px;background:#534AB7;" onclick="procesarNuevoGasto()">Guardar Obligación</button>
+      <button class="btn-action" style="width:100%;margin-top:14px;padding:10px;font-size:13px;background:#534AB7;" data-action="save-new-expense">Guardar Obligación</button>
     </div>
   </div>
 
@@ -248,7 +248,7 @@
           <select id="new-ing-hasta" class="input-app"></select>
         </div>
       </div>
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" onclick="agregarIngresoDinamico()">Añadir Ingreso</button>
+      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income">Añadir Ingreso</button>
     </div>
 
     <div class="sec">Listado y Edición de Ingresos</div>
@@ -275,7 +275,7 @@
         <select id="new-prima-mes" class="input-app"></select>
       </div>
 
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" onclick="agregarPrimaNoRecurrente()">Añadir Prima</button>
+      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus">Añadir Prima</button>
     </div>
 
     <div id="lista-config-primas"></div>
@@ -283,7 +283,7 @@
     <div class="sec">Instalar App</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
-      <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" onclick="instalarAppPWA()">Instalar en este dispositivo</button>
+      <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa">Instalar en este dispositivo</button>
       <div id="install-hint" class="rm">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
     </div>
 
@@ -292,17 +292,17 @@
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
       <div id="last-save-indicator" class="rm" style="margin-bottom:8px;">Ultimo guardado: pendiente...</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-action" style="padding:8px 10px;" onclick="exportarRespaldoJSON()">Exportar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" onclick="document.getElementById('import-backup-file').click()">Importar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" onclick="restaurarUltimoRespaldoLocal()">Recuperar último auto-respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;" data-action="export-backup">Exportar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup">Importar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup">Recuperar último auto-respaldo</button>
       </div>
-      <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" onchange="importarRespaldoArchivo(event)">
+      <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" data-action="import-backup-file">
     </div>
 
     <div class="sec">Asistente IA</div>
     <div class="card">
       <label class="sl">Modo IA</label>
-      <select id="ia-mode-selector" class="input-app" onchange="setModoIA(this.value)">
+      <select id="ia-mode-selector" class="input-app" data-action="set-ai-mode">
         <option value="off">OFF (sin llamadas IA)</option>
         <option value="local">LOCAL (IA Local)</option>
         <option value="api">API externa</option>
@@ -311,34 +311,34 @@
       <div style="margin-top:10px; border-top:1px dashed var(--color-border-secondary); padding-top:10px;">
         <div class="sl" style="margin-bottom:6px;">Configuración LOCAL (IA Local)</div>
         <label class="sl">Endpoint</label>
-        <input id="ia-local-endpoint" class="input-app" type="text" placeholder="http://localhost:11434/api/generate" onchange="guardarConfigIALocal()">
+        <input id="ia-local-endpoint" class="input-app" type="text" placeholder="http://localhost:11434/api/generate" data-action="save-local-ai-config">
         <div style="display:flex;gap:8px;margin-top:8px;">
           <div style="flex:1;">
             <label class="sl">Modelo</label>
-            <input id="ia-local-model" class="input-app" type="text" placeholder="llama3.1:8b" onchange="guardarConfigIALocal()">
+            <input id="ia-local-model" class="input-app" type="text" placeholder="llama3.1:8b" data-action="save-local-ai-config">
           </div>
           <div style="width:110px;">
             <label class="sl">Timeout ms</label>
-            <input id="ia-local-timeout" class="input-app" type="number" min="10000" max="180000" step="1000" onchange="guardarConfigIALocal()">
+            <input id="ia-local-timeout" class="input-app" type="number" min="10000" max="180000" step="1000" data-action="save-local-ai-config">
           </div>
           <div style="width:90px;">
             <label class="sl">Reintentos</label>
-            <input id="ia-local-retries" class="input-app" type="number" min="0" max="4" step="1" onchange="guardarConfigIALocal()">
+            <input id="ia-local-retries" class="input-app" type="number" min="0" max="4" step="1" data-action="save-local-ai-config">
           </div>
         </div>
       </div>
-      <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" onclick="probarIAConfigurada()">Probar modo IA</button>
+      <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" data-action="test-ai-mode">Probar modo IA</button>
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>
 
     <div class="sec">Línea de Tiempo del Sistema</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
-      <button class="btn-action" style="background:#534AB7;" onclick="extenderAnioLineaTiempo()">Expandir un Año Más 🚀</button>
+      <button class="btn-action" style="background:#534AB7;" data-action="extend-timeline-year">Expandir un Año Más 🚀</button>
     </div>
 
     <div class="sec">Resetear Datos</div>
-    <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" onclick="resetAFactory()">Restaurar Datos por Defecto</button>
+    <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" data-action="reset-factory">Restaurar Datos por Defecto</button>
   </div>
 </div>
 
