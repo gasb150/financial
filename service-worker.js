@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'finanzas-cache-v11';
+const CACHE_VERSION = 'finanzas-cache-v12';
 const STABLE_TABLER_CSS = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.44.0/tabler-icons.min.css';
 const CORE_ASSETS = [
   './',
@@ -11,6 +11,8 @@ const CORE_ASSETS = [
   './app.rules.js',
   './app.actions.js',
   './app.render.js',
+  './app.i18n.es-CO.js',
+  './app.i18n.en-US.js',
   './app.i18n.js',
   './app.ia.js',
   './manifest.webmanifest',

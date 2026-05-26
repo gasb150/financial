@@ -4,42 +4,23 @@
   const LOCALE_STORAGE_KEY = 'financial_app_locale_v1';
   const SUPPORTED_LOCALES = ['es-CO', 'en-US'];
 
-  const DICTIONARY = {
-    'es-CO': {
-      'app.greeting': 'Hola Tavo!',
-      'app.title': 'Mis Finanzas',
-      'app.trm': 'TRM: $4.180',
-      'nav.summary': 'Resumen',
-      'nav.weeks': 'Semanas',
-      'nav.fortnights': 'Quincenas',
-      'nav.debts': 'Deudas',
-      'nav.settings': 'Config',
-      'lang.label': 'Idioma',
-      'lang.auto': 'Auto',
-      'lang.es': 'Español',
-      'lang.en': 'English',
-      'lastSave.none': 'Ultimo guardado: sin registro aun.',
-      'lastSave.invalid': 'Ultimo guardado: formato invalido.',
-      'lastSave.ok': 'Ultimo guardado: {{value}}'
-    },
-    'en-US': {
-      'app.greeting': 'Hi Tavo!',
-      'app.title': 'My Finances',
-      'app.trm': 'FX: COP 4,180',
-      'nav.summary': 'Summary',
-      'nav.weeks': 'Weeks',
-      'nav.fortnights': 'Fortnights',
-      'nav.debts': 'Debts',
-      'nav.settings': 'Settings',
-      'lang.label': 'Language',
-      'lang.auto': 'Auto',
-      'lang.es': 'Spanish',
-      'lang.en': 'English',
-      'lastSave.none': 'Last saved: no record yet.',
-      'lastSave.invalid': 'Last saved: invalid format.',
-      'lastSave.ok': 'Last saved: {{value}}'
-    }
-  };
+  const DICTIONARY = (() => {
+    const externalDictionary = globalScope.FINANCIAL_I18N_DICTIONARY || {};
+    return {
+      'es-CO': {
+        'app.greeting': 'Hola Tavo!',
+        'app.title': 'Mis Finanzas',
+        'app.trm': 'TRM: $4.180',
+        ...(externalDictionary['es-CO'] || {})
+      },
+      'en-US': {
+        'app.greeting': 'Hi Tavo!',
+        'app.title': 'My Finances',
+        'app.trm': 'FX: COP 4,180',
+        ...(externalDictionary['en-US'] || {})
+      }
+    };
+  })();
 
   function normalizeLocale(localeRaw) {
     const raw = String(localeRaw || '').trim().replace('_', '-').toLowerCase();
@@ -113,6 +94,22 @@
     } catch(_e) {}
   }
 
+  function applyDeclarativeTranslations() {
+    if(!document || !document.querySelectorAll) return;
+
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.getAttribute('data-i18n');
+      if(!key) return;
+      el.textContent = t(key);
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if(!key) return;
+      el.setAttribute('placeholder', t(key));
+    });
+  }
+
   function applyStaticTranslations() {
     if(document && document.documentElement) {
       document.documentElement.lang = getCurrentLocale();
@@ -150,6 +147,8 @@
       if(optEs) optEs.textContent = t('lang.es');
       if(optEn) optEn.textContent = t('lang.en');
     }
+
+    applyDeclarativeTranslations();
   }
 
   function setupLanguageSwitcher() {
@@ -205,6 +204,7 @@
     getCurrentLocale,
     setAppLocale,
     t,
+    applyDeclarativeTranslations,
     applyStaticTranslations,
     setupLanguageSwitcher
   };
