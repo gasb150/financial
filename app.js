@@ -834,7 +834,11 @@ function initApp(options = {}) {
 
   const i18nT = (key, vars = {}, fallback = key) => {
     if(window.FinancialI18n && typeof window.FinancialI18n.t === 'function') {
-      return window.FinancialI18n.t(key, vars);
+      const translated = window.FinancialI18n.t(key, vars);
+      if(translated === key || translated == null || translated === '') {
+        return fallback;
+      }
+      return translated;
     }
     return fallback;
   };

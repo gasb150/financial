@@ -119,7 +119,7 @@
   }
 
   function applyDeclarativeTranslations() {
-    if(!document || !document.querySelectorAll) return;
+    if(typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');
