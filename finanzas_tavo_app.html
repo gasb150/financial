@@ -359,6 +359,17 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 
     <div id="lista-config-primas"></div>
 
+    <div class="sec">Respaldo de Datos</div>
+    <div class="card">
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-action" style="padding:8px 10px;" onclick="exportarRespaldoJSON()">Exportar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" onclick="document.getElementById('import-backup-file').click()">Importar respaldo</button>
+        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" onclick="restaurarUltimoRespaldoLocal()">Recuperar último auto-respaldo</button>
+      </div>
+      <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" onchange="importarRespaldoArchivo(event)">
+    </div>
+
     <div class="sec">Línea de Tiempo del Sistema</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
@@ -429,7 +440,10 @@ const datosDefault = {
   lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"]
 };
 
-let appData = JSON.parse(localStorage.getItem('finanzas_linea_tiempo_v7')) || datosDefault;
+const STORAGE_KEY = 'finanzas_linea_tiempo_v7';
+const STORAGE_BACKUP_KEY = 'finanzas_linea_tiempo_v7_backup';
+
+let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault;
 if(appData.lineaTiempoGuardada) { mesesLineaTiempo = appData.lineaTiempoGuardada; }
 if(!Array.isArray(appData.primasList)) appData.primasList = [];
 if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
@@ -472,6 +486,96 @@ document.addEventListener('focusout', (e) => {
   let n = parseMontoInput(inp.value);
   inp.value = isNaN(n) ? '' : formatCOP(n);
 });
+
+function validarPayloadRespaldo(payload) {
+  if(!payload || typeof payload !== 'object') return false;
+  if(!Array.isArray(payload.ingresosList)) return false;
+  if(!Array.isArray(payload.compromisos)) return false;
+  if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
+  return true;
+}
+
+function buildBackupPayload() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    data: appData
+  };
+}
+
+function exportarRespaldoJSON() {
+  try {
+    let payload = buildBackupPayload();
+    let blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    let a = document.createElement('a');
+    let url = URL.createObjectURL(blob);
+    let fecha = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = `respaldo-finanzas-${fecha}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(_e) {
+    alert('No se pudo exportar el respaldo.');
+  }
+}
+
+function importarRespaldoArchivo(event) {
+  let file = event && event.target && event.target.files ? event.target.files[0] : null;
+  if(!file) return;
+
+  let reader = new FileReader();
+  reader.onload = function() {
+    try {
+      let raw = JSON.parse(String(reader.result || '{}'));
+      let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
+      if(!validarPayloadRespaldo(candidato)) {
+        alert('El archivo no tiene un formato de respaldo válido.');
+        return;
+      }
+      appData = candidato;
+      if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+      mesesLineaTiempo = appData.lineaTiempoGuardada;
+      diaSeleccionadoActivo = null;
+      semanaSeleccionadaIndex = 0;
+      mesActivoGlobal = mesesLineaTiempo.includes('Junio 2026') ? 'Junio 2026' : (mesesLineaTiempo[0] || mesActivoGlobal);
+      initApp();
+      alert('Respaldo importado correctamente.');
+    } catch(_e) {
+      alert('No se pudo leer el archivo de respaldo.');
+    } finally {
+      if(event && event.target) event.target.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function restaurarUltimoRespaldoLocal() {
+  try {
+    let raw = localStorage.getItem(STORAGE_BACKUP_KEY);
+    if(!raw) {
+      alert('No hay auto-respaldo local disponible.');
+      return;
+    }
+    let payload = JSON.parse(raw);
+    let candidato = payload && payload.data ? payload.data : payload;
+    if(!validarPayloadRespaldo(candidato)) {
+      alert('El auto-respaldo local está incompleto.');
+      return;
+    }
+    appData = candidato;
+    if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
+    mesesLineaTiempo = appData.lineaTiempoGuardada;
+    diaSeleccionadoActivo = null;
+    semanaSeleccionadaIndex = 0;
+    mesActivoGlobal = mesesLineaTiempo.includes('Junio 2026') ? 'Junio 2026' : (mesesLineaTiempo[0] || mesActivoGlobal);
+    initApp();
+    alert('Se restauró el último auto-respaldo local.');
+  } catch(_e) {
+    alert('No se pudo restaurar el auto-respaldo local.');
+  }
+}
 
 function escapeHTML(texto) {
   return String(texto)
@@ -1165,7 +1269,8 @@ function initApp() {
   aplicarCorreccionMesBaseSiAplica();
   normalizarRecurrenciasCompromisos();
   normalizarIngresosConDia();
-  localStorage.setItem('finanzas_linea_tiempo_v7', JSON.stringify(appData));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(buildBackupPayload()));
   actualizarSelectoresDeMes();
   
   document.getElementById('tit-cal-dinamico').innerText = `Calendario de Flujo - ${mesActivoGlobal}`;
