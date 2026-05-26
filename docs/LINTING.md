@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Estandarizar validaciones de calidad para JavaScript con bajo riesgo de friccion en una base legacy modular.
+Estandarizar validaciones de calidad para JavaScript con bajo riesgo de fricción en una base legacy modular.
 
 ## Stack
 
@@ -17,7 +17,7 @@ Estandarizar validaciones de calidad para JavaScript con bajo riesgo de friccion
 
 ## Convenciones actuales
 
-- El proyecto se evalua en `sourceType: script` por su arquitectura de archivos globales.
+- El proyecto se evalúa en `sourceType: script` por su arquitectura de archivos globales.
 - `no-undef` se mantiene desactivado para evitar falsos positivos por funciones globales cruzadas entre modulos legacy.
 - `no-unused-vars` y `no-empty` se mantienen como warning para visibilizar deuda tecnica sin bloquear flujo.
 
@@ -29,4 +29,4 @@ Estandarizar validaciones de calidad para JavaScript con bajo riesgo de friccion
 
 ## Deuda tecnica conocida
 
-El primer barrido reporta warnings de legacy (variables no usadas y bloques vacios). Se aceptan temporalmente para no bloquear entregas funcionales, pero se recomienda reducirlos por modulo en tickets de refactor.
+El primer barrido reporta warnings de legacy (variables no usadas y bloques vacíos). Se aceptan temporalmente para no bloquear entregas funcionales, pero se recomienda reducirlos por modulo en tickets de refactor.

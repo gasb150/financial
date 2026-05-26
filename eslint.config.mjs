@@ -6,6 +6,17 @@ export default [
     ignores: ['node_modules/**']
   },
   {
+    files: ['**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      }
+    }
+  },
+  {
     files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,

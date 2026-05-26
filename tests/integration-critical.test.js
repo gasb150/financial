@@ -162,6 +162,8 @@ test('service worker caches stable CSS opaque responses and handles offline miss
   listeners.fetch(cssEvent);
   const cssResponse = await cssEvent.responsePromise;
   assert.equal(cssResponse.type, 'opaque');
+  await Promise.resolve();
+  await Promise.resolve();
   assert.equal(putCalls, 1);
 
   fetchBehavior = async () => { throw new Error('offline'); };
