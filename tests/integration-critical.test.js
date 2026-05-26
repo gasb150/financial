@@ -129,6 +129,10 @@ test('service worker caches stable CSS opaque responses and handles offline miss
   const listeners = {};
 
   let putCalls = 0;
+  let putCompletedResolve;
+  const putCompleted = new Promise((resolve) => {
+    putCompletedResolve = resolve;
+  });
   let fetchBehavior = async () => ({
     ok: false,
     type: 'opaque',
@@ -146,7 +150,12 @@ test('service worker caches stable CSS opaque responses and handles offline miss
       clients: { claim: () => {} }
     },
     caches: {
-      open: async () => ({ put: async () => { putCalls += 1; } }),
+      open: async () => ({
+        put: async () => {
+          putCalls += 1;
+          putCompletedResolve();
+        }
+      }),
       match: async () => null,
       keys: async () => []
     },
@@ -162,8 +171,7 @@ test('service worker caches stable CSS opaque responses and handles offline miss
   listeners.fetch(cssEvent);
   const cssResponse = await cssEvent.responsePromise;
   assert.equal(cssResponse.type, 'opaque');
-  await Promise.resolve();
-  await Promise.resolve();
+  await putCompleted;
   assert.equal(putCalls, 1);
 
   fetchBehavior = async () => { throw new Error('offline'); };

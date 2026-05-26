@@ -808,7 +808,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. TKT-051 completado: ESLint configurado con reglas base, scripts `npm run lint`/`npm run lint:fix`, e ignores de entorno para evitar ruido de infraestructura.
-1. TKT-051 agregado: estandarizacion de linters y comando de calidad para validacion antes de PR.
 1. TKT-049 completado: pruebas de integracion critica agregadas para `initApp`/render principal, flujo IA simulado y escenarios de cache/offline del service worker.
 1. TKT-048 completado: dependencia CDN mutable removida (@latest -> version fija) y cache endurecida en service worker para asset externo estable.
 1. TKT-047 completado: eliminados handlers inline en HTML y migrados a listeners delegados con data-action en bootstrap de JS.

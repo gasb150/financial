@@ -1,6 +1,16 @@
 import js from '@eslint/js';
 import globals from 'globals';
 
+const sharedRules = {
+  ...js.configs.recommended.rules,
+  'no-undef': 'off',
+  'no-unused-vars': ['warn', {
+    argsIgnorePattern: '^_',
+    varsIgnorePattern: '^_'
+  }],
+  'no-empty': 'warn'
+};
+
 export default [
   {
     ignores: ['node_modules/**']
@@ -11,40 +21,51 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
-        ...globals.browser,
-        ...globals.node
-      }
-    }
-  },
-  {
-    files: ['**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'script',
-      globals: {
-        ...globals.browser,
         ...globals.node
       }
     },
     rules: {
-      ...js.configs.recommended.rules,
-      'no-undef': 'off',
-      'no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_'
-      }],
-      'no-empty': 'warn'
+      ...sharedRules
+    }
+  },
+  {
+    files: ['service-worker.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.serviceworker
+      }
+    },
+    rules: {
+      ...sharedRules
+    }
+  },
+  {
+    files: ['**/*.js'],
+    ignores: ['tests/**/*.js', 'service-worker.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser
+      }
+    },
+    rules: {
+      ...sharedRules
     }
   },
   {
     files: ['tests/**/*.js'],
     languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
       globals: {
         ...globals.node
       }
     },
     rules: {
-      'no-undef': 'off'
+      ...sharedRules
     }
   }
 ];
