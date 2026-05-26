@@ -608,8 +608,10 @@ function persistirDataPrincipalConFallback() {
   localStorage.setItem(STORAGE_KEY, serializada);
 }
 
-function persistirAuxiliaresConFallback(marcaGuardadoISO) {
-  let backup = JSON.stringify(buildBackupPayload());
+async function persistirAuxiliaresConFallback(marcaGuardadoISO) {
+  let payload = buildBackupPayload();
+  payload.checksum = await generarChecksumPayload(payload.data);
+  let backup = JSON.stringify(payload);
   localStorage.setItem(STORAGE_BACKUP_KEY, backup);
   localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO);
 
@@ -662,12 +664,70 @@ function validarPayloadRespaldo(payload) {
   return true;
 }
 
+async function sha256Hex(texto) {
+  if(!(window.crypto && window.crypto.subtle)) {
+    throw new Error('crypto.subtle no disponible');
+  }
+  let data = new TextEncoder().encode(texto);
+  let hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hashFallbackHex(texto) {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for(let i = 0; i < texto.length; i++) {
+    let ch = texto.charCodeAt(i);
+    h1 ^= ch;
+    h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 ^= (ch + (i & 255));
+    h2 = Math.imul(h2, 0x27d4eb2d) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
+async function generarChecksumPayload(dataObj) {
+  let canon = JSON.stringify(dataObj);
+  if(window.crypto && window.crypto.subtle) {
+    return `sha256:${await sha256Hex(canon)}`;
+  }
+  return `fnv1a:${hashFallbackHex(canon)}`;
+}
+
+async function validarChecksumBackup(backupObj) {
+  if(!backupObj || typeof backupObj !== 'object') return false;
+  if(!backupObj.data || typeof backupObj.checksum !== 'string') return false;
+  let recibido = backupObj.checksum.trim();
+  if(!recibido) return false;
+  let canon = JSON.stringify(backupObj.data);
+
+  if(recibido.startsWith('sha256:')) {
+    if(!(window.crypto && window.crypto.subtle)) return false;
+    let esperado = `sha256:${await sha256Hex(canon)}`;
+    return esperado === recibido;
+  }
+
+  if(recibido.startsWith('fnv1a:')) {
+    let esperado = `fnv1a:${hashFallbackHex(canon)}`;
+    return esperado === recibido;
+  }
+
+  // Compatibilidad con respaldos legacy que guardaban solo el hash SHA-256 sin prefijo.
+  if(window.crypto && window.crypto.subtle) {
+    let esperadoLegacy = await sha256Hex(canon);
+    return esperadoLegacy === recibido;
+  }
+
+  return false;
+}
+
 function buildBackupPayload() {
   return {
     version: 1,
     dataSchemaVersion: appData.schemaVersion || APP_SCHEMA_VERSION,
     savedAt: new Date().toISOString(),
-    data: appData
+    data: appData,
+    checksum: ''
   };
 }
 
@@ -690,9 +750,10 @@ function renderUltimoGuardado() {
   nodo.innerText = `Ultimo guardado: ${dt.toLocaleString('es-CO')}`;
 }
 
-function exportarRespaldoJSON() {
+async function exportarRespaldoJSON() {
   try {
     let payload = buildBackupPayload();
+    payload.checksum = await generarChecksumPayload(payload.data);
     let blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
     let a = document.createElement('a');
     let url = URL.createObjectURL(blob);
@@ -713,9 +774,22 @@ function importarRespaldoArchivo(event) {
   if(!file) return;
 
   let reader = new FileReader();
-  reader.onload = function() {
+  reader.onload = async function() {
     try {
       let raw = JSON.parse(String(reader.result || '{}'));
+
+      if(raw && raw.data) {
+        if(typeof raw.checksum !== 'string' || !raw.checksum.trim()) {
+          alert('El archivo no incluye checksum. Por seguridad, esta importacion se bloqueo.');
+          return;
+        }
+        let checksumOk = await validarChecksumBackup(raw);
+        if(!checksumOk) {
+          alert('El archivo de respaldo parece alterado o corrupto (checksum invalido).');
+          return;
+        }
+      }
+
       let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
       if(!validarPayloadRespaldo(candidato)) {
         alert('El archivo no tiene un formato de respaldo válido.');
@@ -738,7 +812,7 @@ function importarRespaldoArchivo(event) {
   reader.readAsText(file);
 }
 
-function restaurarUltimoRespaldoLocal() {
+async function restaurarUltimoRespaldoLocal() {
   try {
     let raw = localStorage.getItem(STORAGE_BACKUP_KEY);
     if(!raw) {
@@ -746,6 +820,19 @@ function restaurarUltimoRespaldoLocal() {
       return;
     }
     let payload = JSON.parse(raw);
+
+    if(payload && payload.data) {
+      if(typeof payload.checksum !== 'string' || !payload.checksum.trim()) {
+        alert('El auto-respaldo local no tiene checksum y no se puede restaurar con seguridad.');
+        return;
+      }
+      let checksumOk = await validarChecksumBackup(payload);
+      if(!checksumOk) {
+        alert('El auto-respaldo local no paso validacion de checksum.');
+        return;
+      }
+    }
+
     let candidato = payload && payload.data ? payload.data : payload;
     if(!validarPayloadRespaldo(candidato)) {
       alert('El auto-respaldo local está incompleto.');

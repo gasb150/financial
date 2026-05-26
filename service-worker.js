@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'finanzas-cache-v1';
+const CACHE_VERSION = 'finanzas-cache-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
