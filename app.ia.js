@@ -822,12 +822,13 @@ function renderIAPanelQuincena() {
   let nodo = document.getElementById('ia-panel-quincena');
   if(!nodo) return;
   let gastosQuincena = obtenerGastosVariablesQuincena();
-  let tramosQuincena = obtenerResumenTramosQuincena(getCompromisosMesActual());
-  let mostrarRebalanceoQuincena = tramosQuincena.some(t => t.saldoCierre < 0);
   nodo.innerHTML = `
     ${buildIACardGastos('Gastos esta quincena', gastosQuincena, 'gastosQuincena', 'analizarReduccionGastosQuincenaIA')}
-    ${mostrarRebalanceoQuincena ? buildIACardRebalanceo('Rebalanceo entre quincenas', tramosQuincena, 'rebalanceQuincena', 'analizarRebalanceoQuincenaIA') : ''}
   `;
+
+  if(typeof renderBalanceQuincena === 'function') {
+    renderBalanceQuincena(getCompromisosMesActual());
+  }
 }
 
 function renderIAPanelDeudas() {
@@ -1077,6 +1078,167 @@ function aplicarSugerenciaRecorteMesIA(index) {
   initApp();
 }
 
+function obtenerEstadoRebalanceo(scope) {
+  let stateKey = scope === 'semana' ? 'rebalanceSemana' : 'rebalanceQuincena';
+  if(!iaPanelState[stateKey] || typeof iaPanelState[stateKey] !== 'object') {
+    iaPanelState[stateKey] = { loading: false, error: '', result: '', actions: [] };
+  }
+  if(!Array.isArray(iaPanelState[stateKey].actions)) iaPanelState[stateKey].actions = [];
+  return { stateKey, state: iaPanelState[stateKey] };
+}
+
+function construirTextoImpactoRebalanceo(scope, accion) {
+  if(!accion || !accion.tramoDestino) return 'Impacto estimado no disponible.';
+  let simulacion = simularMovimientoEntreTramos(scope, accion.itemId, accion.tramoDestino);
+  if(!simulacion) return 'Impacto estimado no disponible.';
+  return `${simulacion.origen.codigo}: ${formatCOP(simulacion.origen.antes)} -> ${formatCOP(simulacion.origen.despues)} | ${simulacion.destino.codigo}: ${formatCOP(simulacion.destino.antes)} -> ${formatCOP(simulacion.destino.despues)}`;
+}
+
+function renderAccionesRebalanceoIA(scope) {
+  let { state } = obtenerEstadoRebalanceo(scope);
+  let acciones = Array.isArray(state.actions) ? state.actions : [];
+  if(!acciones.length) return '';
+
+  let compromisosMes = getCompromisosMesActual();
+  return acciones.map((accion, idx) => {
+    let comp = compromisosMes.find(c => c.id === accion.itemId) || null;
+    let nombre = comp ? comp.nombre : (accion.nombre || `Item ${accion.itemId}`);
+    let impacto = construirTextoImpactoRebalanceo(scope, accion);
+    let destinoTxt = accion.tramoDestino ? String(accion.tramoDestino).toUpperCase() : 'N/D';
+
+    return `
+      <div class="ia-row" style="display:block;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+          <div>
+            <div class="nm">${escapeHTML(nombre)}</div>
+            <div class="meta">Accion: mover_tramo · Destino ${escapeHTML(destinoTxt)}</div>
+            <div class="meta">${escapeHTML(impacto)}</div>
+            <div class="meta" style="margin-top:2px;">${escapeHTML(accion.motivo || 'Sin motivo detallado.')}</div>
+          </div>
+          ${accion.applied
+            ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerAccionRebalanceoIA('${scope}', ${idx})">Deshacer cambio</button>`
+            : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarAccionRebalanceoIA('${scope}', ${idx})">Aplicar</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function aplicarAccionRebalanceoIA(scope, index) {
+  let { state } = obtenerEstadoRebalanceo(scope);
+  let acciones = state.actions;
+  let accion = acciones[index];
+
+  if(!accion || accion.applied) return;
+  if(accion.accion !== 'mover_tramo') {
+    state.error = '1';
+    state.result = 'La accion de rebalanceo no es valida para aplicar.';
+    initApp();
+    return;
+  }
+
+  let idxComp = appData.compromisos.findIndex(c => c.id === accion.itemId && c.mesKey === mesActivoGlobal);
+  if(idxComp < 0) {
+    state.error = '1';
+    state.result = 'No se encontro el item de rebalanceo en el mes activo.';
+    initApp();
+    return;
+  }
+
+  let tramos = obtenerResumenTramos(scope, getCompromisosMesActual());
+  let compActual = appData.compromisos[idxComp];
+  let tramoOrigen = obtenerTramoCompromiso(scope, compActual, tramos);
+  let tramoDestino = accion.tramoDestino;
+  if(!tramoDestino) {
+    state.error = '1';
+    state.result = 'La accion no trae tramo destino para aplicar.';
+    initApp();
+    return;
+  }
+  if(tramoOrigen === tramoDestino) {
+    state.error = '1';
+    state.result = 'El item ya se encuentra en el tramo destino sugerido.';
+    initApp();
+    return;
+  }
+
+  let nuevoDia = obtenerDiaRepresentativoTramo(scope, tramoDestino, tramos);
+  if(nuevoDia === null || nuevoDia === undefined || isNaN(parseInt(nuevoDia, 10))) {
+    state.error = '1';
+    state.result = 'No se pudo resolver un dia valido para el tramo destino.';
+    initApp();
+    return;
+  }
+
+  let preview = construirTextoImpactoRebalanceo(scope, accion);
+  let confirmar = confirm(`Mover ${compActual.nombre} de ${String(tramoOrigen || 'N/D').toUpperCase()} a ${String(tramoDestino).toUpperCase()}?\n${preview}`);
+  if(!confirmar) return;
+
+  let prevComp = { ...appData.compromisos[idxComp] };
+  try {
+    appData.compromisos[idxComp].dia = nuevoDia;
+    accion.applied = true;
+    accion.appliedAt = new Date().toISOString();
+    accion.undoPayload = {
+      prevComp,
+      newComp: { ...appData.compromisos[idxComp] },
+      mesKey: mesActivoGlobal,
+      at: new Date().toISOString()
+    };
+
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(new Date().toISOString());
+  } catch(err) {
+    appData.compromisos[idxComp] = { ...prevComp };
+    accion.applied = false;
+    delete accion.appliedAt;
+    delete accion.undoPayload;
+    state.error = '1';
+    state.result = `No se pudo aplicar el rebalanceo: ${err && err.message ? err.message : 'error desconocido'}.`;
+    initApp();
+    return;
+  }
+
+  state.error = '';
+  state.result = `Rebalanceo aplicado en ${compActual.nombre}.`;
+  initApp();
+}
+
+function deshacerAccionRebalanceoIA(scope, index) {
+  let { state } = obtenerEstadoRebalanceo(scope);
+  let acciones = state.actions;
+  let accion = acciones[index];
+
+  if(!accion || !accion.applied || !accion.undoPayload || !accion.undoPayload.prevComp) {
+    state.error = '1';
+    state.result = 'No hay un cambio de rebalanceo aplicado para deshacer.';
+    initApp();
+    return;
+  }
+
+  let prev = accion.undoPayload.prevComp;
+  let idxComp = appData.compromisos.findIndex(c => c.id === prev.id && c.mesKey === prev.mesKey);
+  if(idxComp < 0) {
+    state.error = '1';
+    state.result = 'No se pudo deshacer: el item ya no existe en el mes activo.';
+    initApp();
+    return;
+  }
+
+  appData.compromisos[idxComp] = { ...prev };
+  accion.applied = false;
+  delete accion.appliedAt;
+  delete accion.undoPayload;
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+
+  state.error = '';
+  state.result = `Cambio deshecho para ${prev.nombre}.`;
+  initApp();
+}
+
 async function analizarRebalanceoIA(scope) {
   let stateKey = scope === 'semana' ? 'rebalanceSemana' : 'rebalanceQuincena';
   let tramos = obtenerResumenTramos(scope);
@@ -1085,7 +1247,7 @@ async function analizarRebalanceoIA(scope) {
   let haySuperavit = tramos.some(t => t.saldoCierre > 0);
 
   if(!hayDeficit) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: '' };
+    iaPanelState[stateKey] = { loading: false, error: '', result: '', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
@@ -1093,7 +1255,7 @@ async function analizarRebalanceoIA(scope) {
   }
 
   if(!haySuperavit) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay tramos con capacidad para recibir movimientos.' };
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay tramos con capacidad para recibir movimientos.', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
@@ -1101,14 +1263,14 @@ async function analizarRebalanceoIA(scope) {
   }
 
   if(!movibles.length) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay obligaciones variables pendientes para mover entre tramos.' };
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay obligaciones variables pendientes para mover entre tramos.', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
     return;
   }
 
-  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  iaPanelState[stateKey] = { loading: true, error: '', result: '', actions: [] };
   renderSemanaActiva(getCompromisosMesActual());
   renderIAPanelSemanal();
   renderIAPanelQuincena();
@@ -1134,7 +1296,12 @@ async function analizarRebalanceoIA(scope) {
         source: 'rebalanceo',
         allowedItemIds: movibles.map(m => m.id)
       });
-      if(validada) accionesRebalanceo.push(validada);
+      if(validada) {
+        validada.tramoDestino = escenarioBase.destino.id;
+        validada.scope = scope;
+        validada.nombre = escenarioBase.item.nombre;
+        accionesRebalanceo.push(validada);
+      }
     }
 
     iaPanelState[stateKey] = {
