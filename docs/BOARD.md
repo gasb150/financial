@@ -27,9 +27,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-036 Split dominio datos y persistencia
 - [ ] TKT-042 Base de localizacion (i18n) para transicion a ingles
-- [ ] TKT-037 Split dominio render y navegacion
 - [ ] TKT-038 Split dominio reglas financieras y calculos
 - [ ] TKT-039 Split dominio acciones de usuario y formularios
 - [ ] TKT-040 QA de regresion post-split y saneamiento
@@ -44,6 +42,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-037 Split dominio render y navegacion
 - [x] TKT-036 Split dominio datos y persistencia
 - [x] TKT-041 Baseline de pruebas automatizadas pre-split
 - [x] TKT-035 Split base: extraer modulo IA de app.js
@@ -594,24 +593,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [x] Ajustar carga de scripts en HTML
    - [x] Actualizar version y assets en service worker
 
-### TKT-036 - Split dominio datos y persistencia
-
-- Estado: Backlog
-- Prioridad: Alta
-- Fase: 4
-- Owner: Gustavo
-- Criterio de aceptacion:
-   - La logica de acceso a datos (lectura, guardado, backup, migraciones) queda aislada en modulo propio.
-   - No se alteran contratos publicos usados por UI y calculos.
-   - Guardado/restore sigue funcionando en escenarios normales y con fallback.
-- Checklist:
-   - [ ] Extraer helpers y flujos de persistencia a archivo dedicado
-   - [ ] Mantener wrappers o adaptadores para compatibilidad temporal
-   - [ ] Ejecutar smoke test de guardar/importar/restaurar
-
 ### TKT-037 - Split dominio render y navegacion
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -620,9 +604,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se reduce acoplamiento entre render y mutacion de estado.
    - Navegacion entre tabs/pantallas conserva comportamiento actual.
 - Checklist:
-   - [ ] Separar renderizadores de Resumen/Semanas/Quincenas/Deudas/Config
-   - [ ] Centralizar orquestacion de repaint por eventos de estado
-   - [ ] Validar flujos de navegacion y refresco
+   - [x] Separar renderizadores de Resumen/Semanas/Quincenas/Deudas/Config
+   - [x] Centralizar orquestacion de repaint por eventos de estado
+   - [x] Validar flujos de navegacion y refresco
 
 ### TKT-038 - Split dominio reglas financieras y calculos
 
@@ -674,6 +658,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ### 2026-05-26
 
 1. Follow-up agregado: TKT-034 para historial persistente de acciones IA y revertir multi-paso.
+1. TKT-037 completado: modulo app.render.js agregado para navegacion/render con wrappers compatibles y pruebas dedicadas.
 1. TKT-036 completado: modulo app.data.js agregado con wrappers compatibles en app.js y cache actualizada para offline.
 1. TKT-042 agregado: base i18n para soportar migracion progresiva de textos/funciones hacia ingles.
 1. TKT-041 completado: baseline de pruebas automatizadas agregado para validar refactors de split con comando unico (`npm test`).

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'finanzas-cache-v5';
+const CACHE_VERSION = 'finanzas-cache-v6';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ const CORE_ASSETS = [
   './styles.css',
   './app.js',
   './app.data.js',
+  './app.render.js',
   './app.ia.js',
   './manifest.webmanifest',
   './assets/icons/icon-192.svg',

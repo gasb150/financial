@@ -254,22 +254,7 @@ function buildBackupPayload() {
 }
 
 function renderUltimoGuardado() {
-  let nodo = document.getElementById('last-save-indicator');
-  if(!nodo) return;
-
-  let raw = localStorage.getItem(STORAGE_LAST_SAVE_KEY);
-  if(!raw) {
-    nodo.innerText = 'Ultimo guardado: sin registro aun.';
-    return;
-  }
-
-  let dt = new Date(raw);
-  if(isNaN(dt.getTime())) {
-    nodo.innerText = 'Ultimo guardado: formato invalido.';
-    return;
-  }
-
-  nodo.innerText = `Ultimo guardado: ${dt.toLocaleString('es-CO')}`;
+  return window.FinancialRender.renderLastSavedIndicator();
 }
 
 async function exportarRespaldoJSON() {
@@ -859,11 +844,7 @@ function obtenerSemanasDelMesActivo() {
 }
 
 function cambiarMesDeVisualizacion(nuevoMes) {
-  mesActivoGlobal = nuevoMes;
-  semanaSeleccionadaIndex = 0; 
-  diaSeleccionadoActivo = null; // Resetea el día seleccionado si cambia de mes
-  limpiarFiltroFechaDeudas(true);
-  initApp();
+  return window.FinancialRender.changeDisplayedMonth(nuevoMes);
 }
 
 function extenderAnioLineaTiempo() {
@@ -878,52 +859,11 @@ function extenderAnioLineaTiempo() {
 }
 
 function actualizarSelectoresDeMes() {
-  let selectPrincipal = document.getElementById('global-mes-filtro');
-  let selectFormulario = document.getElementById('add-mes-destino');
-  let selectPrima = document.getElementById('new-prima-mes');
-  let cachePrincipal = selectPrincipal.value || mesActivoGlobal;
-
-  function resolverMesPreferido() {
-    if(mesesLineaTiempo.includes('Junio 2026')) return 'Junio 2026';
-    return mesesLineaTiempo[0] || 'Junio 2026';
-  }
-
-  if(!mesesLineaTiempo.includes(mesActivoGlobal)) {
-    mesActivoGlobal = resolverMesPreferido();
-  }
-  
-  selectPrincipal.innerHTML = '';
-  if(selectFormulario) selectFormulario.innerHTML = '';
-  if(selectPrima) selectPrima.innerHTML = '';
-  mesesLineaTiempo.forEach(m => {
-    selectPrincipal.innerHTML += `<option value="${m}">${m}</option>`;
-    if(selectFormulario) selectFormulario.innerHTML += `<option value="${m}">${m}</option>`;
-    if(selectPrima) selectPrima.innerHTML += `<option value="${m}">${m}</option>`;
-  });
-
-  let valorPrincipal = mesesLineaTiempo.includes(cachePrincipal)
-    ? cachePrincipal
-    : (mesesLineaTiempo.includes(mesActivoGlobal) ? mesActivoGlobal : resolverMesPreferido());
-
-  mesActivoGlobal = valorPrincipal;
-  selectPrincipal.value = valorPrincipal;
-
-  if(!selectPrincipal.value && selectPrincipal.options.length > 0) {
-    selectPrincipal.selectedIndex = 0;
-    mesActivoGlobal = selectPrincipal.value;
-  }
-
-  if(selectFormulario && mesesLineaTiempo.includes(mesActivoGlobal)) {
-    selectFormulario.value = mesActivoGlobal;
-  }
-  if(selectPrima && !selectPrima.value) selectPrima.value = mesActivoGlobal;
+  return window.FinancialRender.updateMonthSelectors();
 }
 
 function sw(id, btn) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
-  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
-  document.getElementById('s-' + id).classList.add('on');
-  btn.classList.add('on');
+  return window.FinancialRender.switchScreen(id, btn);
 }
 
 function getModoIA() {
@@ -1118,11 +1058,7 @@ function instalarAppPWA() {
 }
 
 function showQ(q) {
-  ['pre','q1','q2'].forEach(k => {
-    document.getElementById('qp-' + k).style.display = k === q ? 'block' : 'none';
-    let btn = document.getElementById('q-' + k);
-    if(btn) btn.classList.toggle('on', k === q);
-  });
+  window.FinancialRender.showQuincenaTab(q);
   renderIAPanelQuincena();
 }
 
