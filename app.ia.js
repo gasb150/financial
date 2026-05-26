@@ -1132,7 +1132,7 @@ function aplicarAccionRebalanceoIA(scope, index) {
 
   if(!accion || accion.applied) return;
   if(accion.accion !== 'mover_tramo') {
-    state.error = '1';
+    state.error = true;
     state.result = 'La accion de rebalanceo no es valida para aplicar.';
     initApp();
     return;
@@ -1140,7 +1140,7 @@ function aplicarAccionRebalanceoIA(scope, index) {
 
   let idxComp = appData.compromisos.findIndex(c => c.id === accion.itemId && c.mesKey === mesActivoGlobal);
   if(idxComp < 0) {
-    state.error = '1';
+    state.error = true;
     state.result = 'No se encontro el item de rebalanceo en el mes activo.';
     initApp();
     return;
@@ -1151,13 +1151,13 @@ function aplicarAccionRebalanceoIA(scope, index) {
   let tramoOrigen = obtenerTramoCompromiso(scope, compActual, tramos);
   let tramoDestino = accion.tramoDestino;
   if(!tramoDestino) {
-    state.error = '1';
+    state.error = true;
     state.result = 'La accion no trae tramo destino para aplicar.';
     initApp();
     return;
   }
   if(tramoOrigen === tramoDestino) {
-    state.error = '1';
+    state.error = true;
     state.result = 'El item ya se encuentra en el tramo destino sugerido.';
     initApp();
     return;
@@ -1165,7 +1165,7 @@ function aplicarAccionRebalanceoIA(scope, index) {
 
   let nuevoDia = obtenerDiaRepresentativoTramo(scope, tramoDestino, tramos);
   if(nuevoDia === null || nuevoDia === undefined || isNaN(parseInt(nuevoDia, 10))) {
-    state.error = '1';
+    state.error = true;
     state.result = 'No se pudo resolver un dia valido para el tramo destino.';
     initApp();
     return;
@@ -1194,7 +1194,7 @@ function aplicarAccionRebalanceoIA(scope, index) {
     accion.applied = false;
     delete accion.appliedAt;
     delete accion.undoPayload;
-    state.error = '1';
+    state.error = true;
     state.result = `No se pudo aplicar el rebalanceo: ${err && err.message ? err.message : 'error desconocido'}.`;
     initApp();
     return;
@@ -1211,7 +1211,7 @@ function deshacerAccionRebalanceoIA(scope, index) {
   let accion = acciones[index];
 
   if(!accion || !accion.applied || !accion.undoPayload || !accion.undoPayload.prevComp) {
-    state.error = '1';
+    state.error = true;
     state.result = 'No hay un cambio de rebalanceo aplicado para deshacer.';
     initApp();
     return;
@@ -1220,7 +1220,7 @@ function deshacerAccionRebalanceoIA(scope, index) {
   let prev = accion.undoPayload.prevComp;
   let idxComp = appData.compromisos.findIndex(c => c.id === prev.id && c.mesKey === prev.mesKey);
   if(idxComp < 0) {
-    state.error = '1';
+    state.error = true;
     state.result = 'No se pudo deshacer: el item ya no existe en el mes activo.';
     initApp();
     return;

@@ -38,6 +38,7 @@
       'fortnight.pre': 'Pre-expenses / Fixed',
       'fortnight.q1': 'Range 1 (Days 1-14)',
       'fortnight.q2': 'Range 2 (Days 15-31)',
+      'fortnight.balanceByFortnight': 'Fortnight-to-fortnight balance',
       'debts.all': 'All',
       'debts.fixed': 'Fixed',
       'debts.variable': 'Variable',

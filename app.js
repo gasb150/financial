@@ -1102,8 +1102,8 @@ function renderConfigIngresos() {
     let fechaRealTxt = diasReales.length
       ? diasReales.map((d) => `día ${d}`).join(', ')
       : `día ${normalizarDiaPagoDeMes(getDiaIngreso(i), anioActivo, mesIdxActivo, diasMesActivo)}`;
-    let fechaImpactoTxt = diasImpacto.length
-      ? diasImpacto.map((d) => `día ${d}`).join(', ')
+    let fechaImpactoTxt = diasReales.length
+      ? diasReales.map((d) => (d >= 29 ? 'día 1 del mes siguiente' : `día ${d}`)).join(', ')
       : 'sin impacto en este mes';
     let arrastreTxt = tieneArrastre
       ? '<span style="display:inline-block;margin-top:2px;padding:2px 6px;border-radius:10px;background:#FCE7C6;color:#8A4B00;font-size:10px;">Arrastre 29-31 -> día 1 del mes siguiente</span>'
@@ -1609,12 +1609,14 @@ function ejecutarRebalanceoQuincenaDesdeBalance() {
   }
 
   let run = analizarRebalanceoQuincenaIA();
-  renderBalanceQuincena(getCompromisosMesActual());
   if(run && typeof run.finally === 'function') {
     run.finally(() => {
       renderBalanceQuincena(getCompromisosMesActual());
     });
+    return;
   }
+
+  renderBalanceQuincena(getCompromisosMesActual());
 }
 
 // CORRECCIÓN Y ACTUALIZACIÓN: LÓGICA DEL CALENDARIO E INTERACCIÓN DE CLICK
