@@ -15,6 +15,7 @@ let iaPanelState = {
   gastosMes: { loading: false, error: '', result: '' },
   gastosQuincena: { loading: false, error: '', result: '' },
   gastosSemana: { loading: false, error: '', result: '' },
+  recortesItemsMes: { loading: false, error: '', result: '', items: [] },
   rebalanceQuincena: { loading: false, error: '', result: '' },
   rebalanceSemana: { loading: false, error: '', result: '' }
 };
@@ -1569,6 +1570,289 @@ function construirPromptRecorteVariables(items) {
   ].join('\n');
 }
 
+function getEstadoRecortesItemsMes() {
+  if(!iaPanelState.recortesItemsMes || typeof iaPanelState.recortesItemsMes !== 'object') {
+    iaPanelState.recortesItemsMes = { loading: false, error: '', result: '', items: [] };
+  }
+  if(!Array.isArray(iaPanelState.recortesItemsMes.items)) iaPanelState.recortesItemsMes.items = [];
+  return iaPanelState.recortesItemsMes;
+}
+
+function obtenerEtiquetaTramoPorDia(diaRaw) {
+  let dia = parseInt(diaRaw, 10);
+  if(dia === -1) return 'PRE';
+  if(dia >= 1 && dia <= 14) return 'Q1';
+  return 'Q2';
+}
+
+function construirPromptRecortesItemAccionables(items) {
+  let total = items.reduce((acc, it) => acc + it.valor, 0);
+  let lista = items
+    .map((it) => {
+      return `id=${it.id} | nombre=${it.nombre} | valor=${Math.round(it.valor)} | dia=${it.dia === -1 ? 'pre-mes' : it.dia} | tramo=${obtenerEtiquetaTramoPorDia(it.dia)}`;
+    })
+    .join('\n');
+
+  return [
+    'Actua como analista financiero y responde estrictamente en JSON valido.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Total gastos variables pendientes en muestra: ${Math.round(total)} COP.`,
+    'Objetivo: proponer recortes item a item accionables.',
+    'Reglas:',
+    '- Solo usa IDs de la lista entregada.',
+    '- accion debe ser uno de: reducir, posponer, mover_tramo.',
+    '- riesgo debe ser uno de: alto, medio, bajo.',
+    '- ahorroEstimado debe ser numero entero >= 0.',
+    '- Si accion=reducir incluye nuevoValor (>0 y < valor actual).',
+    '- Si accion=posponer incluye diaSugerido (1-31 o -1).',
+    '- Si accion=mover_tramo incluye tramoDestino (PRE, Q1 o Q2).',
+    'Devuelve exactamente este objeto JSON (sin markdown):',
+    '{"sugerencias":[{"itemId":0,"accion":"reducir","ahorroEstimado":0,"riesgo":"medio","prioridad":"alta","nuevoValor":0,"diaSugerido":null,"tramoDestino":null,"motivo":"texto corto"}]}',
+    'Lista de items:',
+    lista
+  ].join('\n');
+}
+
+function extraerJSONDeTextoIA(texto) {
+  let bruto = String(texto || '').trim();
+  if(!bruto) return null;
+  let limpio = bruto.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  try { return JSON.parse(limpio); } catch(_e) {}
+
+  let iniArr = limpio.indexOf('[');
+  let finArr = limpio.lastIndexOf(']');
+  if(iniArr >= 0 && finArr > iniArr) {
+    let candidatoArr = limpio.slice(iniArr, finArr + 1);
+    try { return JSON.parse(candidatoArr); } catch(_e) {}
+  }
+
+  let iniObj = limpio.indexOf('{');
+  let finObj = limpio.lastIndexOf('}');
+  if(iniObj >= 0 && finObj > iniObj) {
+    let candidatoObj = limpio.slice(iniObj, finObj + 1);
+    try { return JSON.parse(candidatoObj); } catch(_e) {}
+  }
+
+  return null;
+}
+
+function normalizarAccionRecorte(accionRaw) {
+  let txt = String(accionRaw || '').toLowerCase();
+  if(txt.includes('pospon')) return 'posponer';
+  if(txt.includes('mover') || txt.includes('tramo')) return 'mover_tramo';
+  return 'reducir';
+}
+
+function normalizarRiesgoRecorte(riesgoRaw) {
+  let txt = String(riesgoRaw || '').toLowerCase();
+  if(txt.includes('alto')) return 'alto';
+  if(txt.includes('bajo')) return 'bajo';
+  return 'medio';
+}
+
+function normalizarPrioridadRecorte(prioridadRaw) {
+  let txt = String(prioridadRaw || '').toLowerCase();
+  if(txt.includes('alta')) return 'alta';
+  if(txt.includes('baja')) return 'baja';
+  return 'media';
+}
+
+function normalizarTramoDestinoRecorte(tramoRaw) {
+  let txt = String(tramoRaw || '').toLowerCase().trim();
+  if(!txt) return null;
+  if(txt.includes('pre')) return 'pre';
+  if(txt.includes('q1') || txt.includes('1')) return 'q1';
+  if(txt.includes('q2') || txt.includes('2')) return 'q2';
+  return null;
+}
+
+function generarSugerenciasFallbackRecorte(items) {
+  return items.slice(0, 4).map((it, idx) => {
+    if(idx === 2) {
+      return {
+        itemId: it.id,
+        nombre: it.nombre,
+        accion: 'mover_tramo',
+        ahorroEstimado: 0,
+        riesgo: 'medio',
+        prioridad: 'media',
+        nuevoValor: null,
+        diaSugerido: null,
+        tramoDestino: it.dia === -1 || parseInt(it.dia, 10) <= 14 ? 'q2' : 'q1',
+        motivo: 'Mejora la distribucion del flujo entre tramos.',
+        applied: false
+      };
+    }
+
+    if(idx === 3) {
+      return {
+        itemId: it.id,
+        nombre: it.nombre,
+        accion: 'posponer',
+        ahorroEstimado: 0,
+        riesgo: 'medio',
+        prioridad: 'media',
+        nuevoValor: null,
+        diaSugerido: parseInt(it.dia, 10) <= 14 ? 20 : 28,
+        tramoDestino: null,
+        motivo: 'Posponer reduce presion de caja en el tramo actual.',
+        applied: false
+      };
+    }
+
+    let nuevoValor = Math.max(1000, Math.round(it.valor * 0.85));
+    return {
+      itemId: it.id,
+      nombre: it.nombre,
+      accion: 'reducir',
+      ahorroEstimado: Math.max(0, Math.round(it.valor - nuevoValor)),
+      riesgo: idx === 0 ? 'medio' : 'bajo',
+      prioridad: idx === 0 ? 'alta' : 'media',
+      nuevoValor,
+      diaSugerido: null,
+      tramoDestino: null,
+      motivo: 'Recorte progresivo para liberar flujo sin eliminar el item.',
+      applied: false
+    };
+  });
+}
+
+function normalizarSugerenciasRecorteDesdeIA(rawParsed, itemsBase) {
+  let lista = [];
+  if(Array.isArray(rawParsed)) lista = rawParsed;
+  else if(rawParsed && Array.isArray(rawParsed.sugerencias)) lista = rawParsed.sugerencias;
+
+  let byId = new Map(itemsBase.map(it => [it.id, it]));
+  let byNombre = new Map(itemsBase.map(it => [String(it.nombre || '').trim().toLowerCase(), it]));
+
+  let out = [];
+  lista.forEach((s) => {
+    if(!s || typeof s !== 'object') return;
+    let idNum = parseInt(s.itemId, 10);
+    let item = byId.get(idNum);
+    if(!item && s.nombre) {
+      item = byNombre.get(String(s.nombre).trim().toLowerCase());
+    }
+    if(!item) return;
+
+    let accion = normalizarAccionRecorte(s.accion);
+    let ahorroEstimado = Math.max(0, Math.round(parseMontoInput(s.ahorroEstimado)) || 0);
+    let nuevoValorRaw = Math.round(parseMontoInput(s.nuevoValor));
+    let nuevoValor = Number.isFinite(nuevoValorRaw) ? nuevoValorRaw : null;
+    if(accion === 'reducir') {
+      if(!nuevoValor || nuevoValor <= 0 || nuevoValor >= item.valor) {
+        nuevoValor = Math.max(1000, Math.round(item.valor * 0.85));
+      }
+      ahorroEstimado = Math.max(ahorroEstimado, Math.round(item.valor - nuevoValor));
+    }
+
+    let diaSugerido = null;
+    if(s.diaSugerido !== undefined && s.diaSugerido !== null && s.diaSugerido !== '') {
+      let d = parseInt(s.diaSugerido, 10);
+      if(!isNaN(d) && (d === -1 || (d >= 1 && d <= 31))) diaSugerido = d;
+    }
+
+    out.push({
+      itemId: item.id,
+      nombre: item.nombre,
+      accion,
+      ahorroEstimado,
+      riesgo: normalizarRiesgoRecorte(s.riesgo),
+      prioridad: normalizarPrioridadRecorte(s.prioridad),
+      nuevoValor: accion === 'reducir' ? nuevoValor : null,
+      diaSugerido,
+      tramoDestino: accion === 'mover_tramo' ? normalizarTramoDestinoRecorte(s.tramoDestino) : null,
+      motivo: String(s.motivo || 'Sin motivo detallado.').trim(),
+      applied: false
+    });
+  });
+
+  let ids = new Set();
+  return out.filter((s) => {
+    let key = `${s.itemId}-${s.accion}`;
+    if(ids.has(key)) return false;
+    ids.add(key);
+    return true;
+  }).slice(0, 6);
+}
+
+function resolverDiaPospuesto(diaActual) {
+  let d = parseInt(diaActual, 10);
+  if(d === -1) return 15;
+  if(d >= 1 && d <= 14) return 20;
+  if(d >= 15 && d <= 24) return 28;
+  return Math.min(Math.max(d + 3, 1), 31);
+}
+
+function resolverDiaTramoDestinoMes(tramoDestino) {
+  if(tramoDestino === 'pre') return -1;
+  if(tramoDestino === 'q1') return 10;
+  if(tramoDestino === 'q2') return 20;
+  return null;
+}
+
+function etiquetaAccionRecorte(accion) {
+  if(accion === 'mover_tramo') return 'Mover tramo';
+  if(accion === 'posponer') return 'Posponer';
+  return 'Reducir monto';
+}
+
+function renderSugerenciasRecorteAccionables(stateKey) {
+  let estado = iaPanelState[stateKey];
+  let items = Array.isArray(estado.items) ? estado.items : [];
+  if(!items.length) return '<div class="ia-row"><div class="meta">Sin sugerencias item a item todavía.</div></div>';
+
+  return items.map((s, idx) => {
+    let ahorroTxt = s.ahorroEstimado > 0 ? `Ahorro est.: ${formatCOP(s.ahorroEstimado)}` : 'Ahorro est.: impacto en flujo';
+    let metaAccion = '';
+    if(s.accion === 'reducir' && s.nuevoValor) metaAccion = `Nuevo valor: ${formatCOP(s.nuevoValor)}`;
+    if(s.accion === 'posponer' && s.diaSugerido !== null) metaAccion = `Mover al día ${s.diaSugerido === -1 ? 'pre-mes' : s.diaSugerido}`;
+    if(s.accion === 'mover_tramo' && s.tramoDestino) metaAccion = `Mover a ${String(s.tramoDestino).toUpperCase()}`;
+    return `
+      <div class="ia-row" style="display:block;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+          <div>
+            <div class="nm">${escapeHTML(s.nombre)}</div>
+            <div class="meta">${etiquetaAccionRecorte(s.accion)} · Riesgo ${escapeHTML(s.riesgo)} · Prioridad ${escapeHTML(s.prioridad)}</div>
+            <div class="meta">${escapeHTML(metaAccion)} · ${ahorroTxt}</div>
+            <div class="meta" style="margin-top:2px;">${escapeHTML(s.motivo || '')}</div>
+          </div>
+          <button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarSugerenciaRecorteMesIA(${idx})" ${s.applied ? 'disabled' : ''}>${s.applied ? 'Aplicado' : 'Aplicar'}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
+  let estado = iaPanelState[stateKey];
+  let sugerencias = Array.isArray(estado.items) ? estado.items : [];
+  let ahorroTotal = sugerencias.reduce((acc, s) => acc + (s.ahorroEstimado || 0), 0);
+  let aplicadas = sugerencias.filter(s => s.applied).length;
+  let totalPendientes = items.reduce((acc, it) => acc + it.valor, 0);
+  let resultado = estado.result
+    ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
+    : '';
+
+  return `
+    <div class="ia-card">
+      <div class="ttl">Recortes item a item</div>
+      <div class="ia-row">
+        <div>
+          <div class="nm">Pendiente variables del mes</div>
+          <div class="meta">${items.length} items · ahorro proyectado ${formatCOP(ahorroTotal)}</div>
+        </div>
+        <div class="vl">${formatCOP(totalPendientes)}</div>
+      </div>
+      ${renderSugerenciasRecorteAccionables(stateKey)}
+      <div class="meta" style="margin-top:8px;">Aplicadas: ${aplicadas}/${sugerencias.length}</div>
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Generar recortes accionables ↗'}</button>
+      ${resultado}
+    </div>
+  `;
+}
+
 function obtenerResumenTramosSemanales(compromisosMes) {
   let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
   let semanas = obtenerSemanasDelMesActivo();
@@ -1908,9 +2192,12 @@ function renderIAPanelResumen() {
   if(!nodo) return;
 
   let gastosMes = obtenerGastosVariablesPendientesMes();
+  let st = getEstadoRecortesItemsMes();
+  if(!Array.isArray(st.items)) st.items = [];
 
   nodo.innerHTML = `
     ${buildIACardGastos('Gastos este mes', gastosMes, 'gastosMes', 'analizarReduccionGastosMesIA')}
+    ${buildIACardRecortesItemsMes(gastosMes, 'recortesItemsMes', 'analizarRecortesItemMesIA')}
   `;
 }
 
@@ -2041,6 +2328,104 @@ async function analizarReduccionGastosQuincenaIA() {
 
 async function analizarReduccionGastosSemanaIA() {
   return analizarReduccionGastosIA('semana');
+}
+
+async function analizarRecortesItemMesIA() {
+  let stateKey = 'recortesItemsMes';
+  let items = obtenerGastosVariablesPendientesMes().slice(0, 12);
+
+  if(items.length === 0) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay gastos variables pendientes para sugerir recortes.', items: [] };
+    renderIAPanelResumen();
+    return;
+  }
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '', items: [] };
+  renderIAPanelResumen();
+
+  try {
+    let prompt = construirPromptRecortesItemAccionables(items);
+    let out = await ejecutarConsultaIA(prompt);
+    let parsed = extraerJSONDeTextoIA(out.message);
+    let sugerencias = normalizarSugerenciasRecorteDesdeIA(parsed, items);
+    if(!sugerencias.length) {
+      sugerencias = generarSugerenciasFallbackRecorte(items);
+    }
+
+    let ahorroTotal = sugerencias.reduce((acc, s) => acc + (s.ahorroEstimado || 0), 0);
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '',
+      result: `Sugerencias listas. Ahorro total proyectado: ${formatCOP(ahorroTotal)}.`,
+      items: sugerencias
+    };
+  } catch(err) {
+    let fallback = generarSugerenciasFallbackRecorte(items);
+    let msgError = err && err.message ? err.message : 'No se pudo generar recortes con IA.';
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '1',
+      result: `${msgError}\nSe muestran sugerencias fallback para no bloquear flujo.`,
+      items: fallback
+    };
+  }
+
+  renderIAPanelResumen();
+}
+
+function aplicarSugerenciaRecorteMesIA(index) {
+  let stateKey = 'recortesItemsMes';
+  let estado = getEstadoRecortesItemsMes();
+  let sugerencias = Array.isArray(estado.items) ? estado.items : [];
+  let sug = sugerencias[index];
+  if(!sug || sug.applied) return;
+
+  let comp = appData.compromisos.find(c => c.id === sug.itemId && c.mesKey === mesActivoGlobal);
+  if(!comp) {
+    iaPanelState[stateKey].error = '1';
+    iaPanelState[stateKey].result = `No se encontro el item ${sug.nombre} en el mes activo.`;
+    renderIAPanelResumen();
+    return;
+  }
+
+  let ahorroReal = 0;
+  let cambio = '';
+
+  if(sug.accion === 'reducir') {
+    let actual = Math.round(comp.valor);
+    let nuevo = Math.round(sug.nuevoValor || Math.max(1000, Math.round(actual * 0.85)));
+    nuevo = Math.max(1, Math.min(nuevo, actual - 1));
+    ahorroReal = Math.max(0, actual - nuevo);
+    comp.valor = nuevo;
+    cambio = `Reducido ${comp.nombre} de ${formatCOP(actual)} a ${formatCOP(nuevo)}.`;
+  } else if(sug.accion === 'posponer') {
+    let diaAntes = parseInt(comp.dia, 10);
+    let nuevoDia = sug.diaSugerido;
+    if(nuevoDia === null || isNaN(parseInt(nuevoDia, 10))) nuevoDia = resolverDiaPospuesto(diaAntes);
+    comp.dia = nuevoDia;
+    cambio = `Pospuesto ${comp.nombre} del dia ${diaAntes === -1 ? 'pre-mes' : diaAntes} al dia ${nuevoDia === -1 ? 'pre-mes' : nuevoDia}.`;
+  } else {
+    let diaAntes = parseInt(comp.dia, 10);
+    let diaDestino = resolverDiaTramoDestinoMes(sug.tramoDestino);
+    if(diaDestino === null) {
+      diaDestino = diaAntes <= 14 ? 20 : 10;
+    }
+    comp.dia = diaDestino;
+    cambio = `Movido ${comp.nombre} del tramo ${obtenerEtiquetaTramoPorDia(diaAntes)} a ${obtenerEtiquetaTramoPorDia(diaDestino)}.`;
+  }
+
+  sug.applied = true;
+  sug.appliedAt = new Date().toISOString();
+  sug.ahorroReal = ahorroReal;
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+
+  let ahorroAcumulado = sugerencias.reduce((acc, s) => acc + (s.ahorroReal || 0), 0);
+  iaPanelState[stateKey].error = '';
+  iaPanelState[stateKey].result = `${cambio}\nAhorro real acumulado aplicado: ${formatCOP(ahorroAcumulado)}.`;
+
+  initApp();
 }
 
 async function analizarRebalanceoIA(scope) {

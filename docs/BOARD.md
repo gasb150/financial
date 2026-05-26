@@ -21,7 +21,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
 - [ ] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
-- [ ] TKT-019 Recortes IA item a item accionables
 
 ## En curso
 
@@ -33,6 +32,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-019 Recortes IA item a item accionables
 - [x] TKT-017 Rebalanceo IA entre tramos (semana/quincena)
 - [x] TKT-021 Robustez IA local (config + errores + timeout)
 - [x] TKT-020 IA contextual por pantalla (resumen/semanal/quincena/deudas)
@@ -304,7 +304,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-019 - Recortes IA item a item accionables
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -313,14 +313,15 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Cada item tiene accion directa (reducir monto, posponer, mover de tramo).
    - Resultado final muestra ahorro total proyectado y nuevo balance por tramo.
 - Checklist:
-   - [ ] Generar recomendaciones por item con metadata accionable
-   - [ ] Agregar botones por item para aplicar recorte/movimiento
-   - [ ] Recalcular resumen global y por tramo tras cada aplicacion
+   - [x] Generar recomendaciones por item con metadata accionable
+   - [x] Agregar botones por item para aplicar recorte/movimiento
+   - [x] Recalcular resumen global y por tramo tras cada aplicacion
 
 ## Bitacora de avance
 
 ### 2026-05-26
 
+1. TKT-019 completado: recortes IA item a item con acciones aplicables (reducir/posponer/mover) y recálculo inmediato tras aplicar.
 1. TKT-017 completado: rebalanceo IA semanal/quincenal con deteccion de deficit/superavit y salida con impacto antes/despues por tramo.
 1. TKT-021 completado: robustez de IA local con configuracion persistente, diagnosticos y migracion de timeout legacy.
 1. TKT-020 completado: paneles IA contextualizados por pantalla y uso de contexto visible en semana/quincena.
