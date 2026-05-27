@@ -14,9 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-009 Asistente IA: resumen mensual
-- [ ] TKT-010 Asistente IA: alertas de deficit
-- [ ] TKT-011 Asistente IA: simulador de escenarios
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
@@ -40,6 +37,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-011 Asistente IA: simulador de escenarios
+- [x] TKT-010 Asistente IA: alertas de deficit
+- [x] TKT-009 Asistente IA: resumen mensual
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
 - [x] TKT-040 QA de regresion post-split y saneamiento
@@ -194,7 +194,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-009 - Asistente IA: resumen mensual
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 3
 - Owner: Gustavo
@@ -203,7 +203,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-010 - Asistente IA: alertas de deficit
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 3
 - Owner: Gustavo
@@ -212,7 +212,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-011 - Asistente IA: simulador de escenarios
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 3
 - Owner: Gustavo
@@ -886,6 +886,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-009/TKT-010/TKT-011 completados en bloque: panel IA de Resumen ahora incluye resumen mensual accionable (ingresos/gastos/balance/riesgos), alertas tempranas de deficit semanal/mensual y simulador de escenarios (monto/fecha) con impacto estimado y fallback deterministico.
 1. TKT-018 completado: acciones IA ahora son aplicables y reversibles tambien en rebalanceo semanal/quincenal (no solo recortes), con preview de impacto, confirmacion y undo transaccional.
 1. TKT-030/TKT-031/TKT-032 completados: bloque quincenal actualizado con vista de balance tramo a tramo (Q1/Q2), CTA de rebalanceo reutilizando flujo IA, integracion de Pre-Mes dentro de Q1 con badge de origen y metadatos visibles de fecha real/fecha de impacto en configuracion de ingresos.
 1. TKT-050 completado: textos principales de UI migrados a i18n declarativo (`data-i18n`/`data-i18n-placeholder`), diccionario expandido ES/EN y pruebas de fallback + traduccion declarativa agregadas.

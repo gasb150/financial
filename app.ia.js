@@ -795,6 +795,310 @@ function buildIACardGastos(titulo, items, stateKey, actionFnName) {
   `;
 }
 
+function getEstadoIAPanelSimple(stateKey) {
+  if(!iaPanelState[stateKey] || typeof iaPanelState[stateKey] !== 'object') {
+    iaPanelState[stateKey] = { loading: false, error: '', result: '' };
+  }
+  return iaPanelState[stateKey];
+}
+
+function construirSnapshotMensualIA(compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  let ingresos = obtenerEventosIngresoDelMes(mesActivoGlobal).reduce((acc, e) => acc + (e.valor || 0), 0);
+  let gastos = base.reduce((acc, c) => acc + (c.valor || 0), 0);
+  let pendiente = base.reduce((acc, c) => acc + (!c.pagado ? (c.valor || 0) : 0), 0);
+  let balance = ingresos - gastos;
+  let ratioPendiente = ingresos > 0 ? pendiente / ingresos : 1;
+
+  return {
+    ingresos,
+    gastos,
+    pendiente,
+    balance,
+    ratioPendiente
+  };
+}
+
+function generarAlertasDeficitTempranasIA(compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  let snapshot = construirSnapshotMensualIA(base);
+  let semanas = obtenerResumenTramosSemanales(base);
+  let alertas = [];
+
+  let semanasDeficit = semanas.filter((s) => s.saldoCierre < 0);
+  if(semanasDeficit.length) {
+    let primera = semanasDeficit[0];
+    alertas.push(`Riesgo semanal temprano: ${primera.nombre} cierra en ${formatCOP(primera.saldoCierre)}.`);
+  }
+
+  if(snapshot.balance < 0) {
+    alertas.push(`Riesgo mensual: balance proyectado en deficit por ${formatCOP(Math.abs(snapshot.balance))}.`);
+  }
+
+  if(snapshot.ratioPendiente >= 0.8) {
+    alertas.push(`Carga pendiente alta: ${Math.round(snapshot.ratioPendiente * 100)}% de ingresos comprometidos.`);
+  }
+
+  if(!alertas.length) {
+    alertas.push('Sin alerta critica: no se detecta deficit semanal ni mensual con los datos actuales.');
+  }
+
+  let riesgoGlobal = 'bajo';
+  if(snapshot.balance < 0 || semanasDeficit.length >= 2 || snapshot.ratioPendiente >= 0.95) riesgoGlobal = 'alto';
+  else if(semanasDeficit.length || snapshot.ratioPendiente >= 0.8) riesgoGlobal = 'medio';
+
+  return {
+    riesgoGlobal,
+    alertas,
+    semanasDeficit,
+    snapshot
+  };
+}
+
+function construirPromptResumenMensualIA(snapshot, alertaInfo) {
+  return [
+    'Actua como asesor financiero personal y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Ingresos: ${formatCOP(snapshot.ingresos)}.`,
+    `Gastos: ${formatCOP(snapshot.gastos)}.`,
+    `Balance: ${formatCOP(snapshot.balance)}.`,
+    `Pendiente por pagar: ${formatCOP(snapshot.pendiente)}.`,
+    `Riesgo global detectado: ${alertaInfo.riesgoGlobal}.`,
+    'Alertas detectadas:',
+    alertaInfo.alertas.map((a, idx) => `${idx + 1}. ${a}`).join('\n'),
+    'Entrega un resumen mensual entendible con 5 bullets maximo:',
+    '- estado general',
+    '- principal riesgo',
+    '- accion inmediata sugerida',
+    '- accion para siguiente semana',
+    '- meta de control'
+  ].join('\n');
+}
+
+function construirPromptAlertasDeficitIA(alertaInfo) {
+  return [
+    'Actua como monitor de riesgo financiero y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    `Riesgo global actual: ${alertaInfo.riesgoGlobal}.`,
+    'Alertas calculadas:',
+    alertaInfo.alertas.map((a, idx) => `${idx + 1}. ${a}`).join('\n'),
+    'Devuelve una alerta temprana operativa en maximo 4 bullets:',
+    '- riesgo semanal',
+    '- riesgo mensual',
+    '- trigger concreto (cuando actuar)',
+    '- mitigacion inmediata'
+  ].join('\n');
+}
+
+function calcularMetricasEscenarioIA(compromisosMes) {
+  let base = Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual();
+  let snapshot = construirSnapshotMensualIA(base);
+  let semanas = obtenerResumenTramosSemanales(base);
+  let deficitSemanas = semanas.filter((s) => s.saldoCierre < 0).length;
+  return {
+    ...snapshot,
+    deficitSemanas
+  };
+}
+
+function simularEscenariosBaseIA(compromisosMes) {
+  let base = (Array.isArray(compromisosMes) ? compromisosMes : getCompromisosMesActual()).map((c) => ({ ...c }));
+  let escenarios = [];
+  let antes = calcularMetricasEscenarioIA(base);
+
+  let variablesPendientes = base
+    .filter((c) => !c.pagado && c.tipo === 'variable')
+    .sort((a, b) => (b.valor || 0) - (a.valor || 0));
+
+  let topVariable = variablesPendientes[0] || null;
+  if(topVariable) {
+    let clonado = base.map((c) => ({ ...c }));
+    let target = clonado.find((c) => c.id === topVariable.id);
+    if(target) {
+      let original = Math.round(target.valor || 0);
+      let nuevo = Math.max(1, Math.round(original * 0.9));
+      target.valor = nuevo;
+      let despues = calcularMetricasEscenarioIA(clonado);
+      escenarios.push({
+        nombre: 'Reducir 10% el mayor gasto variable',
+        detalle: `${target.nombre}: ${formatCOP(original)} -> ${formatCOP(nuevo)}`,
+        antes,
+        despues
+      });
+    }
+  }
+
+  let moverQ2 = variablesPendientes.find((c) => {
+    let dia = parseInt(c.dia, 10);
+    return dia === -1 || (dia >= 1 && dia <= 14);
+  });
+  if(moverQ2) {
+    let clonado = base.map((c) => ({ ...c }));
+    let target = clonado.find((c) => c.id === moverQ2.id);
+    if(target) {
+      let diaAntes = parseInt(target.dia, 10);
+      target.dia = 20;
+      let despues = calcularMetricasEscenarioIA(clonado);
+      escenarios.push({
+        nombre: 'Mover fecha de gasto fuerte hacia Q2',
+        detalle: `${target.nombre}: dia ${diaAntes === -1 ? 'pre-mes' : diaAntes} -> dia 20`,
+        antes,
+        despues
+      });
+    }
+  }
+
+  let mayorPendiente = base
+    .filter((c) => !c.pagado)
+    .sort((a, b) => (b.valor || 0) - (a.valor || 0))[0] || null;
+  if(mayorPendiente) {
+    let clonado = base.map((c) => ({ ...c }));
+    let target = clonado.find((c) => c.id === mayorPendiente.id);
+    if(target) {
+      let diaAntes = parseInt(target.dia, 10);
+      let diaBase = diaAntes === -1 ? 1 : diaAntes;
+      target.dia = Math.min(diaBase + 7, 31);
+      let despues = calcularMetricasEscenarioIA(clonado);
+      escenarios.push({
+        nombre: 'Posponer 7 dias la mayor obligacion pendiente',
+        detalle: `${target.nombre}: dia ${diaAntes === -1 ? 'pre-mes' : diaAntes} -> dia ${target.dia}`,
+        antes,
+        despues
+      });
+    }
+  }
+
+  return escenarios;
+}
+
+function formatearEscenariosIA(escenarios) {
+  if(!Array.isArray(escenarios) || !escenarios.length) {
+    return 'No se encontraron escenarios utiles con el contexto actual.';
+  }
+
+  return escenarios.map((esc, idx) => {
+    let deltaBalance = (esc.despues.balance || 0) - (esc.antes.balance || 0);
+    let mejoraSemanas = (esc.antes.deficitSemanas || 0) - (esc.despues.deficitSemanas || 0);
+    return [
+      `${idx + 1}) ${esc.nombre}`,
+      `- Ajuste: ${esc.detalle}`,
+      `- Balance: ${formatCOP(esc.antes.balance)} -> ${formatCOP(esc.despues.balance)} (${deltaBalance >= 0 ? '+' : ''}${formatCOP(deltaBalance)})`,
+      `- Semanas en deficit: ${esc.antes.deficitSemanas} -> ${esc.despues.deficitSemanas} (mejora ${mejoraSemanas})`
+    ].join('\n');
+  }).join('\n\n');
+}
+
+function construirPromptEscenariosIA(escenarios) {
+  return [
+    'Actua como asesor financiero y responde en espanol colombiano.',
+    `Mes analizado: ${mesActivoGlobal}.`,
+    'Escenarios simulados:',
+    formatearEscenariosIA(escenarios),
+    'Resume en maximo 5 bullets:',
+    '- cual escenario conviene primero',
+    '- beneficio principal',
+    '- riesgo de ejecutar ese cambio',
+    '- plan de control para confirmar mejora'
+  ].join('\n');
+}
+
+function buildIACardSimpleResultado(titulo, meta, stateKey, actionFnName, ctaText) {
+  let estado = getEstadoIAPanelSimple(stateKey);
+  let resultado = estado.result
+    ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
+    : '';
+
+  return `
+    <div class="ia-card">
+      <div class="ttl">${titulo}</div>
+      <div class="ia-row" style="display:block;">
+        <div class="meta">${escapeHTML(meta)}</div>
+      </div>
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : ctaText}</button>
+      ${resultado}
+    </div>
+  `;
+}
+
+async function pedirResumenMensualIA() {
+  let stateKey = 'resumenMensual';
+  let snapshot = construirSnapshotMensualIA(getCompromisosMesActual());
+  let alertaInfo = generarAlertasDeficitTempranasIA(getCompromisosMesActual());
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  renderIAPanelResumen();
+
+  try {
+    let prompt = construirPromptResumenMensualIA(snapshot, alertaInfo);
+    let out = await ejecutarConsultaIA(prompt);
+    iaPanelState[stateKey] = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+  } catch(_err) {
+    let fallback = [
+      `Estado general: ingresos ${formatCOP(snapshot.ingresos)}, gastos ${formatCOP(snapshot.gastos)}, balance ${formatCOP(snapshot.balance)}.`,
+      `Pendiente por pagar: ${formatCOP(snapshot.pendiente)} (${Math.round(snapshot.ratioPendiente * 100)}% de ingresos).`,
+      `Riesgo actual: ${alertaInfo.riesgoGlobal}.`,
+      `Accion inmediata: ${alertaInfo.alertas[0] || 'Revisar top 3 gastos variables.'}`
+    ].join('\n');
+    iaPanelState[stateKey] = { loading: false, error: '', result: fallback };
+  }
+
+  renderIAPanelResumen();
+}
+
+async function analizarAlertasDeficitIA() {
+  let stateKey = 'alertasDeficit';
+  let alertaInfo = generarAlertasDeficitTempranasIA(getCompromisosMesActual());
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  renderIAPanelResumen();
+
+  try {
+    let prompt = construirPromptAlertasDeficitIA(alertaInfo);
+    let out = await ejecutarConsultaIA(prompt);
+    iaPanelState[stateKey] = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+  } catch(_err) {
+    let fallback = [`Riesgo global: ${alertaInfo.riesgoGlobal}.`]
+      .concat(alertaInfo.alertas.map((a) => `- ${a}`))
+      .join('\n');
+    iaPanelState[stateKey] = { loading: false, error: '', result: fallback };
+  }
+
+  renderIAPanelResumen();
+}
+
+async function simularEscenariosIA() {
+  let stateKey = 'simuladorEscenarios';
+  let escenarios = simularEscenariosBaseIA(getCompromisosMesActual());
+
+  iaPanelState[stateKey] = { loading: true, error: '', result: '' };
+  renderIAPanelResumen();
+
+  if(!escenarios.length) {
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '',
+      result: 'No hay escenarios simulables: revisa si existen obligaciones pendientes o gastos variables.'
+    };
+    renderIAPanelResumen();
+    return;
+  }
+
+  try {
+    let prompt = construirPromptEscenariosIA(escenarios);
+    let out = await ejecutarConsultaIA(prompt);
+    let detalle = formatearEscenariosIA(escenarios);
+    iaPanelState[stateKey] = {
+      loading: false,
+      error: '',
+      result: `${detalle}\n\nLectura IA:\n${out.message || 'Sin respuesta.'}`
+    };
+  } catch(_err) {
+    iaPanelState[stateKey] = { loading: false, error: '', result: formatearEscenariosIA(escenarios) };
+  }
+
+  renderIAPanelResumen();
+}
+
 function renderIAPanelResumen() {
   let nodo = document.getElementById('ia-panel-resumen');
   if(!nodo) return;
@@ -804,6 +1108,9 @@ function renderIAPanelResumen() {
   if(!Array.isArray(st.items)) st.items = [];
 
   nodo.innerHTML = `
+    ${buildIACardSimpleResultado('Resumen mensual IA', 'Vista ejecutiva con ingresos, gastos, balance y riesgos del mes activo.', 'resumenMensual', 'pedirResumenMensualIA', 'Generar resumen mensual ↗')}
+    ${buildIACardSimpleResultado('Alertas de deficit IA', 'Deteccion temprana de riesgo semanal y mensual para actuar antes del cierre.', 'alertasDeficit', 'analizarAlertasDeficitIA', 'Evaluar alertas tempranas ↗')}
+    ${buildIACardSimpleResultado('Simulador de escenarios IA', 'Simula mover fecha o monto para estimar impacto en balance y semanas en deficit.', 'simuladorEscenarios', 'simularEscenariosIA', 'Simular escenarios de impacto ↗')}
     ${buildIACardGastos('Gastos este mes', gastosMes, 'gastosMes', 'analizarReduccionGastosMesIA')}
     ${buildIACardRecortesItemsMes(gastosMes, 'recortesItemsMes', 'analizarRecortesItemMesIA')}
   `;

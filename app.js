@@ -16,6 +16,9 @@ let iaPanelState = {
   gastosMes: { loading: false, error: '', result: '' },
   gastosQuincena: { loading: false, error: '', result: '' },
   gastosSemana: { loading: false, error: '', result: '' },
+  resumenMensual: { loading: false, error: '', result: '' },
+  alertasDeficit: { loading: false, error: '', result: '' },
+  simuladorEscenarios: { loading: false, error: '', result: '' },
   recortesItemsMes: { loading: false, error: '', result: '', items: [] },
   rebalanceQuincena: { loading: false, error: false, result: '', actions: [] },
   rebalanceSemana: { loading: false, error: false, result: '', actions: [] }
