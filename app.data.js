@@ -70,6 +70,15 @@
     return true;
   }
 
+  function isValidPersistenceErrorEntry(item) {
+    if(!item || typeof item !== 'object') return false;
+    if(!isNonEmptyString(item.id)) return false;
+    if(!isNonEmptyString(item.at)) return false;
+    if(!isNonEmptyString(item.source)) return false;
+    if(!isNonEmptyString(item.message)) return false;
+    return true;
+  }
+
   function sanitizePrimaryData(payload) {
     let src = payload && typeof payload === 'object' ? payload : {};
     let base = typeof datosDefault === 'object' && datosDefault
@@ -78,6 +87,8 @@
           ingresosList: [],
           primasList: [],
           compromisos: [],
+          iaHistory: [],
+          persistenceErrors: [],
           lineaTiempoGuardada: [],
           iaConfig: {
             mode: 'off',
@@ -107,6 +118,10 @@
       iaConfig: normalizeIAConfig(src.iaConfig),
       iaHistory: Array.isArray(src.iaHistory)
         ? src.iaHistory.filter(isValidHistoryEntry).map((it) => ({ ...it })).slice(-500)
+        : []
+      ,
+      persistenceErrors: Array.isArray(src.persistenceErrors)
+        ? src.persistenceErrors.filter(isValidPersistenceErrorEntry).map((it) => ({ ...it })).slice(-200)
         : []
     };
 
@@ -138,12 +153,45 @@
       if(!Array.isArray(payload.iaHistory)) return false;
       if(!payload.iaHistory.every(isValidHistoryEntry)) return false;
     }
+    if(payload.persistenceErrors !== undefined) {
+      if(!Array.isArray(payload.persistenceErrors)) return false;
+      if(!payload.persistenceErrors.every(isValidPersistenceErrorEntry)) return false;
+    }
     return true;
+  }
+
+  function registerPersistenceError(source, err, metadata = {}) {
+    if(!appData || typeof appData !== 'object') return;
+    if(!Array.isArray(appData.persistenceErrors)) appData.persistenceErrors = [];
+
+    let msg = '';
+    if(err && typeof err === 'object' && err.message) msg = String(err.message);
+    else msg = String(err || 'unknown persistence error');
+
+    let entry = {
+      id: `perr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+      at: new Date().toISOString(),
+      source: String(source || 'data').toLowerCase(),
+      message: msg,
+      metadata: metadata && typeof metadata === 'object' ? { ...metadata } : {}
+    };
+
+    appData.persistenceErrors.push(entry);
+    if(appData.persistenceErrors.length > 200) {
+      appData.persistenceErrors = appData.persistenceErrors.slice(-200);
+    }
+  }
+
+  function clearPersistenceErrors() {
+    if(!appData || typeof appData !== 'object') return;
+    appData.persistenceErrors = [];
   }
 
   function openIndexedDB() {
     if(!('indexedDB' in window)) {
-      return Promise.reject(new Error('indexedDB no disponible'));
+      let err = new Error('indexedDB no disponible');
+      registerPersistenceError('idb-open', err);
+      return Promise.reject(err);
     }
     if(idbPromise) return idbPromise;
 
@@ -156,7 +204,11 @@
         }
       };
       req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error('No se pudo abrir indexedDB'));
+      req.onerror = () => {
+        let err = req.error || new Error('No se pudo abrir indexedDB');
+        registerPersistenceError('idb-open', err);
+        reject(err);
+      };
     });
 
     return idbPromise;
@@ -169,7 +221,11 @@
       let store = tx.objectStore(IDB_STORE);
       let req = store.get(key);
       req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error || new Error('Error lectura indexedDB'));
+      req.onerror = () => {
+        let err = req.error || new Error('Error lectura indexedDB');
+        registerPersistenceError('idb-read', err, { key });
+        reject(err);
+      };
     });
   }
 
@@ -180,7 +236,11 @@
       let store = tx.objectStore(IDB_STORE);
       let req = store.put(value, key);
       req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error || new Error('Error escritura indexedDB'));
+      req.onerror = () => {
+        let err = req.error || new Error('Error escritura indexedDB');
+        registerPersistenceError('idb-write', err, { key });
+        reject(err);
+      };
     });
   }
 
@@ -206,6 +266,7 @@
       }
       idbReady = true;
     } catch(_e) {
+      registerPersistenceError('idb-hydrate', _e);
       idbReady = false;
     }
 
@@ -215,23 +276,32 @@
   function persistPrimaryDataWithFallback() {
     let serializada = JSON.stringify(appData);
     if(idbReady) {
-      idbSetRaw(STORAGE_KEY, serializada).catch(() => {
+      idbSetRaw(STORAGE_KEY, serializada).catch((err) => {
+        registerPersistenceError('persist-primary-idb', err);
         localStorage.setItem(STORAGE_KEY, serializada);
       });
     }
-    localStorage.setItem(STORAGE_KEY, serializada);
+    try {
+      localStorage.setItem(STORAGE_KEY, serializada);
+    } catch(err) {
+      registerPersistenceError('persist-primary-localstorage', err);
+    }
   }
 
   async function persistAuxDataWithFallback(marcaGuardadoISO) {
     let payload = buildBackupPayload();
     payload.checksum = await generatePayloadChecksum(payload.data);
     let backup = JSON.stringify(payload);
-    localStorage.setItem(STORAGE_BACKUP_KEY, backup);
-    localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO);
+    try {
+      localStorage.setItem(STORAGE_BACKUP_KEY, backup);
+      localStorage.setItem(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO);
+    } catch(err) {
+      registerPersistenceError('persist-aux-localstorage', err);
+    }
 
     if(idbReady) {
-      idbSetRaw(STORAGE_BACKUP_KEY, backup).catch(() => {});
-      idbSetRaw(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO).catch(() => {});
+      idbSetRaw(STORAGE_BACKUP_KEY, backup).catch((err) => registerPersistenceError('persist-backup-idb', err));
+      idbSetRaw(STORAGE_LAST_SAVE_KEY, marcaGuardadoISO).catch((err) => registerPersistenceError('persist-lastsave-idb', err));
     }
   }
 
@@ -310,6 +380,8 @@
   globalScope.FinancialData = {
     validatePrimaryData,
     sanitizePrimaryData,
+    registerPersistenceError,
+    clearPersistenceErrors,
     openIndexedDB,
     idbGetRaw,
     idbSetRaw,

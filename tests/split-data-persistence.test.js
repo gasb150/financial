@@ -16,6 +16,7 @@ test('validatePrimaryData accepts only required array shape', () => {
     'isValidCompromiso',
     'isValidPrima',
     'isValidHistoryEntry',
+    'isValidPersistenceErrorEntry',
     'validatePrimaryData'
   ]);
 
@@ -66,6 +67,7 @@ test('validateBackupPayload enforces required backup structure', () => {
     'isValidCompromiso',
     'isValidPrima',
     'isValidHistoryEntry',
+    'isValidPersistenceErrorEntry',
     'validatePrimaryData',
     'validateBackupPayload'
   ]);
@@ -134,6 +136,7 @@ test('sanitizePrimaryData recovers valid blocks from malformed payload', () => {
     'isValidCompromiso',
     'isValidPrima',
     'isValidHistoryEntry',
+    'isValidPersistenceErrorEntry',
     'sanitizePrimaryData',
     'validatePrimaryData'
   ], {
@@ -146,6 +149,7 @@ test('sanitizePrimaryData recovers valid blocks from malformed payload', () => {
     compromisos: [{ nombre: 'Arriendo', valor: 900, dia: 5, mesKey: 'Mayo 2026' }, { dia: 40 }],
     lineaTiempoGuardada: ['Mayo 2026', ''],
     iaHistory: [{ id: 'ok', at: '2026-05-26T00:00:00.000Z', source: 'ia', actionType: 'reducir', status: 'applied' }, { id: '' }],
+    persistenceErrors: [{ id: 'p1', at: '2026-05-26T00:00:00.000Z', source: 'idb-write', message: 'boom' }, { id: '' }],
     iaConfig: { mode: 'LOCAL', timeoutMs: 5, retries: 99 }
   });
 
@@ -154,7 +158,26 @@ test('sanitizePrimaryData recovers valid blocks from malformed payload', () => {
   assert.equal(sane.compromisos.length, 1);
   assert.equal(sane.lineaTiempoGuardada.length, 1);
   assert.equal(sane.iaHistory.length, 1);
+  assert.equal(sane.persistenceErrors.length, 1);
   assert.equal(sane.iaConfig.mode, 'local');
   assert.equal(sane.iaConfig.timeoutMs, 10000);
   assert.equal(sane.iaConfig.retries, 4);
+});
+
+test('registerPersistenceError appends bounded diagnostics entries', () => {
+  const ctx = loadFunctionsFromFile(DATA_JS, ['registerPersistenceError'], {
+    appData: { persistenceErrors: [] },
+    Date,
+    Math
+  });
+
+  ctx.registerPersistenceError('idb-write', new Error('fallo db'), { key: 'finanzas' });
+  assert.equal(ctx.appData.persistenceErrors.length, 1);
+  assert.equal(ctx.appData.persistenceErrors[0].source, 'idb-write');
+  assert.match(ctx.appData.persistenceErrors[0].message, /fallo db/i);
+
+  for(let i = 0; i < 250; i += 1) {
+    ctx.registerPersistenceError('x', 'err');
+  }
+  assert.equal(ctx.appData.persistenceErrors.length, 200);
 });

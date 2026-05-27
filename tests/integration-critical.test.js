@@ -39,7 +39,7 @@ test('initApp integrates summary refresh and key render calls without crashing',
       getElementById: (id) => nodes[id] || null
     },
     appData: { schemaVersion: 0 },
-    APP_SCHEMA_VERSION: 3,
+    APP_SCHEMA_VERSION: 4,
     mesActivoGlobal: 'Junio 2026',
     diaSeleccionadoActivo: null,
     modoAltaDeuda: 'rapido',
@@ -83,7 +83,7 @@ test('initApp integrates summary refresh and key render calls without crashing',
 
   ctx.initApp();
 
-  assert.equal(ctx.appData.schemaVersion, 3);
+  assert.equal(ctx.appData.schemaVersion, 4);
   assert.equal(nodes['tit-cal-dinamico'].innerText, 'Calendario de Flujo - Junio 2026');
   assert.equal(nodes['tit-semanas-dinamico'].innerText, 'Línea de Semanas - Junio 2026');
   assert.equal(nodes['res-ingresos'].innerText, '$500');

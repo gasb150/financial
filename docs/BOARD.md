@@ -31,8 +31,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## En curso
 
 - [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
-- [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
 
 ## Bloqueado
 
@@ -48,6 +46,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-049 Cobertura de pruebas de integracion critica
 - [x] TKT-051 Estandarizar linters y calidad de codigo
 - [x] TKT-050 Cobertura i18n completa en UI y mensajes
+- [x] TKT-046 Validacion fuerte de persistencia y esquema de datos
+- [x] TKT-034 Historial persistente de acciones IA y revertir
 - [x] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [x] TKT-031 Pre-Mes integrado a Q1 con indicador de origen
 - [x] TKT-030 Balance quincena a quincena con rebalanceo
@@ -608,7 +608,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-034 - Historial persistente de acciones IA y revertir
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -619,7 +619,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - Checklist:
    - [x] Definir modelo de datos para historial IA (acciones y metadatos)
    - [x] Persistir historial en almacenamiento principal
-   - [ ] Implementar UI de historial con opcion de revertir
+   - [x] Implementar UI de historial con opcion de revertir
 
 ### TKT-043 - Saneamiento historico de Git y datos sensibles
 
@@ -779,7 +779,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-046 - Validacion fuerte de persistencia y esquema de datos
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -790,7 +790,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - Checklist:
    - [x] Definir esquema de ingresos/primas/compromisos/iaConfig
    - [x] Implementar validador estructural y sanitizacion de entradas
-   - [ ] Agregar logs de error y pruebas de payloads invalidos
+   - [x] Agregar logs de error y pruebas de payloads invalidos
 
 ### TKT-047 - Eliminacion de handlers inline en HTML
 
@@ -886,7 +886,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
-1. TKT-034/TKT-046 en curso: se agregó historial persistente `iaHistory` para acciones IA (aplicar/revertir en recortes y rebalanceo), migración de esquema v3 y validación/sanitización estructural con recuperación parcial segura en import/restore/hydrate.
+1. TKT-034 y TKT-046 completados: historial IA persistente con revertir desde Config, esquema v4 con `iaHistory` y `persistenceErrors`, validación/sanitización estructural extendida, recuperación parcial segura en import/restore y diagnóstico de errores de persistencia con pruebas dedicadas.
 1. TKT-018 completado: acciones IA ahora son aplicables y reversibles tambien en rebalanceo semanal/quincenal (no solo recortes), con preview de impacto, confirmacion y undo transaccional.
 1. TKT-030/TKT-031/TKT-032 completados: bloque quincenal actualizado con vista de balance tramo a tramo (Q1/Q2), CTA de rebalanceo reutilizando flujo IA, integracion de Pre-Mes dentro de Q1 con badge de origen y metadatos visibles de fecha real/fecha de impacto en configuracion de ingresos.
 1. TKT-050 completado: textos principales de UI migrados a i18n declarativo (`data-i18n`/`data-i18n-placeholder`), diccionario expandido ES/EN y pruebas de fallback + traduccion declarativa agregadas.

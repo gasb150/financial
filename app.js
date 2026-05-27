@@ -44,6 +44,7 @@ const datosDefault = resolverDatosDefaultExternos() || {
   primasList: [],
   compromisos: [],
   iaHistory: [],
+  persistenceErrors: [],
   lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"],
   iaConfig: {
     mode: 'off',
@@ -61,7 +62,7 @@ const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
-const APP_SCHEMA_VERSION = 3;
+const APP_SCHEMA_VERSION = 4;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
@@ -97,6 +98,11 @@ const APP_SCHEMA_MIGRATORS = {
   3: (data) => {
     if(!Array.isArray(data.iaHistory)) data.iaHistory = [];
     if(data.iaHistory.length > 500) data.iaHistory = data.iaHistory.slice(-500);
+    return data;
+  },
+  4: (data) => {
+    if(!Array.isArray(data.persistenceErrors)) data.persistenceErrors = [];
+    if(data.persistenceErrors.length > 200) data.persistenceErrors = data.persistenceErrors.slice(-200);
     return data;
   }
 };
@@ -137,6 +143,8 @@ function normalizarEstadoCargado() {
   if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
   if(!Array.isArray(appData.iaHistory)) appData.iaHistory = [];
   if(appData.iaHistory.length > 500) appData.iaHistory = appData.iaHistory.slice(-500);
+  if(!Array.isArray(appData.persistenceErrors)) appData.persistenceErrors = [];
+  if(appData.persistenceErrors.length > 200) appData.persistenceErrors = appData.persistenceErrors.slice(-200);
   if(!IA_MODES.includes(appData.iaConfig.mode)) appData.iaConfig.mode = 'off';
   if(typeof appData.iaConfig.providerLocalEndpoint !== 'string' || !appData.iaConfig.providerLocalEndpoint.trim()) {
     appData.iaConfig.providerLocalEndpoint = 'http://localhost:11434/api/generate';
@@ -160,6 +168,18 @@ function validarDataPrincipal(payload) {
 
 function sanitizarDataPrincipal(payload) {
   return window.FinancialData.sanitizePrimaryData(payload);
+}
+
+function registrarErrorPersistencia(source, err, metadata = {}) {
+  if(window.FinancialData && typeof window.FinancialData.registerPersistenceError === 'function') {
+    window.FinancialData.registerPersistenceError(source, err, metadata);
+  }
+}
+
+function limpiarErroresPersistencia() {
+  if(window.FinancialData && typeof window.FinancialData.clearPersistenceErrors === 'function') {
+    window.FinancialData.clearPersistenceErrors();
+  }
 }
 
 function abrirIndexedDB() {
@@ -264,6 +284,7 @@ async function exportarRespaldoJSON() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch(_e) {
+    registrarErrorPersistencia('backup-export', _e);
     alert('No se pudo exportar el respaldo.');
   }
 }
@@ -310,6 +331,7 @@ function importarRespaldoArchivo(event) {
       initApp();
       alert('Respaldo importado correctamente.');
     } catch(_e) {
+      registrarErrorPersistencia('backup-import', _e);
       alert('No se pudo leer el archivo de respaldo.');
     } finally {
       if(event && event.target) event.target.value = '';
@@ -360,6 +382,7 @@ async function restaurarUltimoRespaldoLocal() {
     initApp();
     alert('Se restauró el último auto-respaldo local.');
   } catch(_e) {
+    registrarErrorPersistencia('backup-restore-local', _e);
     alert('No se pudo restaurar el auto-respaldo local.');
   }
 }
@@ -689,6 +712,82 @@ function renderConfigIA() {
   if(model) model.value = cfg.model;
   if(timeout) timeout.value = String(cfg.timeoutMs);
   if(retries) retries.value = String(cfg.retries);
+  renderHistorialIAConfig();
+  renderDiagnosticoPersistenciaConfig();
+}
+
+function i18nConfigText(key, fallback) {
+  if(window.FinancialI18n && typeof window.FinancialI18n.t === 'function') {
+    let out = window.FinancialI18n.t(key);
+    if(out && out !== key) return out;
+  }
+  return fallback;
+}
+
+function renderHistorialIAConfig() {
+  let nodo = document.getElementById('ia-history-list');
+  if(!nodo) return;
+
+  let historial = Array.isArray(appData.iaHistory) ? [...appData.iaHistory] : [];
+  if(!historial.length) {
+    nodo.innerText = i18nConfigText('config.iaHistoryEmpty', 'Sin historial IA por ahora.');
+    return;
+  }
+
+  historial.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  let top = historial.slice(0, 30);
+  let btnTxt = i18nConfigText('config.revertFromHistory', 'Revertir desde historial');
+
+  nodo.innerHTML = top.map((it) => {
+    let fecha = String(it.at || '').replace('T', ' ').slice(0, 16);
+    let estado = String(it.status || '').toLowerCase();
+    let puedeRevertir = estado === 'applied'
+      && it.details
+      && typeof it.details === 'object'
+      && it.details.before
+      && it.itemId !== null
+      && it.itemId !== undefined;
+
+    return `
+      <div class="row" style="align-items:flex-start;">
+        <div class="rn" style="display:block;">
+          <div style="font-weight:600;">${escapeHTML(String(it.itemName || `Item ${it.itemId || '-'}`))}</div>
+          <div class="rm">${escapeHTML(String(it.source || 'ia'))} · ${escapeHTML(String(it.actionType || 'accion'))} · ${escapeHTML(estado)}</div>
+          <div class="rm">${escapeHTML(fecha)}</div>
+        </div>
+        <div class="ra" style="min-width:120px;text-align:right;">
+          ${puedeRevertir
+            ? `<button class="btn-action" style="padding:6px 8px;width:auto;" data-action="revert-ia-history" data-value="${escapeHTML(String(it.id || ''))}">${escapeHTML(btnTxt)}</button>`
+            : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDiagnosticoPersistenciaConfig() {
+  let nodo = document.getElementById('persist-errors-list');
+  if(!nodo) return;
+
+  let errores = Array.isArray(appData.persistenceErrors) ? [...appData.persistenceErrors] : [];
+  if(!errores.length) {
+    nodo.innerText = i18nConfigText('config.persistenceErrorsEmpty', 'Sin errores de persistencia registrados.');
+    return;
+  }
+
+  errores.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  nodo.innerHTML = errores.slice(0, 20).map((err) => {
+    let fecha = String(err.at || '').replace('T', ' ').slice(0, 16);
+    return `
+      <div class="row" style="align-items:flex-start;">
+        <div class="rn" style="display:block;">
+          <div style="font-weight:600;">${escapeHTML(String(err.source || 'persistencia'))}</div>
+          <div class="rm">${escapeHTML(String(err.message || 'error desconocido'))}</div>
+          <div class="rm">${escapeHTML(fecha)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function setModoIA(modoNuevo) {
@@ -1942,6 +2041,16 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'restore-backup') {
       restaurarUltimoRespaldoLocal();
+      return;
+    }
+    if(action === 'revert-ia-history') {
+      if(typeof revertirEventoHistorialIA === 'function') revertirEventoHistorialIA(value);
+      return;
+    }
+    if(action === 'clear-persist-errors') {
+      limpiarErroresPersistencia();
+      persistirDataPrincipalConFallback();
+      renderDiagnosticoPersistenciaConfig();
       return;
     }
     if(action === 'test-ai-mode') {

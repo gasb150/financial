@@ -380,6 +380,67 @@ function registrarEventoHistorialIA(eventoRaw) {
   }
 }
 
+function revertirEventoHistorialIA(eventoIdRaw) {
+  let eventoId = String(eventoIdRaw || '').trim();
+  if(!eventoId) return;
+  if(!Array.isArray(appData.iaHistory)) appData.iaHistory = [];
+
+  let idx = appData.iaHistory.findIndex((it) => String(it.id || '') === eventoId);
+  if(idx < 0) {
+    alert('No se encontró el evento en historial.');
+    return;
+  }
+
+  let evento = appData.iaHistory[idx];
+  let estado = String(evento.status || '').toLowerCase();
+  if(estado !== 'applied') {
+    alert('Este evento ya fue revertido o no es reversible.');
+    return;
+  }
+
+  let before = evento.details && typeof evento.details === 'object' ? evento.details.before : null;
+  if(!before || typeof before !== 'object') {
+    alert('No hay snapshot previo para revertir este evento.');
+    return;
+  }
+
+  let itemId = parseInt(evento.itemId, 10);
+  if(isNaN(itemId)) {
+    alert('El evento no tiene itemId válido para revertir.');
+    return;
+  }
+
+  let monthKey = String(evento.monthKey || mesActivoGlobal || '');
+  let idxComp = appData.compromisos.findIndex((c) => c.id === itemId && c.mesKey === monthKey);
+  if(idxComp < 0) {
+    alert('No se pudo revertir: el compromiso ya no existe en el mes del evento.');
+    return;
+  }
+
+  let afterPrev = { ...appData.compromisos[idxComp] };
+  appData.compromisos[idxComp] = { ...before };
+
+  evento.status = 'reverted';
+  evento.revertedAt = new Date().toISOString();
+
+  registrarEventoHistorialIA({
+    source: 'history',
+    actionType: evento.actionType || 'unknown',
+    status: 'reverted',
+    itemId,
+    itemName: before.nombre || evento.itemName || '',
+    details: {
+      revertedFromEventId: evento.id,
+      before: afterPrev,
+      after: before
+    }
+  });
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+  initApp();
+}
+
 function deshacerCambioSugerenciaRecorteMesIA(index) {
   let stateKey = 'recortesItemsMes';
   let st = getEstadoRecortesItemsMes();
