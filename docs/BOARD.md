@@ -25,6 +25,11 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
 - [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
+- [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
+- [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
+- [ ] TKT-054 Sincronizacion Drive <-> local con versionado
+- [ ] TKT-055 Cifrado de respaldo y secretos en cliente
+- [ ] TKT-056 Resolucion de conflictos multi-dispositivo
 
 ## En curso
 
@@ -241,6 +246,81 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Vista simple de costo/uso acumulado.
+
+### TKT-052 - Arquitectura backend en Google Drive (MVP)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe diseno tecnico para usar Google Drive como capa remota de datos sin romper modo offline.
+   - Se define estrategia de almacenamiento (archivo JSON unico o snapshots versionados) y limites de tamano/frecuencia.
+   - Se documenta flujo de errores/quota/rate-limit y fallback a persistencia local.
+- Checklist:
+   - [ ] Definir arquitectura objetivo (Drive API directa vs Apps Script proxy)
+   - [ ] Definir contrato de datos remoto (schema, metadatos, version)
+   - [ ] Definir politicas de reintento, cuota y degradacion segura
+
+### TKT-053 - Autenticacion Google (OAuth2 PKCE) y sesion segura
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Login con Google desde cliente usando OAuth2 PKCE.
+   - Token handling sin exponer secretos en repositorio.
+   - Cierre de sesion y expiracion de token manejados con UX clara.
+- Checklist:
+   - [ ] Configurar OAuth client para entorno web
+   - [ ] Implementar flujo login/logout y refresco de sesion
+   - [ ] Gestionar estados de error de autenticacion y permisos
+
+### TKT-054 - Sincronizacion Drive <-> local con versionado
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Datos locales pueden subirse y descargarse desde Drive sin perdida.
+   - Cada snapshot remoto incluye version de esquema y timestamp consistente.
+   - Sync incremental evita sobreescrituras silenciosas.
+- Checklist:
+   - [ ] Implementar operaciones pull/push con control de version
+   - [ ] Agregar checksum/hash para validar integridad remota
+   - [ ] Agregar modo simulacion dry-run para validar merges
+
+### TKT-055 - Cifrado de respaldo y secretos en cliente
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Payload de respaldo remoto cifrado opcionalmente en cliente antes de subir.
+   - Material sensible no queda en texto plano en almacenamiento persistente.
+   - Flujo de recuperacion documentado (con y sin passphrase).
+- Checklist:
+   - [ ] Definir estrategia de cifrado cliente (Web Crypto)
+   - [ ] Implementar derivacion de clave y manejo de passphrase
+   - [ ] Probar restauracion completa desde payload cifrado
+
+### TKT-056 - Resolucion de conflictos multi-dispositivo
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Cuando dos dispositivos editan en paralelo, el sistema detecta conflicto.
+   - Usuario puede elegir estrategia (mantener local, mantener remoto o merge asistido).
+   - Se conserva historial minimo para auditoria de sincronizaciones.
+- Checklist:
+   - [ ] Definir politica de conflicto (LWW + confirmacion usuario)
+   - [ ] Implementar UI de decision de conflicto
+   - [ ] Registrar eventos de sync/conflicto para trazabilidad
 
 ### TKT-015 - Panel IA accionable (tarjetas + CTA)
 
