@@ -20,7 +20,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
-- [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
@@ -28,7 +27,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## En curso
 
-- [ ] Sin tickets en curso
+- [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 
 ## Bloqueado
 
