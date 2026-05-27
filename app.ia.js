@@ -1081,7 +1081,7 @@ function aplicarSugerenciaRecorteMesIA(index) {
 function obtenerEstadoRebalanceo(scope) {
   let stateKey = scope === 'semana' ? 'rebalanceSemana' : 'rebalanceQuincena';
   if(!iaPanelState[stateKey] || typeof iaPanelState[stateKey] !== 'object') {
-    iaPanelState[stateKey] = { loading: false, error: '', result: '', actions: [] };
+    iaPanelState[stateKey] = { loading: false, error: false, result: '', actions: [] };
   }
   if(!Array.isArray(iaPanelState[stateKey].actions)) iaPanelState[stateKey].actions = [];
   return { stateKey, state: iaPanelState[stateKey] };
@@ -1200,7 +1200,7 @@ function aplicarAccionRebalanceoIA(scope, index) {
     return;
   }
 
-  state.error = '';
+  state.error = false;
   state.result = `Rebalanceo aplicado en ${compActual.nombre}.`;
   initApp();
 }
@@ -1234,7 +1234,7 @@ function deshacerAccionRebalanceoIA(scope, index) {
   persistirDataPrincipalConFallback();
   persistirAuxiliaresConFallback(new Date().toISOString());
 
-  state.error = '';
+  state.error = false;
   state.result = `Cambio deshecho para ${prev.nombre}.`;
   initApp();
 }
@@ -1247,7 +1247,7 @@ async function analizarRebalanceoIA(scope) {
   let haySuperavit = tramos.some(t => t.saldoCierre > 0);
 
   if(!hayDeficit) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: '', actions: [] };
+    iaPanelState[stateKey] = { loading: false, error: false, result: '', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
@@ -1255,7 +1255,7 @@ async function analizarRebalanceoIA(scope) {
   }
 
   if(!haySuperavit) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay tramos con capacidad para recibir movimientos.', actions: [] };
+    iaPanelState[stateKey] = { loading: false, error: false, result: 'No hay tramos con capacidad para recibir movimientos.', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
@@ -1263,14 +1263,14 @@ async function analizarRebalanceoIA(scope) {
   }
 
   if(!movibles.length) {
-    iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay obligaciones variables pendientes para mover entre tramos.', actions: [] };
+    iaPanelState[stateKey] = { loading: false, error: false, result: 'No hay obligaciones variables pendientes para mover entre tramos.', actions: [] };
     renderSemanaActiva(getCompromisosMesActual());
     renderIAPanelSemanal();
     renderIAPanelQuincena();
     return;
   }
 
-  iaPanelState[stateKey] = { loading: true, error: '', result: '', actions: [] };
+  iaPanelState[stateKey] = { loading: true, error: false, result: '', actions: [] };
   renderSemanaActiva(getCompromisosMesActual());
   renderIAPanelSemanal();
   renderIAPanelQuincena();
@@ -1306,14 +1306,14 @@ async function analizarRebalanceoIA(scope) {
 
     iaPanelState[stateKey] = {
       loading: false,
-      error: '',
+      error: false,
       result: `${resumenEscenario}\n\nSugerencias IA:\n${out.message || 'Sin respuesta.'}`,
       actions: accionesRebalanceo
     };
   } catch(err) {
     iaPanelState[stateKey] = {
       loading: false,
-      error: '1',
+      error: true,
       result: err && err.message ? err.message : 'No se pudo generar rebalanceo entre tramos.',
       actions: []
     };

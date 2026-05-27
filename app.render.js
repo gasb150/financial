@@ -198,7 +198,7 @@
 
     let rebalanceState = (typeof iaPanelState === 'object' && iaPanelState && iaPanelState.rebalanceSemana)
       ? iaPanelState.rebalanceSemana
-      : { loading: false, error: '', result: '' };
+      : { loading: false, error: false, result: '' };
     let mostrarRebalanceoSemana = summaryWithCarry.some((week) => week.saldoCierre < 0);
     if(mostrarRebalanceoSemana) {
       let resultado = rebalanceState.result

@@ -17,8 +17,8 @@ let iaPanelState = {
   gastosQuincena: { loading: false, error: '', result: '' },
   gastosSemana: { loading: false, error: '', result: '' },
   recortesItemsMes: { loading: false, error: '', result: '', items: [] },
-  rebalanceQuincena: { loading: false, error: '', result: '', actions: [] },
-  rebalanceSemana: { loading: false, error: '', result: '', actions: [] }
+  rebalanceQuincena: { loading: false, error: false, result: '', actions: [] },
+  rebalanceSemana: { loading: false, error: false, result: '', actions: [] }
 };
 
 function clonarJSONSeguro(data) {
@@ -1097,7 +1097,6 @@ function renderConfigIngresos() {
     let desde = obtenerMesInicioIngreso(i);
     let hasta = obtenerMesFinIngreso(i);
     let diasReales = obtenerDiasPagoIngresoEnMes(i, mesActivoGlobal);
-    let diasImpacto = diasReales.map((d) => (d >= 29 ? 1 : d));
     let tieneArrastre = diasReales.some((d) => d >= 29);
     let fechaRealTxt = diasReales.length
       ? diasReales.map((d) => `día ${d}`).join(', ')
@@ -1563,7 +1562,7 @@ function renderBalanceQuincena(compromisosMes) {
   let tramos = resumen.tramos;
   let state = iaPanelState && iaPanelState.rebalanceQuincena
     ? iaPanelState.rebalanceQuincena
-    : { loading: false, error: '', result: '' };
+    : { loading: false, error: false, result: '' };
 
   let rowsHtml = tramos.map((t) => {
     let colorNeto = t.neto >= 0 ? '#1D9E75' : '#E24B4A';
