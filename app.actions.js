@@ -1,13 +1,35 @@
 // UI actions and form handlers module extracted from app.js.
 
 (function initFinancialActionsModule(globalScope) {
+  function persistAndStampNow() {
+    let nowISO = new Date().toISOString();
+    if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+    appData.iaConfig.updatedAt = nowISO;
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(nowISO);
+    return nowISO;
+  }
+
+  function commitAppChange(options = {}) {
+    initApp();
+    if(options.refreshDailyView && diaSeleccionadoActivo !== null && typeof renderVistaDiaria === 'function') {
+      renderVistaDiaria(compromisosMesGlobalCache);
+    }
+  }
+
+  function isValidPositiveValue(valor) {
+    return !isNaN(valor) && valor > 0;
+  }
+
+  function isValidDayInMonth(dia) {
+    return !isNaN(dia) && dia >= 1 && dia <= 31;
+  }
+
   function setAIMode(modoNuevo) {
     let modo = IA_MODES.includes(modoNuevo) ? modoNuevo : 'off';
     if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
     appData.iaConfig.mode = modo;
-    appData.iaConfig.updatedAt = new Date().toISOString();
-    persistirDataPrincipalConFallback();
-    persistirAuxiliaresConFallback(new Date().toISOString());
+    persistAndStampNow();
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
@@ -26,10 +48,7 @@
     appData.iaConfig.providerLocalModel = String(modelInput && modelInput.value ? modelInput.value : 'llama3.1:8b').trim() || 'llama3.1:8b';
     appData.iaConfig.timeoutMs = Math.min(Math.max(parseInt(timeoutInput && timeoutInput.value, 10) || 45000, 10000), 180000);
     appData.iaConfig.retries = Math.min(Math.max(parseInt(retriesInput && retriesInput.value, 10) || 1, 0), 4);
-    appData.iaConfig.updatedAt = new Date().toISOString();
-
-    persistirDataPrincipalConFallback();
-    persistirAuxiliaresConFallback(new Date().toISOString());
+    persistAndStampNow();
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
@@ -140,10 +159,7 @@
     let comp = appData.compromisos.find(c => c.id === id);
     if(comp) {
       comp.pagado = !comp.pagado;
-      initApp();
-      if(diaSeleccionadoActivo !== null) {
-        renderVistaDiaria(compromisosMesGlobalCache);
-      }
+      commitAppChange({ refreshDailyView: true });
     }
   }
 
@@ -174,8 +190,8 @@
     let mesFinRaw = document.getElementById('new-ing-hasta').value;
     let mesFinIndefinido = mesFinRaw === '__indefinido__';
     let mesFin = mesFinIndefinido ? null : mesFinRaw;
-    if(!nombre || isNaN(valor) || valor <= 0) { alert('Datos inválidos'); return; }
-    if(isNaN(diaPago) || diaPago < 1 || diaPago > 31) { alert('El día de pago del ingreso debe estar entre 1 y 31.'); return; }
+    if(!nombre || !isValidPositiveValue(valor)) { alert('Datos inválidos'); return; }
+    if(!isValidDayInMonth(diaPago)) { alert('El día de pago del ingreso debe estar entre 1 y 31.'); return; }
     if(!esMesKeyValido(mesInicio)) { alert('Selecciona el mes inicial de vigencia.'); return; }
     if(!mesFinIndefinido && !esMesKeyValido(mesFin)) { alert('Selecciona un mes final válido o deja indefinido.'); return; }
     if(!mesFinIndefinido && mesKeyToIndex(mesFin) < mesKeyToIndex(mesInicio)) { alert('La vigencia final no puede ser anterior al inicio.'); return; }
@@ -194,11 +210,11 @@
     document.getElementById('new-ing-dia').value = '30';
     document.getElementById('new-ing-desde').value = mesActivoGlobal;
     document.getElementById('new-ing-hasta').value = '__indefinido__';
-    initApp();
+    commitAppChange();
   }
 
   function removeIncome(id) {
-    if(confirm('¿Remover esta fuente?')) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); initApp(); }
+    if(confirm('¿Remover esta fuente?')) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); commitAppChange(); }
   }
 
   function addOneOffBonus() {
@@ -207,11 +223,11 @@
     let diaPago = parseInt(document.getElementById('new-prima-dia').value, 10);
     let mesKey = document.getElementById('new-prima-mes').value;
 
-    if(!nombre || isNaN(valor) || valor <= 0) {
+    if(!nombre || !isValidPositiveValue(valor)) {
       alert('Datos inválidos para la prima.');
       return;
     }
-    if(isNaN(diaPago) || diaPago < 1 || diaPago > 31) {
+    if(!isValidDayInMonth(diaPago)) {
       alert('El día de pago de la prima debe estar entre 1 y 31.');
       return;
     }
@@ -227,20 +243,20 @@
     document.getElementById('new-prima-nombre').value = '';
     document.getElementById('new-prima-valor').value = '';
     document.getElementById('new-prima-dia').value = '15';
-    initApp();
+    commitAppChange();
   }
 
   function removeBonus(id) {
     if(confirm('¿Eliminar esta prima?')) {
       appData.primasList = appData.primasList.filter(p => p.id !== id);
-      initApp();
+      commitAppChange();
     }
   }
 
   function removeCompromiso(id) {
     if(confirm('¿Eliminar compromiso?')) {
       appData.compromisos = appData.compromisos.filter(c => c.id !== id);
-      initApp();
+      commitAppChange();
     }
   }
 
@@ -253,12 +269,12 @@
     let faltantes = parseInt(document.getElementById('add-faltantes').value, 10);
     let totales = parseInt(document.getElementById('add-totales').value, 10);
 
-    if(!nombre || isNaN(valor) || valor <= 0) {
+    if(!nombre || !isValidPositiveValue(valor)) {
       alert('Debes ingresar un nombre y un valor mayor que 0.');
       return;
     }
 
-    if(dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31)) {
+    if(dia !== -1 && !isValidDayInMonth(dia)) {
       alert('El día debe ser -1 o estar entre 1 y 31.');
       return;
     }
@@ -295,7 +311,7 @@
     document.getElementById('add-totales').value = '12';
     setModoAltaDeuda('rapido');
 
-    initApp();
+    commitAppChange();
   }
 
   globalScope.FinancialActions = {

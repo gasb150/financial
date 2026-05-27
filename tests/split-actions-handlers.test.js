@@ -70,7 +70,7 @@ test('processNewExpense adds compromiso in quick mode and resets form values', (
 
   const appData = { compromisos: [] };
 
-  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['processNewExpense'], {
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['commitAppChange', 'isValidPositiveValue', 'isValidDayInMonth', 'processNewExpense'], {
     appData,
     modoAltaDeuda: 'rapido',
     mesActivoGlobal: 'Junio 2026',

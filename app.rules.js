@@ -16,6 +16,15 @@
     return { mes, anio: parseInt(anioStr, 10) };
   }
 
+  function getMesInfo(mesKey) {
+    let parsed = parseMesKeySafe(mesKey);
+    return {
+      nombreMes: parsed.mes,
+      anio: parsed.anio,
+      mesIdx: ORDEN_MESES.indexOf(parsed.mes)
+    };
+  }
+
   function mesKeyToNumericIndex(mesKey) {
     let parsed = parseMesKeySafe(mesKey);
     return (parsed.anio * 12) + ORDEN_MESES.indexOf(parsed.mes);
@@ -278,14 +287,8 @@
   }
 
   function getWeeksForActiveMonth() {
-    let partes = mesActivoGlobal.split(' ');
-    let nombreMes = partes[0];
-    let anio = parseInt(partes[1], 10);
-    const mesesIndices = {
-      'Enero':0,'Febrero':1,'Marzo':2,'Abril':3,'Mayo':4,'Junio':5,
-      'Julio':6,'Agosto':7,'Septiembre':8,'Octubre':9,'Noviembre':10,'Diciembre':11
-    };
-    let mesIdx = mesesIndices[nombreMes];
+    let { nombreMes, anio, mesIdx } = getMesInfo(mesActivoGlobal);
+    if(mesIdx < 0 || isNaN(anio)) return [];
     let totalDias = new Date(anio, mesIdx + 1, 0).getDate();
     let semanas = [];
     let diasAcumulados = [];

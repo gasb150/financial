@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_JS = path.join(ROOT, 'app.data.js');
 
 test('validatePrimaryData accepts only required array shape', () => {
-  const ctx = loadFunctionsFromFile(DATA_JS, ['validatePrimaryData']);
+  const ctx = loadFunctionsFromFile(DATA_JS, ['validateCoreDataShape', 'validatePrimaryData']);
 
   assert.equal(
     ctx.validatePrimaryData({ ingresosList: [], compromisos: [], lineaTiempoGuardada: [] }),
@@ -36,7 +36,7 @@ test('hashFallbackHex is deterministic and returns fixed-length hash', () => {
 });
 
 test('validateBackupPayload enforces required backup structure', () => {
-  const ctx = loadFunctionsFromFile(DATA_JS, ['validateBackupPayload']);
+  const ctx = loadFunctionsFromFile(DATA_JS, ['validateCoreDataShape', 'validateBackupPayload']);
 
   assert.equal(
     ctx.validateBackupPayload({ ingresosList: [], compromisos: [], lineaTiempoGuardada: [] }),
