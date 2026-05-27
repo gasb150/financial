@@ -3,6 +3,8 @@
 (function initFinancialActionsModule(globalScope) {
   function persistAndStampNow() {
     let nowISO = new Date().toISOString();
+    if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+    appData.iaConfig.updatedAt = nowISO;
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(nowISO);
     return nowISO;
@@ -27,10 +29,7 @@
     let modo = IA_MODES.includes(modoNuevo) ? modoNuevo : 'off';
     if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
     appData.iaConfig.mode = modo;
-    let nowISO = new Date().toISOString();
-    appData.iaConfig.updatedAt = nowISO;
-    persistirDataPrincipalConFallback();
-    persistirAuxiliaresConFallback(nowISO);
+    persistAndStampNow();
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
@@ -49,10 +48,7 @@
     appData.iaConfig.providerLocalModel = String(modelInput && modelInput.value ? modelInput.value : 'llama3.1:8b').trim() || 'llama3.1:8b';
     appData.iaConfig.timeoutMs = Math.min(Math.max(parseInt(timeoutInput && timeoutInput.value, 10) || 45000, 10000), 180000);
     appData.iaConfig.retries = Math.min(Math.max(parseInt(retriesInput && retriesInput.value, 10) || 1, 0), 4);
-    let nowISO = new Date().toISOString();
-    appData.iaConfig.updatedAt = nowISO;
-    persistirDataPrincipalConFallback();
-    persistirAuxiliaresConFallback(nowISO);
+    persistAndStampNow();
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
