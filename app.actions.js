@@ -55,6 +55,35 @@
     if(salida) salida.innerText = 'Configuracion LOCAL guardada.';
   }
 
+  function saveApiAIConfig() {
+    if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+
+    let endpointInput = document.getElementById('ia-api-endpoint');
+    let providerInput = document.getElementById('ia-api-provider');
+    let modelInput = document.getElementById('ia-api-model');
+    let keyInput = document.getElementById('ia-api-key');
+    let dailyTokensInput = document.getElementById('ia-api-daily-tokens');
+    let monthlyTokensInput = document.getElementById('ia-api-monthly-tokens');
+    let dailyCopInput = document.getElementById('ia-api-daily-cop');
+    let monthlyCopInput = document.getElementById('ia-api-monthly-cop');
+    let cost1kInput = document.getElementById('ia-api-cost-1k');
+
+    appData.iaConfig.providerApiEndpoint = normalizarEndpointIAGateway(endpointInput ? endpointInput.value : '');
+    appData.iaConfig.providerApiName = String(providerInput && providerInput.value ? providerInput.value : 'generic').trim() || 'generic';
+    appData.iaConfig.providerApiModel = String(modelInput && modelInput.value ? modelInput.value : 'gpt-4.1-mini').trim() || 'gpt-4.1-mini';
+    appData.iaConfig.providerApiKey = String(keyInput && keyInput.value ? keyInput.value : '').trim();
+    appData.iaConfig.apiDailyTokenLimit = Math.max(0, parseInt(dailyTokensInput && dailyTokensInput.value, 10) || 80000);
+    appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, parseInt(monthlyTokensInput && monthlyTokensInput.value, 10) || 1200000);
+    appData.iaConfig.apiDailyCopLimit = Math.max(0, parseInt(dailyCopInput && dailyCopInput.value, 10) || 20000);
+    appData.iaConfig.apiMonthlyCopLimit = Math.max(0, parseInt(monthlyCopInput && monthlyCopInput.value, 10) || 200000);
+    appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, parseInt(cost1kInput && cost1kInput.value, 10) || 40);
+    persistAndStampNow();
+    renderConfigIA();
+
+    let salida = document.getElementById('ia-test-result');
+    if(salida) salida.innerText = 'Configuración API guardada.';
+  }
+
   async function testConfiguredAI() {
     let out = document.getElementById('ia-test-result');
     if(!out) return;
@@ -317,6 +346,7 @@
   globalScope.FinancialActions = {
     setAIMode,
     saveLocalAIConfig,
+    saveApiAIConfig,
     testConfiguredAI,
     installPWAApp,
     toggleInstallmentFields,
