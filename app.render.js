@@ -1,18 +1,31 @@
 // Render and navigation module extracted from app.js for maintainability.
 
 (function initFinancialRenderModule(globalScope) {
+  function getTranslator() {
+    if(window.FinancialI18n && typeof window.FinancialI18n.t === 'function') {
+      return window.FinancialI18n.t;
+    }
+
+    return (key, vars = {}) => {
+      let locale = (appData && appData.locale) || 'es-CO';
+      let externalDictionary = window.FINANCIAL_I18N_DICTIONARY || {};
+      let localeDict = externalDictionary[locale] || externalDictionary['es-CO'] || {};
+      let fallbackDict = externalDictionary['es-CO'] || {};
+      let template = localeDict[key] || fallbackDict[key] || key;
+      return Object.keys(vars).reduce((acc, varKey) => acc.replace(`{{${varKey}}}`, String(vars[varKey])), template);
+    };
+  }
+
+  function resolvePreferredMonth() {
+    if(mesesLineaTiempo.includes(mesActivoGlobal)) return mesActivoGlobal;
+    return mesesLineaTiempo[0] || '';
+  }
+
   function renderLastSavedIndicator() {
     let node = document.getElementById('last-save-indicator');
     if(!node) return;
 
-    let tr = (window.FinancialI18n && typeof window.FinancialI18n.t === 'function')
-      ? window.FinancialI18n.t
-      : (key, vars = {}) => {
-        if(key === 'lastSave.none') return 'Ultimo guardado: sin registro aun.';
-        if(key === 'lastSave.invalid') return 'Ultimo guardado: formato invalido.';
-        if(key === 'lastSave.ok') return `Ultimo guardado: ${vars.value || ''}`;
-        return key;
-      };
+    let tr = getTranslator();
 
     let raw = localStorage.getItem(STORAGE_LAST_SAVE_KEY);
     if(!raw) {
@@ -49,11 +62,6 @@
     let formSelect = document.getElementById('add-mes-destino');
     let bonusSelect = document.getElementById('new-prima-mes');
     let mainCache = mainSelect.value || mesActivoGlobal;
-
-    function resolvePreferredMonth() {
-      if(mesesLineaTiempo.includes('Junio 2026')) return 'Junio 2026';
-      return mesesLineaTiempo[0] || 'Junio 2026';
-    }
 
     if(!mesesLineaTiempo.includes(mesActivoGlobal)) {
       mesActivoGlobal = resolvePreferredMonth();

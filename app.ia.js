@@ -854,6 +854,32 @@ function renderIAPanelDeudas() {
   `;
 }
 
+function refreshIAPanels(scope = 'all') {
+  if(scope === 'resumen') {
+    renderIAPanelResumen();
+    return;
+  }
+  if(scope === 'resumen-deudas') {
+    renderIAPanelResumen();
+    renderIAPanelDeudas();
+    return;
+  }
+  if(scope === 'tramos') {
+    renderIAPanelSemanal();
+    renderIAPanelQuincena();
+    return;
+  }
+
+  renderIAPanelResumen();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+}
+
+function refreshTramosAndWeekView() {
+  renderSemanaActiva(getCompromisosMesActual());
+  refreshIAPanels('tramos');
+}
+
 async function pedirEstrategiaDeudasIA() {
   let items = getCompromisosMesActual()
     .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
@@ -862,14 +888,12 @@ async function pedirEstrategiaDeudasIA() {
 
   if(items.length === 0) {
     iaPanelState.deudas = { loading: false, error: '', result: 'No se encontraron deudas personales para analizar en este mes.' };
-    renderIAPanelResumen();
-    renderIAPanelDeudas();
+    refreshIAPanels('resumen-deudas');
     return;
   }
 
   iaPanelState.deudas = { loading: true, error: '', result: '' };
-  renderIAPanelResumen();
-  renderIAPanelDeudas();
+  refreshIAPanels('resumen-deudas');
 
   try {
     let prompt = construirPromptEstrategiaDeudas(items);
@@ -879,8 +903,7 @@ async function pedirEstrategiaDeudasIA() {
     iaPanelState.deudas = { loading: false, error: '1', result: err && err.message ? err.message : 'No se pudo generar estrategia.' };
   }
 
-  renderIAPanelResumen();
-  renderIAPanelDeudas();
+  refreshIAPanels('resumen-deudas');
 }
 
 async function analizarReduccionGastosIA(scope) {
@@ -902,16 +925,12 @@ async function analizarReduccionGastosIA(scope) {
 
   if(items.length === 0) {
     iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay gastos pendientes para analizar en este bloque.' };
-    renderIAPanelResumen();
-    renderIAPanelSemanal();
-    renderIAPanelQuincena();
+    refreshIAPanels();
     return;
   }
 
   iaPanelState[stateKey] = { loading: true, error: '', result: '' };
-  renderIAPanelResumen();
-  renderIAPanelSemanal();
-  renderIAPanelQuincena();
+  refreshIAPanels();
 
   try {
     let prompt = construirPromptRecorteVariables(items);
@@ -921,9 +940,7 @@ async function analizarReduccionGastosIA(scope) {
     iaPanelState[stateKey] = { loading: false, error: '1', result: err && err.message ? err.message : 'No se pudo analizar recortes.' };
   }
 
-  renderIAPanelResumen();
-  renderIAPanelSemanal();
-  renderIAPanelQuincena();
+  refreshIAPanels();
 }
 
 async function analizarReduccionGastosMesIA() {
@@ -944,12 +961,12 @@ async function analizarRecortesItemMesIA() {
 
   if(items.length === 0) {
     iaPanelState[stateKey] = { loading: false, error: '', result: 'No hay gastos variables pendientes para sugerir recortes.', items: [] };
-    renderIAPanelResumen();
+    refreshIAPanels('resumen');
     return;
   }
 
   iaPanelState[stateKey] = { loading: true, error: '', result: '', items: [] };
-  renderIAPanelResumen();
+  refreshIAPanels('resumen');
 
   try {
     let prompt = construirPromptRecortesItemAccionables(items);
@@ -978,7 +995,7 @@ async function analizarRecortesItemMesIA() {
     };
   }
 
-  renderIAPanelResumen();
+  refreshIAPanels('resumen');
 }
 
 function aplicarSugerenciaRecorteMesIA(index) {
@@ -992,7 +1009,7 @@ function aplicarSugerenciaRecorteMesIA(index) {
   if(!comp) {
     iaPanelState[stateKey].error = '1';
     iaPanelState[stateKey].result = `No se encontro el item ${sug.nombre} en el mes activo.`;
-    renderIAPanelResumen();
+    refreshIAPanels('resumen');
     return;
   }
 
@@ -1003,7 +1020,7 @@ function aplicarSugerenciaRecorteMesIA(index) {
   if(!accion) {
     iaPanelState[stateKey].error = '1';
     iaPanelState[stateKey].result = 'Sugerencia invalida: no cumple contrato de accion IA.';
-    renderIAPanelResumen();
+    refreshIAPanels('resumen');
     return;
   }
 
@@ -1017,7 +1034,7 @@ function aplicarSugerenciaRecorteMesIA(index) {
   if(idxComp < 0) {
     iaPanelState[stateKey].error = '1';
     iaPanelState[stateKey].result = `No se encontro el item ${sug.nombre} en el mes activo.`;
-    renderIAPanelResumen();
+    refreshIAPanels('resumen');
     return;
   }
 
@@ -1067,7 +1084,7 @@ function aplicarSugerenciaRecorteMesIA(index) {
     delete sug.ahorroReal;
     iaPanelState[stateKey].error = '1';
     iaPanelState[stateKey].result = `No se pudo aplicar la accion de forma segura: ${err && err.message ? err.message : 'error desconocido'}.`;
-    renderIAPanelResumen();
+    refreshIAPanels('resumen');
     return;
   }
 
@@ -1248,32 +1265,24 @@ async function analizarRebalanceoIA(scope) {
 
   if(!hayDeficit) {
     iaPanelState[stateKey] = { loading: false, error: false, result: '', actions: [] };
-    renderSemanaActiva(getCompromisosMesActual());
-    renderIAPanelSemanal();
-    renderIAPanelQuincena();
+    refreshTramosAndWeekView();
     return;
   }
 
   if(!haySuperavit) {
     iaPanelState[stateKey] = { loading: false, error: false, result: 'No hay tramos con capacidad para recibir movimientos.', actions: [] };
-    renderSemanaActiva(getCompromisosMesActual());
-    renderIAPanelSemanal();
-    renderIAPanelQuincena();
+    refreshTramosAndWeekView();
     return;
   }
 
   if(!movibles.length) {
     iaPanelState[stateKey] = { loading: false, error: false, result: 'No hay obligaciones variables pendientes para mover entre tramos.', actions: [] };
-    renderSemanaActiva(getCompromisosMesActual());
-    renderIAPanelSemanal();
-    renderIAPanelQuincena();
+    refreshTramosAndWeekView();
     return;
   }
 
   iaPanelState[stateKey] = { loading: true, error: false, result: '', actions: [] };
-  renderSemanaActiva(getCompromisosMesActual());
-  renderIAPanelSemanal();
-  renderIAPanelQuincena();
+  refreshTramosAndWeekView();
 
   try {
     let prompt = construirPromptRebalanceoTramos(scope, tramos, movibles);
@@ -1319,9 +1328,7 @@ async function analizarRebalanceoIA(scope) {
     };
   }
 
-  renderSemanaActiva(getCompromisosMesActual());
-  renderIAPanelSemanal();
-  renderIAPanelQuincena();
+  refreshTramosAndWeekView();
 }
 
 async function analizarRebalanceoSemanaIA() {
@@ -1331,4 +1338,3 @@ async function analizarRebalanceoSemanaIA() {
 async function analizarRebalanceoQuincenaIA() {
   return analizarRebalanceoIA('quincena');
 }
-

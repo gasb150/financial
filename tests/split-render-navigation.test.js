@@ -32,8 +32,16 @@ test('renderLastSavedIndicator handles no data and invalid date cases', () => {
   const node = { innerText: '' };
   const storage = { value: null };
 
-  const ctx = loadFunctionsFromFile(RENDER_JS, ['renderLastSavedIndicator'], {
-    window: {},
+  const ctx = loadFunctionsFromFile(RENDER_JS, ['getTranslator', 'renderLastSavedIndicator'], {
+    window: {
+      FINANCIAL_I18N_DICTIONARY: {
+        'es-CO': {
+          'lastSave.none': 'Último guardado: sin registro aún.',
+          'lastSave.invalid': 'Último guardado: formato inválido.'
+        }
+      }
+    },
+    appData: { locale: 'es-CO' },
     STORAGE_LAST_SAVE_KEY: 'last-save',
     document: {
       getElementById: (id) => id === 'last-save-indicator' ? node : null
@@ -44,11 +52,11 @@ test('renderLastSavedIndicator handles no data and invalid date cases', () => {
   });
 
   ctx.renderLastSavedIndicator();
-  assert.equal(node.innerText, 'Ultimo guardado: sin registro aun.');
+  assert.equal(node.innerText, 'Último guardado: sin registro aún.');
 
   storage.value = 'not-a-date';
   ctx.renderLastSavedIndicator();
-  assert.equal(node.innerText, 'Ultimo guardado: formato invalido.');
+  assert.equal(node.innerText, 'Último guardado: formato inválido.');
 });
 
 test('showQuincenaTab toggles display and button states by active tab', () => {

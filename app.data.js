@@ -1,12 +1,16 @@
 // Data and persistence module extracted from app.js for maintainability.
 
 (function initFinancialDataModule(globalScope) {
-  function validatePrimaryData(payload) {
+  function validateCoreDataShape(payload) {
     if(!payload || typeof payload !== 'object') return false;
     if(!Array.isArray(payload.ingresosList)) return false;
     if(!Array.isArray(payload.compromisos)) return false;
     if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
     return true;
+  }
+
+  function validatePrimaryData(payload) {
+    return validateCoreDataShape(payload);
   }
 
   function openIndexedDB() {
@@ -97,11 +101,7 @@
   }
 
   function validateBackupPayload(payload) {
-    if(!payload || typeof payload !== 'object') return false;
-    if(!Array.isArray(payload.ingresosList)) return false;
-    if(!Array.isArray(payload.compromisos)) return false;
-    if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
-    return true;
+    return validateCoreDataShape(payload);
   }
 
   async function sha256Hex(texto) {
