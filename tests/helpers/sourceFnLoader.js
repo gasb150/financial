@@ -2,8 +2,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 function extractFunctionFromSource(source, functionName) {
+  const asyncMarker = `async function ${functionName}(`;
   const marker = `function ${functionName}(`;
-  const start = source.indexOf(marker);
+  let start = source.indexOf(asyncMarker);
+  if (start < 0) start = source.indexOf(marker);
   if (start < 0) {
     throw new Error(`Function not found: ${functionName}`);
   }

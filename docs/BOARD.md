@@ -29,7 +29,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## En curso
 
-- [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
+- [ ] Sin tickets en curso
 
 ## Bloqueado
 
@@ -40,6 +40,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-011 Asistente IA: simulador de escenarios
 - [x] TKT-010 Asistente IA: alertas de deficit
 - [x] TKT-009 Asistente IA: resumen mensual
+- [x] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
 - [x] TKT-040 QA de regresion post-split y saneamiento
@@ -533,7 +534,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-029 - QA funcional de sugerencias IA y reglas de visibilidad
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -542,9 +543,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se valida no-regresion de reglas de visibilidad (TKT-022/023/024).
    - Se documentan casos borde y resultados esperados.
 - Checklist:
-   - [ ] Definir matriz de escenarios criticos
-   - [ ] Ejecutar pruebas manuales guiadas y registrar evidencia
-   - [ ] Ajustar criterios de aceptacion segun hallazgos
+   - [x] Definir matriz de escenarios criticos
+   - [x] Ejecutar pruebas manuales guiadas y registrar evidencia
+   - [x] Ajustar criterios de aceptacion segun hallazgos
 
 ### TKT-030 - Balance quincena a quincena con rebalanceo
 
@@ -883,6 +884,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [x] Registrar incidencias y aplicar correcciones de saneamiento
 
 ## Bitacora de avance
+
+### 2026-05-27
+
+1. TKT-029 completado: se formalizo la matriz QA de rebalanceo IA (escenarios con/sin deficit y con/sin sugerencias), se agregaron pruebas automatizadas del flujo `analizarRebalanceoIA` y se documento evidencia en `docs/TKT-029-QA.md`.
 
 ### 2026-05-26
 
