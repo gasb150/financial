@@ -43,6 +43,7 @@ const datosDefault = resolverDatosDefaultExternos() || {
   ingresosList: [],
   primasList: [],
   compromisos: [],
+  iaHistory: [],
   lineaTiempoGuardada: ["Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"],
   iaConfig: {
     mode: 'off',
@@ -60,7 +61,7 @@ const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
-const APP_SCHEMA_VERSION = 2;
+const APP_SCHEMA_VERSION = 3;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
@@ -91,6 +92,11 @@ const APP_SCHEMA_MIGRATORS = {
         }
       });
     }
+    return data;
+  },
+  3: (data) => {
+    if(!Array.isArray(data.iaHistory)) data.iaHistory = [];
+    if(data.iaHistory.length > 500) data.iaHistory = data.iaHistory.slice(-500);
     return data;
   }
 };
@@ -129,6 +135,8 @@ function normalizarEstadoCargado() {
   if(!Array.isArray(appData.primasList)) appData.primasList = [];
   if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
   if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+  if(!Array.isArray(appData.iaHistory)) appData.iaHistory = [];
+  if(appData.iaHistory.length > 500) appData.iaHistory = appData.iaHistory.slice(-500);
   if(!IA_MODES.includes(appData.iaConfig.mode)) appData.iaConfig.mode = 'off';
   if(typeof appData.iaConfig.providerLocalEndpoint !== 'string' || !appData.iaConfig.providerLocalEndpoint.trim()) {
     appData.iaConfig.providerLocalEndpoint = 'http://localhost:11434/api/generate';
@@ -148,6 +156,10 @@ function normalizarEstadoCargado() {
 
 function validarDataPrincipal(payload) {
   return window.FinancialData.validatePrimaryData(payload);
+}
+
+function sanitizarDataPrincipal(payload) {
+  return window.FinancialData.sanitizePrimaryData(payload);
 }
 
 function abrirIndexedDB() {
@@ -278,11 +290,18 @@ function importarRespaldoArchivo(event) {
       }
 
       let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
-      if(!validarPayloadRespaldo(candidato)) {
-        alert('El archivo no tiene un formato de respaldo válido.');
+      let candidatoSeguro = candidato;
+      if(!validarPayloadRespaldo(candidatoSeguro)) {
+        candidatoSeguro = sanitizarDataPrincipal(candidatoSeguro);
+      }
+      if(!validarPayloadRespaldo(candidatoSeguro)) {
+        alert('El archivo no tiene un formato de respaldo válido y no se pudo recuperar de forma segura.');
         return;
       }
-      appData = aplicarMigracionesSchema(candidato);
+      if(candidatoSeguro !== candidato) {
+        alert('Respaldo importado con recuperación parcial segura (se descartaron bloques inválidos).');
+      }
+      appData = aplicarMigracionesSchema(candidatoSeguro);
       if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
       mesesLineaTiempo = appData.lineaTiempoGuardada;
       diaSeleccionadoActivo = null;
@@ -321,11 +340,18 @@ async function restaurarUltimoRespaldoLocal() {
     }
 
     let candidato = payload && payload.data ? payload.data : payload;
-    if(!validarPayloadRespaldo(candidato)) {
-      alert('El auto-respaldo local está incompleto.');
+    let candidatoSeguro = candidato;
+    if(!validarPayloadRespaldo(candidatoSeguro)) {
+      candidatoSeguro = sanitizarDataPrincipal(candidatoSeguro);
+    }
+    if(!validarPayloadRespaldo(candidatoSeguro)) {
+      alert('El auto-respaldo local está incompleto y no se pudo recuperar de forma segura.');
       return;
     }
-    appData = aplicarMigracionesSchema(candidato);
+    if(candidatoSeguro !== candidato) {
+      alert('Auto-respaldo recuperado parcialmente: se descartaron bloques inválidos.');
+    }
+    appData = aplicarMigracionesSchema(candidatoSeguro);
     if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
     mesesLineaTiempo = appData.lineaTiempoGuardada;
     diaSeleccionadoActivo = null;

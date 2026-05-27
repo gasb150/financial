@@ -21,9 +21,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
-- [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
-- [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
 - [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
@@ -33,6 +31,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## En curso
 
 - [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
+- [ ] TKT-034 Historial persistente de acciones IA y revertir
+- [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
 
 ## Bloqueado
 
@@ -533,7 +533,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-029 - QA funcional de sugerencias IA y reglas de visibilidad
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -608,7 +608,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-034 - Historial persistente de acciones IA y revertir
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -617,8 +617,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se puede revertir una o varias acciones previas desde el historial, con orden y trazabilidad.
    - El historial muestra accion, item afectado, timestamp y estado (aplicada/revertida).
 - Checklist:
-   - [ ] Definir modelo de datos para historial IA (acciones y metadatos)
-   - [ ] Persistir historial en almacenamiento principal
+   - [x] Definir modelo de datos para historial IA (acciones y metadatos)
+   - [x] Persistir historial en almacenamiento principal
    - [ ] Implementar UI de historial con opcion de revertir
 
 ### TKT-043 - Saneamiento historico de Git y datos sensibles
@@ -779,7 +779,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-046 - Validacion fuerte de persistencia y esquema de datos
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -788,8 +788,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se soporta recuperacion parcial segura cuando algun bloque del payload esta corrupto.
    - Se registra trazabilidad de errores de persistencia para diagnostico.
 - Checklist:
-   - [ ] Definir esquema de ingresos/primas/compromisos/iaConfig
-   - [ ] Implementar validador estructural y sanitizacion de entradas
+   - [x] Definir esquema de ingresos/primas/compromisos/iaConfig
+   - [x] Implementar validador estructural y sanitizacion de entradas
    - [ ] Agregar logs de error y pruebas de payloads invalidos
 
 ### TKT-047 - Eliminacion de handlers inline en HTML
@@ -886,6 +886,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-034/TKT-046 en curso: se agregó historial persistente `iaHistory` para acciones IA (aplicar/revertir en recortes y rebalanceo), migración de esquema v3 y validación/sanitización estructural con recuperación parcial segura en import/restore/hydrate.
 1. TKT-018 completado: acciones IA ahora son aplicables y reversibles tambien en rebalanceo semanal/quincenal (no solo recortes), con preview de impacto, confirmacion y undo transaccional.
 1. TKT-030/TKT-031/TKT-032 completados: bloque quincenal actualizado con vista de balance tramo a tramo (Q1/Q2), CTA de rebalanceo reutilizando flujo IA, integracion de Pre-Mes dentro de Q1 con badge de origen y metadatos visibles de fecha real/fecha de impacto en configuracion de ingresos.
 1. TKT-050 completado: textos principales de UI migrados a i18n declarativo (`data-i18n`/`data-i18n-placeholder`), diccionario expandido ES/EN y pruebas de fallback + traduccion declarativa agregadas.

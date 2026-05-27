@@ -1,11 +1,143 @@
 // Data and persistence module extracted from app.js for maintainability.
 
 (function initFinancialDataModule(globalScope) {
+  function isFiniteNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  function isNonEmptyString(value) {
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  function normalizeIAConfig(raw) {
+    let src = raw && typeof raw === 'object' ? raw : {};
+    let mode = String(src.mode || 'off').toLowerCase();
+    if(!['off', 'local', 'api'].includes(mode)) mode = 'off';
+
+    let timeoutMs = parseInt(src.timeoutMs, 10);
+    if(isNaN(timeoutMs)) timeoutMs = 45000;
+    timeoutMs = Math.min(Math.max(timeoutMs, 10000), 180000);
+
+    let retries = parseInt(src.retries, 10);
+    if(isNaN(retries)) retries = 1;
+    retries = Math.min(Math.max(retries, 0), 4);
+
+    return {
+      mode,
+      providerLocalEndpoint: isNonEmptyString(src.providerLocalEndpoint)
+        ? src.providerLocalEndpoint.trim()
+        : 'http://localhost:11434/api/generate',
+      providerLocalModel: isNonEmptyString(src.providerLocalModel)
+        ? src.providerLocalModel.trim()
+        : 'llama3.1:8b',
+      timeoutMs,
+      retries,
+      updatedAt: src.updatedAt || null
+    };
+  }
+
+  function isValidIngreso(item) {
+    if(!item || typeof item !== 'object') return false;
+    if(!isNonEmptyString(item.nombre)) return false;
+    if(!isFiniteNumber(item.valor)) return false;
+    return true;
+  }
+
+  function isValidCompromiso(item) {
+    if(!item || typeof item !== 'object') return false;
+    if(!isNonEmptyString(item.nombre)) return false;
+    if(!isFiniteNumber(item.valor)) return false;
+    let dia = parseInt(item.dia, 10);
+    if(isNaN(dia) || dia < -1 || dia > 31) return false;
+    if(!isNonEmptyString(item.mesKey)) return false;
+    return true;
+  }
+
+  function isValidPrima(item) {
+    if(!item || typeof item !== 'object') return false;
+    if(!isNonEmptyString(item.nombre)) return false;
+    if(!isFiniteNumber(item.valor)) return false;
+    return true;
+  }
+
+  function isValidHistoryEntry(item) {
+    if(!item || typeof item !== 'object') return false;
+    if(!isNonEmptyString(item.id)) return false;
+    if(!isNonEmptyString(item.at)) return false;
+    if(!isNonEmptyString(item.source)) return false;
+    if(!isNonEmptyString(item.actionType)) return false;
+    if(!isNonEmptyString(item.status)) return false;
+    return true;
+  }
+
+  function sanitizePrimaryData(payload) {
+    let src = payload && typeof payload === 'object' ? payload : {};
+    let base = typeof datosDefault === 'object' && datosDefault
+      ? JSON.parse(JSON.stringify(datosDefault))
+      : {
+          ingresosList: [],
+          primasList: [],
+          compromisos: [],
+          lineaTiempoGuardada: [],
+          iaConfig: {
+            mode: 'off',
+            providerLocalEndpoint: 'http://localhost:11434/api/generate',
+            providerLocalModel: 'llama3.1:8b',
+            timeoutMs: 45000,
+            retries: 1,
+            updatedAt: null
+          }
+        };
+
+    let sane = {
+      ...base,
+      ...src,
+      ingresosList: Array.isArray(src.ingresosList)
+        ? src.ingresosList.filter(isValidIngreso).map((it) => ({ ...it }))
+        : [],
+      primasList: Array.isArray(src.primasList)
+        ? src.primasList.filter(isValidPrima).map((it) => ({ ...it }))
+        : [],
+      compromisos: Array.isArray(src.compromisos)
+        ? src.compromisos.filter(isValidCompromiso).map((it) => ({ ...it }))
+        : [],
+      lineaTiempoGuardada: Array.isArray(src.lineaTiempoGuardada)
+        ? src.lineaTiempoGuardada.filter((it) => isNonEmptyString(it)).map((it) => it.trim())
+        : [],
+      iaConfig: normalizeIAConfig(src.iaConfig),
+      iaHistory: Array.isArray(src.iaHistory)
+        ? src.iaHistory.filter(isValidHistoryEntry).map((it) => ({ ...it })).slice(-500)
+        : []
+    };
+
+    if(!sane.lineaTiempoGuardada.length && Array.isArray(base.lineaTiempoGuardada)) {
+      sane.lineaTiempoGuardada = [...base.lineaTiempoGuardada];
+    }
+
+    if(!sane.migraciones || typeof sane.migraciones !== 'object') sane.migraciones = {};
+    if(!Number.isInteger(sane.schemaVersion)) sane.schemaVersion = APP_SCHEMA_VERSION;
+    return sane;
+  }
+
   function validatePrimaryData(payload) {
     if(!payload || typeof payload !== 'object') return false;
     if(!Array.isArray(payload.ingresosList)) return false;
     if(!Array.isArray(payload.compromisos)) return false;
     if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
+    if(!payload.ingresosList.every(isValidIngreso)) return false;
+    if(!payload.compromisos.every(isValidCompromiso)) return false;
+    if(!payload.lineaTiempoGuardada.every((it) => isNonEmptyString(it))) return false;
+    if(payload.primasList !== undefined) {
+      if(!Array.isArray(payload.primasList)) return false;
+      if(!payload.primasList.every(isValidPrima)) return false;
+    }
+    if(payload.iaConfig !== undefined) {
+      if(!payload.iaConfig || typeof payload.iaConfig !== 'object') return false;
+    }
+    if(payload.iaHistory !== undefined) {
+      if(!Array.isArray(payload.iaHistory)) return false;
+      if(!payload.iaHistory.every(isValidHistoryEntry)) return false;
+    }
     return true;
   }
 
@@ -61,6 +193,13 @@
         if(validatePrimaryData(migrada)) {
           appData = migrada;
           await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
+        } else {
+          // Recovery path: salvage valid blocks and keep app booting safely.
+          let recuperada = aplicarMigracionesSchema(sanitizePrimaryData(migrada));
+          if(validatePrimaryData(recuperada)) {
+            appData = recuperada;
+            await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
+          }
         }
       } else {
         await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
@@ -98,10 +237,7 @@
 
   function validateBackupPayload(payload) {
     if(!payload || typeof payload !== 'object') return false;
-    if(!Array.isArray(payload.ingresosList)) return false;
-    if(!Array.isArray(payload.compromisos)) return false;
-    if(!Array.isArray(payload.lineaTiempoGuardada)) return false;
-    return true;
+    return validatePrimaryData(payload);
   }
 
   async function sha256Hex(texto) {
@@ -173,6 +309,7 @@
 
   globalScope.FinancialData = {
     validatePrimaryData,
+    sanitizePrimaryData,
     openIndexedDB,
     idbGetRaw,
     idbSetRaw,

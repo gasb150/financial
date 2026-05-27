@@ -354,6 +354,32 @@ function construirTextoConfirmacionAccionIA(accion, nombre, preview) {
   return `${cab}\n${detalle}${motivo}\n\n¿Aplicar cambio?`;
 }
 
+function registrarEventoHistorialIA(eventoRaw) {
+  if(!appData || typeof appData !== 'object') return;
+  if(!Array.isArray(appData.iaHistory)) appData.iaHistory = [];
+
+  let ts = new Date().toISOString();
+  let itemIdNum = parseInt(eventoRaw && eventoRaw.itemId, 10);
+  let evento = {
+    id: `iah-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    at: ts,
+    monthKey: String(mesActivoGlobal || ''),
+    source: String((eventoRaw && eventoRaw.source) || 'ia').toLowerCase(),
+    actionType: String((eventoRaw && eventoRaw.actionType) || 'unknown').toLowerCase(),
+    status: String((eventoRaw && eventoRaw.status) || 'applied').toLowerCase(),
+    itemId: Number.isNaN(itemIdNum) ? null : itemIdNum,
+    itemName: String((eventoRaw && eventoRaw.itemName) || ''),
+    details: eventoRaw && eventoRaw.details && typeof eventoRaw.details === 'object'
+      ? { ...eventoRaw.details }
+      : {}
+  };
+
+  appData.iaHistory.push(evento);
+  if(appData.iaHistory.length > 500) {
+    appData.iaHistory = appData.iaHistory.slice(-500);
+  }
+}
+
 function deshacerCambioSugerenciaRecorteMesIA(index) {
   let stateKey = 'recortesItemsMes';
   let st = getEstadoRecortesItemsMes();
@@ -377,6 +403,17 @@ function deshacerCambioSugerenciaRecorteMesIA(index) {
   }
 
   appData.compromisos[idxComp] = { ...prev };
+  registrarEventoHistorialIA({
+    source: 'recorte',
+    actionType: sug.accion,
+    status: 'reverted',
+    itemId: prev.id,
+    itemName: prev.nombre,
+    details: {
+      before: sug.undoPayload.newComp || null,
+      after: prev
+    }
+  });
   sug.applied = false;
   delete sug.appliedAt;
   delete sug.ahorroReal;
@@ -1060,6 +1097,18 @@ function aplicarSugerenciaRecorteMesIA(index) {
       mesKey: mesActivoGlobal,
       at: new Date().toISOString()
     };
+
+    registrarEventoHistorialIA({
+      source: 'recorte',
+      actionType: accion.accion,
+      status: 'applied',
+      itemId: appData.compromisos[idxComp].id,
+      itemName: appData.compromisos[idxComp].nombre,
+      details: {
+        before: prevComp,
+        after: { ...appData.compromisos[idxComp] }
+      }
+    });
   } catch(err) {
     appData.compromisos[idxComp] = { ...prevComp };
     sug.applied = false;
@@ -1187,6 +1236,21 @@ function aplicarAccionRebalanceoIA(scope, index) {
       at: new Date().toISOString()
     };
 
+    registrarEventoHistorialIA({
+      source: 'rebalanceo',
+      actionType: accion.accion,
+      status: 'applied',
+      itemId: appData.compromisos[idxComp].id,
+      itemName: appData.compromisos[idxComp].nombre,
+      details: {
+        scope,
+        from: tramoOrigen,
+        to: tramoDestino,
+        before: prevComp,
+        after: { ...appData.compromisos[idxComp] }
+      }
+    });
+
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
   } catch(err) {
@@ -1227,6 +1291,18 @@ function deshacerAccionRebalanceoIA(scope, index) {
   }
 
   appData.compromisos[idxComp] = { ...prev };
+  registrarEventoHistorialIA({
+    source: 'rebalanceo',
+    actionType: accion.accion,
+    status: 'reverted',
+    itemId: prev.id,
+    itemName: prev.nombre,
+    details: {
+      scope,
+      before: accion.undoPayload.newComp || null,
+      after: prev
+    }
+  });
   accion.applied = false;
   delete accion.appliedAt;
   delete accion.undoPayload;
