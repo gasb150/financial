@@ -1033,6 +1033,13 @@ function buildIACardSimpleResultado(titulo, meta, stateKey, actionFnName, ctaTex
   `;
 }
 
+function obtenerMensajeIAValido(out) {
+  if(!out || out.ok === false) {
+    throw new Error((out && out.message) ? out.message : 'Sin respuesta valida desde IA.');
+  }
+  return out.message || 'Sin respuesta.';
+}
+
 async function pedirResumenMensualIA() {
   let stateKey = 'resumenMensual';
   let snapshot = construirSnapshotMensualIA(getCompromisosMesActual());
@@ -1044,7 +1051,8 @@ async function pedirResumenMensualIA() {
   try {
     let prompt = construirPromptResumenMensualIA(snapshot, alertaInfo);
     let out = await ejecutarConsultaIA(prompt);
-    iaPanelState[stateKey] = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+    let mensaje = obtenerMensajeIAValido(out);
+    iaPanelState[stateKey] = { loading: false, error: '', result: mensaje };
   } catch(_err) {
     let fallback = [
       `Estado general: ingresos ${formatCOP(snapshot.ingresos)}, gastos ${formatCOP(snapshot.gastos)}, balance ${formatCOP(snapshot.balance)}.`,
@@ -1068,7 +1076,8 @@ async function analizarAlertasDeficitIA() {
   try {
     let prompt = construirPromptAlertasDeficitIA(alertaInfo);
     let out = await ejecutarConsultaIA(prompt);
-    iaPanelState[stateKey] = { loading: false, error: '', result: out.message || 'Sin respuesta.' };
+    let mensaje = obtenerMensajeIAValido(out);
+    iaPanelState[stateKey] = { loading: false, error: '', result: mensaje };
   } catch(_err) {
     let fallback = [`Riesgo global: ${alertaInfo.riesgoGlobal}.`]
       .concat(alertaInfo.alertas.map((a) => `- ${a}`))
@@ -1099,11 +1108,12 @@ async function simularEscenariosIA() {
   try {
     let prompt = construirPromptEscenariosIA(escenarios);
     let out = await ejecutarConsultaIA(prompt);
+    let mensaje = obtenerMensajeIAValido(out);
     let detalle = formatearEscenariosIA(escenarios);
     iaPanelState[stateKey] = {
       loading: false,
       error: '',
-      result: `${detalle}\n\nLectura IA:\n${out.message || 'Sin respuesta.'}`
+      result: `${detalle}\n\nLectura IA:\n${mensaje}`
     };
   } catch(_err) {
     iaPanelState[stateKey] = { loading: false, error: '', result: formatearEscenariosIA(escenarios) };

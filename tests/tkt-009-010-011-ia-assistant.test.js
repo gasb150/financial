@@ -7,6 +7,20 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 const ROOT = path.resolve(__dirname, '..');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
+test('obtenerMensajeIAValido retorna mensaje cuando ok es true', () => {
+  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerMensajeIAValido'], {});
+  const out = ctx.obtenerMensajeIAValido({ ok: true, message: 'respuesta' });
+  assert.equal(out, 'respuesta');
+});
+
+test('obtenerMensajeIAValido lanza error cuando ok es false', () => {
+  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerMensajeIAValido'], {});
+  assert.throws(
+    () => ctx.obtenerMensajeIAValido({ ok: false, message: 'Gateway/API externa aun no integrada.' }),
+    /Gateway\/API externa aun no integrada\./
+  );
+});
+
 test('generarAlertasDeficitTempranasIA detecta riesgo semanal y mensual', () => {
   const ctx = loadFunctionsFromFile(
     APP_IA_JS,
