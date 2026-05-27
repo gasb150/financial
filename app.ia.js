@@ -808,7 +808,12 @@ function construirSnapshotMensualIA(compromisosMes) {
   let gastos = base.reduce((acc, c) => acc + (c.valor || 0), 0);
   let pendiente = base.reduce((acc, c) => acc + (!c.pagado ? (c.valor || 0) : 0), 0);
   let balance = ingresos - gastos;
-  let ratioPendiente = ingresos > 0 ? pendiente / ingresos : 1;
+  let ratioPendiente = 0;
+  if(ingresos > 0) {
+    ratioPendiente = pendiente / ingresos;
+  } else if(pendiente > 0) {
+    ratioPendiente = 1;
+  }
 
   return {
     ingresos,
@@ -957,7 +962,15 @@ function simularEscenariosBaseIA(compromisosMes) {
     if(target) {
       let diaAntes = parseInt(target.dia, 10);
       let diaBase = diaAntes === -1 ? 1 : diaAntes;
-      target.dia = Math.min(diaBase + 7, 31);
+      let ultimoDiaMes = 31;
+      let [mesNombre, anioTxt] = String(mesActivoGlobal || '').trim().split(/\s+/);
+      let anio = parseInt(anioTxt, 10);
+      let ordenMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      let mesIdx = ordenMeses.indexOf(mesNombre);
+      if(!isNaN(anio) && mesIdx >= 0) {
+        ultimoDiaMes = new Date(anio, mesIdx + 1, 0).getDate();
+      }
+      target.dia = Math.min(diaBase + 7, ultimoDiaMes);
       let despues = calcularMetricasEscenarioIA(clonado);
       escenarios.push({
         nombre: 'Posponer 7 dias la mayor obligacion pendiente',
