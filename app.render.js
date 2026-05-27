@@ -18,7 +18,9 @@
 
   function resolvePreferredMonth() {
     if(mesesLineaTiempo.includes(mesActivoGlobal)) return mesActivoGlobal;
-    return mesesLineaTiempo[0] || '';
+    if(mesesLineaTiempo.length > 0) return mesesLineaTiempo[0];
+    if(typeof mesActivoGlobal === 'string' && mesActivoGlobal.trim() !== '') return mesActivoGlobal;
+    return '';
   }
 
   function renderLastSavedIndicator() {
