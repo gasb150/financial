@@ -27,7 +27,10 @@
     let modo = IA_MODES.includes(modoNuevo) ? modoNuevo : 'off';
     if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
     appData.iaConfig.mode = modo;
-    appData.iaConfig.updatedAt = persistAndStampNow();
+    let nowISO = new Date().toISOString();
+    appData.iaConfig.updatedAt = nowISO;
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(nowISO);
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
