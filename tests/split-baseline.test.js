@@ -63,6 +63,33 @@ test('calcularBalanceSemanal usa ingresos por dias y pre-mes en semana 1', () =>
   assert.equal(out.ingresosEventos.length, 3);
 });
 
+test('calcularResumenBalanceQuincena integra Pre-Mes en Q1 y arrastra saldo a Q2', () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['calcularResumenBalanceQuincena']);
+
+  const eventos = [
+    { dia: 1, valor: 1000 },
+    { dia: 14, valor: 500 },
+    { dia: 20, valor: 1200 }
+  ];
+  const compromisos = [
+    { dia: -1, valor: 300 },
+    { dia: 10, valor: 700 },
+    { dia: 22, valor: 800 }
+  ];
+
+  const out = ctx.calcularResumenBalanceQuincena(eventos, compromisos);
+  assert.equal(out.preComps.length, 1);
+  assert.equal(out.q1Comps.length, 1);
+  assert.equal(out.q2Comps.length, 1);
+  assert.equal(out.tramos[0].ingresos, 1500);
+  assert.equal(out.tramos[0].gastosPreMes, 300);
+  assert.equal(out.tramos[0].gastosNativos, 700);
+  assert.equal(out.tramos[0].gastos, 1000);
+  assert.equal(out.tramos[0].saldoCierre, 500);
+  assert.equal(out.tramos[1].saldoInicial, 500);
+  assert.equal(out.tramos[1].saldoCierre, 900);
+});
+
 test('normalizarAccionIAUnificada valida contrato y normaliza payload', () => {
   const baseCtx = loadFunctionsFromFile(APP_JS, ['parseMontoInput'], {
     IA_ACTION_SCHEMA_VERSION: 1,

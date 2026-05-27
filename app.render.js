@@ -196,6 +196,26 @@
     html += `Saldo cierre: <span class="${activeWeekStats.saldoCierre >= 0 ? 'pos' : 'neg'}">${formatCOP(activeWeekStats.saldoCierre)}</span>`;
     html += '</div>';
 
+    let rebalanceState = (typeof iaPanelState === 'object' && iaPanelState && iaPanelState.rebalanceSemana)
+      ? iaPanelState.rebalanceSemana
+      : { loading: false, error: false, result: '' };
+    let mostrarRebalanceoSemana = summaryWithCarry.some((week) => week.saldoCierre < 0);
+    if(mostrarRebalanceoSemana) {
+      let resultado = rebalanceState.result
+        ? `<div class="rm" style="margin:8px 0;color:${rebalanceState.error ? '#A32D2D' : 'var(--color-text-secondary)'};">${escapeHTML(rebalanceState.result)}</div>`
+        : '';
+      let acciones = typeof renderAccionesRebalanceoIA === 'function'
+        ? renderAccionesRebalanceoIA('semana')
+        : '';
+      html += `
+        <div style="margin:6px 0 10px;">
+          <button class="btn-action" style="width:100%;" onclick="analizarRebalanceoSemanaIA()" ${rebalanceState.loading ? 'disabled' : ''}>${rebalanceState.loading ? 'Analizando rebalanceo...' : 'Rebalancear entre semanas'}</button>
+          ${resultado}
+          ${acciones}
+        </div>
+      `;
+    }
+
     if(weekDebts.length === 0) {
       html += '<div class="rm" style="padding:6px 0;">Sin obligaciones en esta semana.</div>';
     }

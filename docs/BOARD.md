@@ -20,11 +20,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [ ] TKT-012 Gateway IA para proveedores externos
 - [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
 - [ ] TKT-014 Panel de consumo IA
-- [ ] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
 - [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
-- [ ] TKT-030 Balance quincena a quincena con rebalanceo
-- [ ] TKT-031 Pre-Mes integrado a Q1 con indicador de origen
-- [ ] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
@@ -48,6 +44,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-049 Cobertura de pruebas de integracion critica
 - [x] TKT-051 Estandarizar linters y calidad de codigo
 - [x] TKT-050 Cobertura i18n completa en UI y mensajes
+- [x] TKT-032 Indicadores de fecha real en listado/edicion de ingresos
+- [x] TKT-031 Pre-Mes integrado a Q1 con indicador de origen
+- [x] TKT-030 Balance quincena a quincena con rebalanceo
+- [x] TKT-018 Aplicar sugerencias IA (boton + preview + undo)
 - [x] TKT-043 Saneamiento historico de Git y datos sensibles
 - [x] TKT-044 Seed anonima final para version publica
 - [x] TKT-042 Base de localizacion (i18n) para transicion a ingles
@@ -319,7 +319,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-018 - Aplicar sugerencias IA (boton + preview + undo)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -328,9 +328,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Antes de aplicar, usuario ve preview de impacto y puede confirmar/cancelar.
    - Se puede deshacer ultimo cambio aplicado por IA sin perder integridad de datos.
 - Checklist:
-   - [ ] Definir esquema de sugerencia estructurada (JSON de acciones)
-   - [ ] Implementar UI de preview/confirmacion por accion
-   - [ ] Implementar undo transaccional para acciones IA
+   - [x] Definir esquema de sugerencia estructurada (JSON de acciones)
+   - [x] Implementar UI de preview/confirmacion por accion
+   - [x] Implementar undo transaccional para acciones IA
 
 ### TKT-019 - Recortes IA item a item accionables
 
@@ -469,7 +469,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-030 - Balance quincena a quincena con rebalanceo
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -478,13 +478,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - La vista muestra saldo inicial, ingresos, gastos, neto y saldo de cierre por tramo (Q1/Q2).
    - Incluye CTA de "Rebalancear entre tramos" con el mismo flujo funcional de rebalanceo ya existente.
 - Checklist:
-   - [ ] Crear bloque visual quincena a quincena en la pantalla de Quincena
-   - [ ] Reusar/ajustar calculos de saldos por tramo quincenal
-   - [ ] Integrar CTA de rebalanceo quincenal con estado (loading/error/resultado)
+   - [x] Crear bloque visual quincena a quincena en la pantalla de Quincena
+   - [x] Reusar/ajustar calculos de saldos por tramo quincenal
+   - [x] Integrar CTA de rebalanceo quincenal con estado (loading/error/resultado)
 
 ### TKT-031 - Pre-Mes integrado a Q1 con indicador de origen
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -493,13 +493,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Cada item Pre-Mes mantiene marcador visual de "viene del mes anterior".
    - El usuario puede distinguir claramente cargo Q1 nativo vs cargo arrastrado Pre-Mes.
 - Checklist:
-   - [ ] Consolidar Pre-Mes dentro del calculo/render de Q1
-   - [ ] Agregar badge/etiqueta de origen en listas y tarjetas
-   - [ ] Verificar que no haya doble conteo en resumenes
+   - [x] Consolidar Pre-Mes dentro del calculo/render de Q1
+   - [x] Agregar badge/etiqueta de origen en listas y tarjetas
+   - [x] Verificar que no haya doble conteo en resumenes
 
 ### TKT-032 - Indicadores de fecha real en listado/edicion de ingresos
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -508,9 +508,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se identifica cuando un ingreso cae en 29-31 y se arrastra al dia 1 del mes siguiente.
    - El indicador permite lectura rapida sin abrir otras vistas.
 - Checklist:
-   - [ ] Agregar metadatos visibles en tarjetas de configuracion de ingresos
-   - [ ] Mostrar estado de arrastre/impacto en resumen de ingresos
-   - [ ] Alinear textos con reglas actuales de flujo
+   - [x] Agregar metadatos visibles en tarjetas de configuracion de ingresos
+   - [x] Mostrar estado de arrastre/impacto en resumen de ingresos
+   - [x] Alinear textos con reglas actuales de flujo
 
 ### TKT-033 - Fecha real de pago para gastos unicos y diferidos
 
@@ -807,6 +807,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-26
 
+1. TKT-018 completado: acciones IA ahora son aplicables y reversibles tambien en rebalanceo semanal/quincenal (no solo recortes), con preview de impacto, confirmacion y undo transaccional.
+1. TKT-030/TKT-031/TKT-032 completados: bloque quincenal actualizado con vista de balance tramo a tramo (Q1/Q2), CTA de rebalanceo reutilizando flujo IA, integracion de Pre-Mes dentro de Q1 con badge de origen y metadatos visibles de fecha real/fecha de impacto en configuracion de ingresos.
 1. TKT-050 completado: textos principales de UI migrados a i18n declarativo (`data-i18n`/`data-i18n-placeholder`), diccionario expandido ES/EN y pruebas de fallback + traduccion declarativa agregadas.
 1. TKT-051 completado: ESLint configurado con reglas base, scripts `npm run lint`/`npm run lint:fix`, e ignores de entorno para evitar ruido de infraestructura.
 1. TKT-049 completado: pruebas de integracion critica agregadas para `initApp`/render principal, flujo IA simulado y escenarios de cache/offline del service worker.

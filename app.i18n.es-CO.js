@@ -38,6 +38,7 @@
       'fortnight.pre': 'Pre-Gastos / Fijos',
       'fortnight.q1': 'Tramo 1 (Días 1-14)',
       'fortnight.q2': 'Tramo 2 (Días 15-31)',
+      'fortnight.balanceByFortnight': 'Balance quincena a quincena',
       'debts.all': 'Todas',
       'debts.fixed': 'Fijos',
       'debts.variable': 'Variables',
