@@ -8,6 +8,7 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_JS = path.join(ROOT, 'app.js');
+const APP_RENDER_JS = path.join(ROOT, 'app.render.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 const SW_JS = path.join(ROOT, 'service-worker.js');
 
@@ -28,41 +29,12 @@ test('initApp integrates summary refresh and key render calls without crashing',
     'add-tipo-gasto': { value: 'variable' }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, ['initApp'], {
-    window: {
-      FinancialI18n: {
-        initializeLocale: () => calls.push('i18n.init'),
-        applyStaticTranslations: () => calls.push('i18n.apply'),
-        setupLanguageSwitcher: () => calls.push('i18n.switcher')
-      },
-      FinancialRender: {
-        composeDashboardRender: () => {
-          nodes['tit-cal-dinamico'].innerText = 'Calendario de Flujo - Junio 2026';
-          nodes['tit-semanas-dinamico'].innerText = 'Línea de Semanas - Junio 2026';
-          nodes['res-ingresos'].innerText = '$500';
-          nodes['res-gastos'].innerText = '$150';
-          nodes['res-pendiente'].innerText = '$120';
-          calls.push('render.calendario');
-          calls.push('render.menu-semanas');
-          calls.push('render.semana-activa');
-          calls.push('render.ia.deudas');
-          return { compromisosMesActual: [{ valor: 120, pagado: false }, { valor: 30, pagado: true }] };
-        }
-      }
-    },
+  const renderCtx = loadFunctionsFromFile(APP_RENDER_JS, ['composeDashboardRender'], {
+    mesActivoGlobal: 'Junio 2026',
+    compromisosMesGlobalCache: [],
     document: {
       getElementById: (id) => nodes[id] || null
     },
-    appData: { schemaVersion: 0 },
-    APP_SCHEMA_VERSION: 2,
-    mesActivoGlobal: 'Junio 2026',
-    diaSeleccionadoActivo: null,
-    modoAltaDeuda: 'rapido',
-    aplicarCorreccionMesBaseSiAplica: () => calls.push('migrate.base'),
-    normalizarRecurrenciasCompromisos: () => calls.push('normalize.recurrencias'),
-    normalizarIngresosConDia: () => calls.push('normalize.ingresos'),
-    persistirDataPrincipalConFallback: () => calls.push('persist.main'),
-    persistirAuxiliaresConFallback: () => calls.push('persist.aux'),
     actualizarSelectoresDeMes: () => calls.push('render.month-selectors'),
     getCompromisosMesActual: () => [
       { valor: 120, pagado: false },
@@ -79,8 +51,8 @@ test('initApp integrates summary refresh and key render calls without crashing',
     renderCalendario: () => calls.push('render.calendario'),
     renderQuincenas: () => calls.push('render.quincenas'),
     renderDeudasModulo: () => calls.push('render.deudas'),
-    renderMenuSemanas: () => calls.push('render.menu-semanas'),
-    renderSemanaActiva: () => calls.push('render.semana-activa'),
+    renderWeeklyMenu: () => calls.push('render.weekly-menu'),
+    renderActiveWeek: () => calls.push('render.active-week'),
     renderSelectoresVigenciaIngreso: () => calls.push('render.vigencia-ingreso'),
     renderConfigIngresos: () => calls.push('render.config.ingresos'),
     renderConfigPrimas: () => calls.push('render.config.primas'),
@@ -88,8 +60,34 @@ test('initApp integrates summary refresh and key render calls without crashing',
     renderIAPanelSemanal: () => calls.push('render.ia.semanal'),
     renderIAPanelQuincena: () => calls.push('render.ia.quincena'),
     renderIAPanelDeudas: () => calls.push('render.ia.deudas'),
-    renderUltimoGuardado: () => calls.push('render.last-save'),
-    aplicarFormatoMonedaInputs: () => calls.push('format.money-inputs'),
+    renderLastSavedIndicator: () => calls.push('render.last-save'),
+    aplicarFormatoMonedaInputs: () => calls.push('format.money-inputs')
+  });
+
+  const ctx = loadFunctionsFromFile(APP_JS, ['initApp'], {
+    window: {
+      FinancialI18n: {
+        initializeLocale: () => calls.push('i18n.init'),
+        applyStaticTranslations: () => calls.push('i18n.apply'),
+        setupLanguageSwitcher: () => calls.push('i18n.switcher')
+      },
+      FinancialRender: {
+        composeDashboardRender: renderCtx.composeDashboardRender
+      }
+    },
+    document: {
+      getElementById: (id) => nodes[id] || null
+    },
+    appData: { schemaVersion: 0 },
+    APP_SCHEMA_VERSION: 2,
+    mesActivoGlobal: 'Junio 2026',
+    diaSeleccionadoActivo: null,
+    modoAltaDeuda: 'rapido',
+    aplicarCorreccionMesBaseSiAplica: () => calls.push('migrate.base'),
+    normalizarRecurrenciasCompromisos: () => calls.push('normalize.recurrencias'),
+    normalizarIngresosConDia: () => calls.push('normalize.ingresos'),
+    persistirDataPrincipalConFallback: () => calls.push('persist.main'),
+    persistirAuxiliaresConFallback: () => calls.push('persist.aux'),
     ocultarVistaDiariaDOM: () => calls.push('render.diaria.hide'),
     setModoAltaDeuda: () => calls.push('deuda.mode'),
     toggleCuotasInput: () => calls.push('deuda.cuotas'),
@@ -102,11 +100,13 @@ test('initApp integrates summary refresh and key render calls without crashing',
   assert.equal(nodes['tit-cal-dinamico'].innerText, 'Calendario de Flujo - Junio 2026');
   assert.equal(nodes['tit-semanas-dinamico'].innerText, 'Línea de Semanas - Junio 2026');
   assert.equal(nodes['res-ingresos'].innerText, '$500');
+  assert.equal(nodes['res-ingresos-detalle'].innerText, 'Normal: $400 · Arrastre: $100');
   assert.equal(nodes['res-gastos'].innerText, '$150');
+  assert.equal(nodes['res-gastos-porc'].innerText, '30% del ingreso');
   assert.equal(nodes['res-pendiente'].innerText, '$120');
   assert.ok(calls.includes('render.calendario'));
-  assert.ok(calls.includes('render.menu-semanas'));
-  assert.ok(calls.includes('render.semana-activa'));
+  assert.ok(calls.includes('render.weekly-menu'));
+  assert.ok(calls.includes('render.active-week'));
   assert.ok(calls.includes('render.ia.deudas'));
 });
 
