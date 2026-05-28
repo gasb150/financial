@@ -318,21 +318,23 @@
       ? iaPanelState.rebalanceSemana
       : { loading: false, error: false, result: '' };
     let mostrarRebalanceoSemana = summaryWithCarry.some((week) => week.saldoCierre < 0);
-    if(mostrarRebalanceoSemana) {
-      let resultado = rebalanceState.result
-        ? `<div class="rm" style="margin:8px 0;color:${rebalanceState.error ? '#A32D2D' : 'var(--color-text-secondary)'};">${escapeHTML(rebalanceState.result)}</div>`
-        : '';
-      let acciones = typeof renderAccionesRebalanceoIA === 'function'
-        ? renderAccionesRebalanceoIA('semana')
-        : '';
-      html += `
-        <div style="margin:6px 0 10px;">
-          <button class="btn-action" style="width:100%;" onclick="analizarRebalanceoSemanaIA()" ${rebalanceState.loading ? 'disabled' : ''}>${rebalanceState.loading ? 'Analizando rebalanceo...' : 'Rebalancear entre semanas'}</button>
-          ${resultado}
-          ${acciones}
-        </div>
-      `;
-    }
+    let resultado = rebalanceState.result
+      ? `<div class="rm" style="margin:8px 0;color:${rebalanceState.error ? '#A32D2D' : 'var(--color-text-secondary)'};">${escapeHTML(rebalanceState.result)}</div>`
+      : '';
+    let acciones = typeof renderAccionesRebalanceoIA === 'function'
+      ? renderAccionesRebalanceoIA('semana')
+      : '';
+    let notaSinDeficit = mostrarRebalanceoSemana
+      ? ''
+      : '<div class="rm" style="margin-top:6px;">No hay deficit semanal proyectado, pero puedes simular rebalanceo preventivo.</div>';
+    html += `
+      <div style="margin:6px 0 10px;">
+        <button class="btn-action btn-ia" style="width:100%;" onclick="analizarRebalanceoSemanaIA()" ${rebalanceState.loading ? 'disabled' : ''}>${rebalanceState.loading ? 'Analizando rebalanceo...' : '<img src="./assets/icons/ai-badge.svg" class="btn-ia-icon" alt=""> Rebalancear entre semanas'}</button>
+        ${notaSinDeficit}
+        ${resultado}
+        ${acciones}
+      </div>
+    `;
 
     if(weekDebts.length === 0) {
       html += '<div class="rm" style="padding:6px 0;">Sin obligaciones en esta semana.</div>';

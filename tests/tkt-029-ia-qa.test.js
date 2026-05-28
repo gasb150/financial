@@ -107,7 +107,7 @@ test('deshacerAccionRebalanceoIA marca error cuando no hay cambio aplicado', () 
   assert.equal(initCalls, 1);
 });
 
-test('renderBalanceQuincena muestra CTA de rebalanceo solo cuando hay deficit', () => {
+test('renderBalanceQuincena muestra CTA de rebalanceo en deficit y modo preventivo sin deficit', () => {
   const container = { innerHTML: '' };
   const baseSandbox = {
     document: {
@@ -145,6 +145,6 @@ test('renderBalanceQuincena muestra CTA de rebalanceo solo cuando hay deficit', 
   });
 
   ctxSinDeficit.renderBalanceQuincena([]);
-  assert.doesNotMatch(container.innerHTML, /data-action="rebalance-quincena-from-balance"/);
+  assert.match(container.innerHTML, /data-action="rebalance-quincena-from-balance"/);
   assert.match(container.innerHTML, /Sin deficit en quincena/);
 });

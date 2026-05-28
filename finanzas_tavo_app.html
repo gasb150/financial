@@ -41,6 +41,7 @@
     <button class="nb" data-action="switch-screen" data-value="semanal"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-weeks-label">Semanas</span></button>
     <button class="nb" data-action="switch-screen" data-value="quincena"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-fortnights-label">Quincenas</span></button>
     <button class="nb" data-action="switch-screen" data-value="deudas"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-debts-label">Deudas</span></button>
+    <button class="nb" data-action="switch-screen" data-value="ingresos"><i class="ti ti-cash" style="font-size:16px;display:block;margin:0 auto 2px"></i><span data-i18n="nav.income">Ingresos</span></button>
     <button class="nb" data-action="switch-screen" data-value="config"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-settings-label">Config</span></button>
   </div>
 
@@ -220,94 +221,124 @@
     </div>
   </div>
 
-  <div id="s-config" class="screen">
+  <div id="s-ingresos" class="screen">
     <div class="sec" data-i18n="config.addIncome">Añadir Nueva Fuente de Ingreso</div>
-    <div class="card">
-      <label class="sl" data-i18n="config.incomeName">Nombre del Ingreso</label>
-      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional" data-i18n-placeholder="config.incomeName.placeholder">
-      
-      <div style="display:flex;gap:10px;margin-top:8px">
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.monthlyAmount">Monto Mensual ($)</label>
-          <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000" data-i18n-placeholder="config.monthlyAmount.placeholder">
+    <div class="card add-compact-card">
+      <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('ingreso')" aria-expanded="false" id="btn-toggle-add-ingreso">
+        <div class="deuda-compact-main">
+          <div class="deuda-compact-name" data-i18n="config.addIncomeCompactTitle">Añadir nueva fuente de ingreso</div>
+          <div class="deuda-compact-meta" data-i18n="config.addIncomeCompactMeta">Salario o ingreso recurrente</div>
         </div>
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.initialDistribution">Distribución inicial</label>
-          <select id="new-ing-periodo" class="input-app">
-            <option value="q1" data-i18n="config.dist.q1">Entra en Quincena 1</option>
-            <option value="q2" data-i18n="config.dist.q2">Entra en Quincena 2</option>
-            <option value="biweekly" data-i18n="config.dist.biweekly">Pago cada 14 días (quincenal real)</option>
-            <option value="todo" data-i18n="config.dist.all">Ambas quincenas (50/50)</option>
-          </select>
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="deuda-details" id="panel-add-ingreso" style="display:none;">
+        <label class="sl" data-i18n="config.incomeName">Nombre del Ingreso</label>
+        <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional" data-i18n-placeholder="config.incomeName.placeholder">
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.monthlyAmount">Monto Mensual ($)</label>
+            <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000" data-i18n-placeholder="config.monthlyAmount.placeholder">
+          </div>
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.initialDistribution">Distribución inicial</label>
+            <select id="new-ing-periodo" class="input-app">
+              <option value="q1" data-i18n="config.dist.q1">Entra en Quincena 1</option>
+              <option value="q2" data-i18n="config.dist.q2">Entra en Quincena 2</option>
+              <option value="biweekly" data-i18n="config.dist.biweekly">Pago cada 14 días (quincenal real)</option>
+              <option value="todo" data-i18n="config.dist.all">Ambas quincenas (50/50)</option>
+            </select>
+          </div>
         </div>
+        <div style="margin-top:8px;">
+          <label class="sl" data-i18n="config.exactPayDay">Día exacto de pago (1-31)</label>
+          <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.validFrom">Vigencia desde</label>
+            <select id="new-ing-desde" class="input-app"></select>
+          </div>
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.validTo">Vigencia hasta</label>
+            <select id="new-ing-hasta" class="input-app"></select>
+          </div>
+        </div>
+        <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income" data-i18n="config.addIncomeBtn">Añadir Ingreso</button>
       </div>
-      <div style="margin-top:8px;">
-        <label class="sl" data-i18n="config.exactPayDay">Día exacto de pago (1-31)</label>
-        <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
-      </div>
-      <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
-        <div style="flex:1;">
-          <label class="sl" data-i18n="config.validFrom">Vigencia desde</label>
-          <select id="new-ing-desde" class="input-app"></select>
-        </div>
-        <div style="flex:1;">
-          <label class="sl" data-i18n="config.validTo">Vigencia hasta</label>
-          <select id="new-ing-hasta" class="input-app"></select>
-        </div>
-      </div>
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income" data-i18n="config.addIncomeBtn">Añadir Ingreso</button>
     </div>
 
     <div class="sec" data-i18n="config.incomeListEdit">Listado y Edición de Ingresos</div>
     <div id="lista-config-ingresos"></div>
 
     <div class="sec" data-i18n="config.bonusesTitle">Primas / Ingresos no recurrentes</div>
-    <div class="card">
-      <label class="sl" data-i18n="config.bonusName">Nombre de la Prima</label>
-      <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio" data-i18n-placeholder="config.bonusName.placeholder">
-
-      <div style="display:flex;gap:10px;margin-top:8px">
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.value">Valor ($)</label>
-          <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000" data-i18n-placeholder="config.value.placeholder">
+    <div class="card add-compact-card">
+      <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('prima')" aria-expanded="false" id="btn-toggle-add-prima">
+        <div class="deuda-compact-main">
+          <div class="deuda-compact-name" data-i18n="config.addBonusCompactTitle">Añadir prima / ingreso extra</div>
+          <div class="deuda-compact-meta" data-i18n="config.addBonusCompactMeta">Pago extraordinario por mes</div>
         </div>
-        <div style="width:92px;">
-          <label class="sl" data-i18n="config.day">Día</label>
-          <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="deuda-details" id="panel-add-prima" style="display:none;">
+        <label class="sl" data-i18n="config.bonusName">Nombre de la Prima</label>
+        <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio" data-i18n-placeholder="config.bonusName.placeholder">
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.value">Valor ($)</label>
+            <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000" data-i18n-placeholder="config.value.placeholder">
+          </div>
+          <div style="width:92px;">
+            <label class="sl" data-i18n="config.day">Día</label>
+            <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
+          </div>
         </div>
-      </div>
 
-      <div style="margin-top:8px;">
-        <label class="sl" data-i18n="config.payMonth">Mes de pago</label>
-        <select id="new-prima-mes" class="input-app"></select>
-      </div>
+        <div style="margin-top:8px;">
+          <label class="sl" data-i18n="config.payMonth">Mes de pago</label>
+          <select id="new-prima-mes" class="input-app"></select>
+        </div>
 
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus" data-i18n="config.addBonusBtn">Añadir Prima</button>
+        <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus" data-i18n="config.addBonusBtn">Añadir Prima</button>
+      </div>
     </div>
 
     <div id="lista-config-primas"></div>
+  </div>
+
+  <div id="s-config" class="screen">
+    <div class="sec">Conexiones externas</div>
 
     <div class="sec" data-i18n="config.installApp">Instalar App</div>
-    <div class="card">
-      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.installDescription">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
-      <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa" data-i18n="config.installButton">Instalar en este dispositivo</button>
-      <div id="install-hint" class="rm" data-i18n="config.installHint">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
-    </div>
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary" data-i18n="config.installApp">Instalar App</summary>
+      <div class="config-accordion-body">
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.installDescription">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
+        <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa" data-i18n="config.installButton">Instalar en este dispositivo</button>
+        <div id="install-hint" class="rm" data-i18n="config.installHint">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
+      </div>
+    </details>
 
     <div class="sec" data-i18n="config.backupTitle">Respaldo de Datos</div>
-    <div class="card">
-      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.backupDescription">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
-      <div id="last-save-indicator" class="rm" style="margin-bottom:8px;" data-i18n="config.lastSavePending">Ultimo guardado: pendiente...</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-action" style="padding:8px 10px;" data-action="export-backup" data-i18n="config.exportBackup">Exportar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup" data-i18n="config.importBackup">Importar respaldo</button>
-        <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup" data-i18n="config.restoreBackup">Recuperar último auto-respaldo</button>
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary" data-i18n="config.backupTitle">Respaldo de Datos</summary>
+      <div class="config-accordion-body">
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.backupDescription">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
+        <div id="last-save-indicator" class="rm" style="margin-bottom:8px;" data-i18n="config.lastSavePending">Ultimo guardado: pendiente...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-action" style="padding:8px 10px;" data-action="export-backup" data-i18n="config.exportBackup">Exportar respaldo</button>
+          <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup" data-i18n="config.importBackup">Importar respaldo</button>
+          <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup" data-i18n="config.restoreBackup">Recuperar último auto-respaldo</button>
+        </div>
+        <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" data-action="import-backup-file">
       </div>
-      <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" data-action="import-backup-file">
-    </div>
+    </details>
 
     <div class="sec" data-i18n="config.aiTitle">Asistente IA</div>
-    <div class="card">
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary">Asistente IA</summary>
+      <div class="config-accordion-body">
       <label class="sl" data-i18n="config.aiMode">Modo IA</label>
       <select id="ia-mode-selector" class="input-app" data-action="set-ai-mode">
         <option value="off" data-i18n="config.aiMode.off">OFF (sin llamadas IA)</option>
@@ -378,10 +409,13 @@
       <div id="ia-usage-panel" class="rm" style="margin-top:10px;"></div>
       <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" data-action="test-ai-mode" data-i18n="config.testAiMode">Probar modo IA</button>
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
-    </div>
+      </div>
+    </details>
 
     <div class="sec" data-i18n="config.googleDriveAuthTitle">Google Drive Auth (GIS Token)</div>
-    <div class="card">
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary">Google Drive Auth (GIS Token)</summary>
+      <div class="config-accordion-body">
       <label class="sl" data-i18n="config.googleOAuthClientId">Google OAuth Client ID</label>
       <input id="google-oauth-client-id" class="input-app" type="text" placeholder="xxxx.apps.googleusercontent.com" data-i18n-placeholder="config.googleOAuthClientIdPlaceholder" data-action="save-google-auth-config">
 
@@ -399,7 +433,8 @@
       <input id="drive-sync-passphrase" class="input-app" type="password" placeholder="Solo para cifrar/descifrar en tu dispositivo" data-i18n-placeholder="config.driveSyncPassphrase.placeholder">
       <div id="drive-sync-status" class="rm" style="margin-top:8px;" data-i18n="config.driveSyncIdle">Aún no hay sincronización con Drive.</div>
       <div id="drive-sync-error" class="rm" style="margin-top:4px;color:#E24B4A;"></div>
-    </div>
+      </div>
+    </details>
 
     <div class="sec" data-i18n="config.timelineTitle">Línea de Tiempo del Sistema</div>
     <div class="card">

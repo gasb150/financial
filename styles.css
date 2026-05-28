@@ -48,7 +48,11 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .input-inline:focus{outline:none; border-bottom-color:#534AB7; background:#f1f3f5}
 .money-input{text-align:right}
 .btn-action{background:#534AB7;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer}
-.btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:14px;display:flex;align-items:center}
+.btn-ia{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-ia-icon{width:13px;height:13px;display:block;flex-shrink:0}
+.btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;line-height:1}
+.btn-del-icon{width:14px;height:14px;display:block;flex-shrink:0}
+.btn-del-text{font-size:11px;font-weight:600}
 .chk-box{width:16px;height:16px;cursor:pointer}
 .row-paid{opacity:0.5;text-decoration:line-through}
 .cal-container{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:11px}
@@ -86,6 +90,29 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .deuda-card.tipo-fijo{border-left-color:#1D9E75}
 .deuda-card.tipo-variable{border-left-color:#BA7517}
 .deuda-card.tipo-credito{border-left-color:#534AB7}
+.deuda-toggle{width:100%;display:flex;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+.deuda-toggle-expanded{cursor:default}
+.deuda-compact-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.deuda-compact-name{font-size:14px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deuda-compact-value{font-size:20px;font-weight:700;color:#E24B4A;white-space:nowrap}
+.deuda-compact-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--color-text-secondary)}
+.deuda-compact-status{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;font-size:12px;font-weight:700}
+.deuda-compact-status.paid{color:#1D9E75;background:#E7F8F0}
+.deuda-compact-status.pending{color:#BA7517;background:#FFF4DF}
+.deuda-chevron{font-size:16px;color:var(--color-text-tertiary);line-height:1;flex-shrink:0}
+.deuda-chevron-btn{background:none;border:none;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.deuda-details{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.ingreso-card,.prima-card{padding:12px 12px 10px}
+.ingreso-toggle{width:100%;display:flex;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+.ingreso-toggle-expanded{cursor:default}
+.ingreso-compact-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ingreso-compact-name{font-size:14px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ingreso-compact-value{font-size:19px;font-weight:700;color:#1D9E75;white-space:nowrap}
+.ingreso-compact-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--color-text-secondary)}
+.ingreso-details{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.ingreso-name{width:100%;font-weight:600}
+.ingreso-value{width:120px;text-align:right;color:#1D9E75;font-weight:700}
+.add-compact-card .deuda-toggle{align-items:flex-start}
 .deuda-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
 .deuda-name{width:100%}
 .deuda-valor{width:108px;text-align:right;color:#E24B4A;font-weight:600}
@@ -97,15 +124,29 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .pill-credito{background:#efecff;color:#4339a2;border-color:#cdc7ff}
 .deuda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .deuda-sub{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.btn-del-icon-only{padding:2px}
+.config-accordion{padding:10px 12px}
+.config-accordion-summary{list-style:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--color-text-primary);display:flex;align-items:center;justify-content:space-between}
+.config-accordion-summary::-webkit-details-marker{display:none}
+.config-accordion-summary::after{content:'▸';font-size:14px;color:var(--color-text-tertiary)}
+.config-accordion[open] .config-accordion-summary::after{content:'▾'}
+.config-accordion-body{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
 .ia-stack{display:grid;gap:10px;margin-bottom:10px}
-.ia-card{background:linear-gradient(180deg,#313131 0%,#2a2a2a 100%);color:#f5f5f5;border:1px solid #4a4a4a;border-radius:12px;padding:12px 12px 10px}
-.ia-card .ttl{font-size:11px;font-weight:700;letter-spacing:.06em;color:#b9b9b9;text-transform:uppercase;margin-bottom:8px}
-.ia-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.ia-card{background:linear-gradient(180deg,#fafbff 0%,#f3f5ff 100%);color:var(--color-text-primary);border:1px solid #d6dbf8;border-radius:12px;padding:12px 12px 10px;box-shadow:0 1px 0 rgba(83,74,183,.08)}
+.ia-card .ttl{font-size:11px;font-weight:700;letter-spacing:.06em;color:#4d57a8;text-transform:uppercase;margin-bottom:8px}
+.ia-card-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left;color:inherit}
+.ia-card-toggle .ttl{margin-bottom:0}
+.ia-card-chevron{font-size:15px;color:#6f78bb;line-height:1;flex-shrink:0}
+.ia-card-body{margin-top:8px}
+.ia-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #e2e5f7}
 .ia-row:last-child{border-bottom:none}
-.ia-row .nm{font-size:13px;color:#f0f0f0}
-.ia-row .meta{font-size:11px;color:#b8b8b8}
+.ia-row .nm{font-size:13px;color:var(--color-text-primary)}
+.ia-row .meta{font-size:11px;color:var(--color-text-secondary)}
 .ia-row .vl{font-size:14px;font-weight:700;color:#ff5f5f}
-.ia-cta{width:100%;margin-top:10px;background:#1f1f1f;color:#ffffff;border:1px solid #5a5a5a;border-radius:9px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.ia-action-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left;color:inherit}
+.ia-action-chevron{font-size:15px;color:#6f78bb;line-height:1;flex-shrink:0}
+.ia-action-body{margin-top:6px;padding-top:6px;border-top:1px dashed #d9ddf5}
+.ia-cta{width:100%;margin-top:10px;background:#534AB7;color:#ffffff;border:1px solid #463fa0;border-radius:9px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer}
 .ia-cta:disabled{opacity:.6;cursor:not-allowed}
-.ia-result{margin-top:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 9px;font-size:11px;color:#f3f3f3;white-space:pre-wrap;line-height:1.45}
-.ia-result.error{border-color:#ff8d8d;color:#ffd6d6}
+.ia-result{margin-top:8px;background:#eef1ff;border:1px solid #d3daf9;border-radius:8px;padding:8px 9px;font-size:11px;color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.45}
+.ia-result.error{background:#fdecec;border-color:#f6b5b5;color:#8a2d2d}

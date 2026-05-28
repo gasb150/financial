@@ -1,5 +1,45 @@
 // IA module extracted from app.js for maintainability.
 
+function toggleExpandIAActionable(key) {
+  let expandState = globalThis.__iaActionablesExpandState;
+  if(!(expandState instanceof Set)) {
+    expandState = new Set();
+    globalThis.__iaActionablesExpandState = expandState;
+  }
+
+  let k = String(key || '');
+  if(!k) return;
+  if(expandState.has(k)) {
+    expandState.delete(k);
+  } else {
+    expandState.add(k);
+  }
+  renderIAPanelResumen();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+}
+
+function toggleExpandIACard(key) {
+  let expandState = globalThis.__iaCardsExpandState;
+  if(!(expandState instanceof Set)) {
+    expandState = new Set();
+    globalThis.__iaCardsExpandState = expandState;
+  }
+
+  let k = String(key || '');
+  if(!k) return;
+  if(expandState.has(k)) {
+    expandState.delete(k);
+  } else {
+    expandState.add(k);
+  }
+
+  renderIAPanelResumen();
+  renderIAPanelSemanal();
+  renderIAPanelQuincena();
+  renderIAPanelDeudas();
+}
+
 async function consultarIALocal(prompt) {
   let cfg = getConfigIALocal();
   let intentosTotales = cfg.retries + 1;
@@ -735,11 +775,19 @@ function etiquetaAccionRecorte(accion) {
 }
 
 function renderSugerenciasRecorteAccionables(stateKey) {
+  let expandState = globalThis.__iaActionablesExpandState;
+  if(!(expandState instanceof Set)) {
+    expandState = new Set();
+    globalThis.__iaActionablesExpandState = expandState;
+  }
+
   let estado = iaPanelState[stateKey];
   let items = Array.isArray(estado.items) ? estado.items : [];
   if(!items.length) return '<div class="ia-row"><div class="meta">Sin sugerencias item a item todavía.</div></div>';
 
   return items.map((s, idx) => {
+    let rowKey = `recorte-${stateKey}-${idx}`;
+    let expanded = expandState.has(rowKey);
     let preview = construirPreviewAccionIA(s, getCompromisosMesActual());
     let ahorroTxt = s.ahorroEstimado > 0 ? `Ahorro est.: ${formatCOP(s.ahorroEstimado)}` : 'Ahorro est.: impacto en flujo';
     let metaAccion = '';
@@ -748,25 +796,38 @@ function renderSugerenciasRecorteAccionables(stateKey) {
     if(s.accion === 'mover_tramo' && s.tramoDestino) metaAccion = `Mover a ${String(s.tramoDestino).toUpperCase()}`;
     return `
       <div class="ia-row" style="display:block;">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div>
-            <div class="nm">${escapeHTML(s.nombre)}</div>
-            <div class="meta">${etiquetaAccionRecorte(s.accion)} · Riesgo ${escapeHTML(s.riesgo)} · Prioridad ${escapeHTML(s.prioridad)}</div>
-            <div class="meta">${escapeHTML(metaAccion)} · ${ahorroTxt}</div>
-            <div class="meta">${escapeHTML(construirTextoPreviewAccionIA(preview))}</div>
-            <div class="meta" style="margin-top:2px;">${escapeHTML(s.motivo || '')}</div>
+        <button class="ia-action-toggle" onclick="toggleExpandIAActionable('${rowKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+          <span class="nm">${escapeHTML(s.nombre)}</span>
+          <span class="ia-action-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+        </button>
+        ${expanded ? `
+        <div class="ia-action-body">
+          <div class="meta">${etiquetaAccionRecorte(s.accion)} · Riesgo ${escapeHTML(s.riesgo)} · Prioridad ${escapeHTML(s.prioridad)}</div>
+          <div class="meta">${escapeHTML(metaAccion)} · ${ahorroTxt}</div>
+          <div class="meta">${escapeHTML(construirTextoPreviewAccionIA(preview))}</div>
+          <div class="meta" style="margin-top:2px;">${escapeHTML(s.motivo || '')}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+            ${s.applied
+              ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerCambioSugerenciaRecorteMesIA(${idx})">Deshacer cambio</button>`
+              : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarSugerenciaRecorteMesIA(${idx})">Aplicar</button>`
+            }
           </div>
-          ${s.applied
-            ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerCambioSugerenciaRecorteMesIA(${idx})">Deshacer cambio</button>`
-            : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarSugerenciaRecorteMesIA(${idx})">Aplicar</button>`
-          }
         </div>
+        ` : ''}
       </div>
     `;
   }).join('');
 }
 
 function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
+  let cardExpandState = globalThis.__iaCardsExpandState;
+  if(!(cardExpandState instanceof Set)) {
+    cardExpandState = new Set();
+    globalThis.__iaCardsExpandState = cardExpandState;
+  }
+  let cardKey = `ia-card-${stateKey}`;
+  let expanded = cardExpandState.has(cardKey);
+
   let estado = iaPanelState[stateKey];
   let sugerencias = Array.isArray(estado.items) ? estado.items : [];
   let ahorroTotal = sugerencias.reduce((acc, s) => acc + (s.ahorroEstimado || 0), 0);
@@ -778,7 +839,12 @@ function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
 
   return `
     <div class="ia-card">
-      <div class="ttl">Recortes item a item</div>
+      <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+        <span class="ttl">Recortes item a item</span>
+        <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+      </button>
+      ${expanded ? `
+      <div class="ia-card-body">
       <div class="ia-row">
         <div>
           <div class="nm">Pendiente variables del mes</div>
@@ -790,6 +856,8 @@ function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
       <div class="meta" style="margin-top:8px;">Aplicadas: ${aplicadas}/${sugerencias.length}</div>
       <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Generar recortes accionables ↗'}</button>
       ${resultado}
+      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -829,13 +897,26 @@ function renderFilasHistorialIA() {
 }
 
 function buildIACardHistorialIA() {
+  let cardExpandState = globalThis.__iaCardsExpandState;
+  if(!(cardExpandState instanceof Set)) {
+    cardExpandState = new Set();
+    globalThis.__iaCardsExpandState = cardExpandState;
+  }
+  let cardKey = 'ia-card-historial';
+  let expanded = cardExpandState.has(cardKey);
+
   let history = asegurarHistorialIA();
   let activos = history.events.filter((evt) => !evt.revertedAt).length;
   let total = history.events.length;
 
   return `
     <div class="ia-card">
-      <div class="ttl">Historial IA aplicado</div>
+      <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+        <span class="ttl">Historial IA aplicado</span>
+        <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+      </button>
+      ${expanded ? `
+      <div class="ia-card-body">
       <div class="ia-row">
         <div>
           <div class="nm">Eventos registrados</div>
@@ -844,6 +925,8 @@ function buildIACardHistorialIA() {
       </div>
       ${renderFilasHistorialIA()}
       <button class="ia-cta" onclick="revertirUltimosEventosIA(3)" ${activos === 0 ? 'disabled' : ''}>Revertir últimos 3 ↩</button>
+      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -1173,16 +1256,31 @@ function renderItemsIACard(items, emptyText) {
 }
 
 function buildIACardGastos(titulo, items, stateKey, actionFnName) {
+  let cardExpandState = globalThis.__iaCardsExpandState;
+  if(!(cardExpandState instanceof Set)) {
+    cardExpandState = new Set();
+    globalThis.__iaCardsExpandState = cardExpandState;
+  }
+  let cardKey = `ia-card-${stateKey}`;
+  let expanded = cardExpandState.has(cardKey);
+
   let estado = iaPanelState[stateKey];
   let resultado = estado.result
     ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
     : '';
   return `
     <div class="ia-card">
-      <div class="ttl">${titulo}</div>
+      <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+        <span class="ttl">${titulo}</span>
+        <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+      </button>
+      ${expanded ? `
+      <div class="ia-card-body">
       ${renderItemsIACard(items, `No hay gastos pendientes para ${titulo.toLowerCase()}.`)}
       <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Analizar qué puedo reducir ↗'}</button>
       ${resultado}
+      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -1408,6 +1506,14 @@ function construirPromptEscenariosIA(escenarios) {
 }
 
 function buildIACardSimpleResultado(titulo, meta, stateKey, actionFnName, ctaText) {
+  let cardExpandState = globalThis.__iaCardsExpandState;
+  if(!(cardExpandState instanceof Set)) {
+    cardExpandState = new Set();
+    globalThis.__iaCardsExpandState = cardExpandState;
+  }
+  let cardKey = `ia-card-${stateKey}`;
+  let expanded = cardExpandState.has(cardKey);
+
   let estado = getEstadoIAPanelSimple(stateKey);
   let resultado = estado.result
     ? `<div class="ia-result ${estado.error ? 'error' : ''}">${escapeHTML(estado.result)}</div>`
@@ -1415,12 +1521,19 @@ function buildIACardSimpleResultado(titulo, meta, stateKey, actionFnName, ctaTex
 
   return `
     <div class="ia-card">
-      <div class="ttl">${titulo}</div>
-      <div class="ia-row" style="display:block;">
-        <div class="meta">${escapeHTML(meta)}</div>
+      <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+        <span class="ttl">${titulo}</span>
+        <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+      </button>
+      ${expanded ? `
+      <div class="ia-card-body">
+        <div class="ia-row" style="display:block;">
+          <div class="meta">${escapeHTML(meta)}</div>
+        </div>
+        <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : ctaText}</button>
+        ${resultado}
       </div>
-      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : ctaText}</button>
-      ${resultado}
+      ` : ''}
     </div>
   `;
 }
@@ -1559,6 +1672,14 @@ function renderIAPanelDeudas() {
   let nodo = document.getElementById('ia-panel-deudas');
   if(!nodo) return;
 
+  let cardExpandState = globalThis.__iaCardsExpandState;
+  if(!(cardExpandState instanceof Set)) {
+    cardExpandState = new Set();
+    globalThis.__iaCardsExpandState = cardExpandState;
+  }
+  let cardKey = 'ia-card-deudas';
+  let expanded = cardExpandState.has(cardKey);
+
   let deudasPendientes = getCompromisosMesActual()
     .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
     .sort((a, b) => b.valor - a.valor);
@@ -1570,10 +1691,17 @@ function renderIAPanelDeudas() {
 
   nodo.innerHTML = `
     <div class="ia-card">
-      <div class="ttl">Deudas pendientes</div>
-      ${lista}
-      <button class="ia-cta" onclick="pedirEstrategiaDeudasIA()" ${iaPanelState.deudas.loading ? 'disabled' : ''}>${iaPanelState.deudas.loading ? 'Analizando...' : 'Pedir estrategia para pagar deudas ↗'}</button>
-      ${resultado}
+      <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
+        <span class="ttl">Deudas pendientes</span>
+        <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+      </button>
+      ${expanded ? `
+      <div class="ia-card-body">
+        ${lista}
+        <button class="ia-cta" onclick="pedirEstrategiaDeudasIA()" ${iaPanelState.deudas.loading ? 'disabled' : ''}>${iaPanelState.deudas.loading ? 'Analizando...' : 'Pedir estrategia para pagar deudas ↗'}</button>
+        ${resultado}
+      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -1853,31 +1981,45 @@ function construirTextoImpactoRebalanceo(scope, accion) {
 }
 
 function renderAccionesRebalanceoIA(scope) {
+  let expandState = globalThis.__iaActionablesExpandState;
+  if(!(expandState instanceof Set)) {
+    expandState = new Set();
+    globalThis.__iaActionablesExpandState = expandState;
+  }
+
   let { state } = obtenerEstadoRebalanceo(scope);
   let acciones = Array.isArray(state.actions) ? state.actions : [];
   if(!acciones.length) return '';
 
   let compromisosMes = getCompromisosMesActual();
   return acciones.map((accion, idx) => {
+    let rowKey = `rebalance-${scope}-${idx}`;
+    let expanded = expandState.has(rowKey);
     let comp = compromisosMes.find(c => c.id === accion.itemId) || null;
     let nombre = comp ? comp.nombre : (accion.nombre || `Item ${accion.itemId}`);
     let impacto = construirTextoImpactoRebalanceo(scope, accion);
     let destinoTxt = accion.tramoDestino ? String(accion.tramoDestino).toUpperCase() : 'N/D';
+    let ctaLabel = accion.applied ? 'Deshacer cambio' : 'Aplicar';
 
     return `
       <div class="ia-row" style="display:block;margin-top:8px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-          <div>
-            <div class="nm">${escapeHTML(nombre)}</div>
-            <div class="meta">Accion: mover_tramo · Destino ${escapeHTML(destinoTxt)}</div>
-            <div class="meta">${escapeHTML(impacto)}</div>
-            <div class="meta" style="margin-top:2px;">${escapeHTML(accion.motivo || 'Sin motivo detallado.')}</div>
+        <button class="ia-action-toggle" onclick="toggleExpandIAActionable('${rowKey}')" aria-expanded="${expanded ? 'true' : 'false'}" data-cta-label="${ctaLabel}">
+          <span class="nm">${escapeHTML(nombre)}</span>
+          <span class="ia-action-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
+        </button>
+        ${expanded ? `
+        <div class="ia-action-body">
+          <div class="meta">Accion: mover_tramo · Destino ${escapeHTML(destinoTxt)}</div>
+          <div class="meta">${escapeHTML(impacto)}</div>
+          <div class="meta" style="margin-top:2px;">${escapeHTML(accion.motivo || 'Sin motivo detallado.')}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+            ${accion.applied
+              ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerAccionRebalanceoIA('${scope}', ${idx})">Deshacer cambio</button>`
+              : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarAccionRebalanceoIA('${scope}', ${idx})">Aplicar</button>`
+            }
           </div>
-          ${accion.applied
-            ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerAccionRebalanceoIA('${scope}', ${idx})">Deshacer cambio</button>`
-            : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarAccionRebalanceoIA('${scope}', ${idx})">Aplicar</button>`
-          }
         </div>
+        ` : ''}
       </div>
     `;
   }).join('');
