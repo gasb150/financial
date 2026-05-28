@@ -89,6 +89,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .deuda-card.tipo-variable{border-left-color:#BA7517}
 .deuda-card.tipo-credito{border-left-color:#534AB7}
 .deuda-toggle{width:100%;display:flex;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+.deuda-toggle-expanded{cursor:default}
 .deuda-compact-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .deuda-compact-name{font-size:14px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .deuda-compact-value{font-size:20px;font-weight:700;color:#E24B4A;white-space:nowrap}
@@ -97,9 +98,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .deuda-compact-status.paid{color:#1D9E75;background:#E7F8F0}
 .deuda-compact-status.pending{color:#BA7517;background:#FFF4DF}
 .deuda-chevron{font-size:16px;color:var(--color-text-tertiary);line-height:1;flex-shrink:0}
+.deuda-chevron-btn{background:none;border:none;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .deuda-details{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
 .deuda-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
-.deuda-head-edit{grid-template-columns:1fr auto}
 .deuda-name{width:100%}
 .deuda-valor{width:108px;text-align:right;color:#E24B4A;font-weight:600}
 .deuda-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px}

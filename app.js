@@ -1632,6 +1632,7 @@ function obtenerSemanasDelMesActivo() {
 }
 
 function cambiarMesDeVisualizacion(nuevoMes) {
+  deudasExpandState = new Set();
   return window.FinancialRender.changeDisplayedMonth(nuevoMes);
 }
 
@@ -1961,7 +1962,7 @@ function toggleExpandDeuda(id) {
   if(deudasExpandState.has(key)) {
     deudasExpandState.delete(key);
   } else {
-    deudasExpandState.add(key);
+    deudasExpandState = new Set([key]);
   }
   renderDeudasModulo(getCompromisosMesActual());
 }
@@ -2486,7 +2487,25 @@ function renderDeudasModulo(compromisosMes) {
     }
 
     card.innerHTML = `
-      <button class="deuda-toggle" onclick="toggleExpandDeuda(${c.id})" aria-expanded="${deudaExpandida ? 'true' : 'false'}" title="${deudaExpandida ? 'Contraer detalle' : 'Expandir detalle'}">
+      ${deudaExpandida ? `
+      <div class="deuda-toggle deuda-toggle-expanded">
+        <div style="flex:1;min-width:0;">
+          <div class="deuda-compact-top">
+            <input type="text" value="${nombreSeguro}" class="input-inline deuda-name" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
+            <input type="text" inputmode="numeric" value="${formatCOP(c.valor)}" class="input-inline deuda-valor money-input" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
+          </div>
+          <div class="deuda-compact-meta">
+            <span class="deuda-tipo-pill ${tipoPillClass}">${tipoLabel}</span>
+            <span>${semTxt}</span>
+            <span class="deuda-compact-status ${c.pagado ? 'paid' : 'pending'}" title="${estadoCompactoTxt}">${estadoCompactoIcon}</span>
+          </div>
+        </div>
+        <button class="deuda-chevron-btn" onclick="toggleExpandDeuda(${c.id})" aria-expanded="true" title="Contraer detalle">
+          <span class="deuda-chevron" aria-hidden="true">▾</span>
+        </button>
+      </div>
+      ` : `
+      <button class="deuda-toggle" onclick="toggleExpandDeuda(${c.id})" aria-expanded="false" title="Expandir detalle">
         <div style="flex:1;min-width:0;">
           <div class="deuda-compact-top">
             <div class="deuda-compact-name">${nombreSeguro}</div>
@@ -2498,19 +2517,15 @@ function renderDeudasModulo(compromisosMes) {
             <span class="deuda-compact-status ${c.pagado ? 'paid' : 'pending'}" title="${estadoCompactoTxt}">${estadoCompactoIcon}</span>
           </div>
         </div>
-        <span class="deuda-chevron" aria-hidden="true">${deudaExpandida ? '▾' : '▸'}</span>
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
       </button>
+      `}
 
       ${deudaExpandida ? `
       <div class="deuda-details">
-        <div class="deuda-head deuda-head-edit" style="margin-top:10px;">
-          <input type="text" value="${nombreSeguro}" class="input-inline deuda-name" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
-          <input type="text" inputmode="numeric" value="${formatCOP(c.valor)}" class="input-inline deuda-valor money-input" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
-        </div>
-
         <div class="deuda-meta">
           <div>
-            <div class="deuda-mini"><span class="deuda-tipo-pill ${tipoPillClass}">${tipoLabel}</span><span>${semTxt}</span></div>
+            <label class="sl">Tipo</label>
             <select class="input-app" style="margin:4px 0 0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'tipo', this.value)">
               <option value="fijo" ${c.tipo === 'fijo' ? 'selected' : ''}>Fijo</option>
               <option value="variable" ${c.tipo === 'variable' ? 'selected' : ''}>Variable</option>
