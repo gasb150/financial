@@ -91,6 +91,38 @@
     if(salida) salida.innerText = 'Configuración API guardada.';
   }
 
+  function saveGoogleAuthConfig() {
+    if(!appData.googleAuth || typeof appData.googleAuth !== 'object') {
+      appData.googleAuth = {
+        provider: 'google',
+        clientId: '',
+        scope: GOOGLE_OAUTH_DEFAULT_SCOPE,
+        session: null,
+        lastError: ''
+      };
+    }
+
+    let clientIdInput = document.getElementById('google-oauth-client-id');
+    let clientId = String(clientIdInput && clientIdInput.value ? clientIdInput.value : '').trim();
+
+    appData.googleAuth.clientId = clientId;
+    appData.googleAuth.scope = GOOGLE_OAUTH_DEFAULT_SCOPE;
+    appData.googleAuth.lastError = '';
+
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(new Date().toISOString());
+    renderGoogleAuthConfig();
+  }
+
+  async function loginGoogleAuth() {
+    await iniciarFlujoGoogleGISToken();
+  }
+
+  async function logoutGoogleAuth() {
+    await cerrarSesionGoogleOAuth();
+    renderGoogleAuthConfig();
+  }
+
   async function testConfiguredAI() {
     let out = document.getElementById('ia-test-result');
     if(!out) return;
@@ -370,6 +402,9 @@
     setAIMode,
     saveLocalAIConfig,
     saveApiAIConfig,
+    saveGoogleAuthConfig,
+    loginGoogleAuth,
+    logoutGoogleAuth,
     testConfiguredAI,
     installPWAApp,
     toggleInstallmentFields,

@@ -14,8 +14,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
-- [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
+- [ ] TKT-057 Backend/proxy OAuth + Drive mediation (fase lejana)
+- [ ] TKT-058 Estandar de lenguaje en codigo y textos user-facing
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
 - [ ] TKT-055 Cifrado de respaldo y secretos en cliente
 - [ ] TKT-056 Resolucion de conflictos multi-dispositivo
@@ -31,6 +31,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Done
 
 - [x] TKT-045 Modularizacion final de app.js y dominio IA
+- [x] TKT-053 Autenticacion Google (GIS token flow) y sesion segura
+- [x] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [x] TKT-034 Historial persistente de acciones IA y revertir
 - [x] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [x] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
@@ -261,7 +263,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-052 - Arquitectura backend en Google Drive (MVP)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo
@@ -270,24 +272,57 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se define estrategia de almacenamiento (archivo JSON unico o snapshots versionados) y limites de tamano/frecuencia.
    - Se documenta flujo de errores/quota/rate-limit y fallback a persistencia local.
 - Checklist:
-   - [ ] Definir arquitectura objetivo (Drive API directa vs Apps Script proxy)
-   - [ ] Definir contrato de datos remoto (schema, metadatos, version)
-   - [ ] Definir politicas de reintento, cuota y degradacion segura
+   - [x] Definir arquitectura objetivo (Drive API directa vs Apps Script proxy)
+   - [x] Definir contrato de datos remoto (schema, metadatos, version)
+   - [x] Definir politicas de reintento, cuota y degradacion segura
+   - [x] Documento tecnico: docs/TKT-052_DRIVE_ARCHITECTURE_MVP.md
 
-### TKT-053 - Autenticacion Google (OAuth2 PKCE) y sesion segura
+### TKT-053 - Autenticacion Google (GIS token flow) y sesion segura
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Login con Google desde cliente usando flujo OAuth apto para frontend publico (sin client_secret en cliente).
+   - Token handling sin exponer secretos en repositorio.
+   - Cierre de sesion y expiracion de token manejados con UX clara.
+- Checklist:
+   - [x] Configurar OAuth client para entorno web (Client ID configurable en Config)
+   - [x] Implementar flujo login/logout cliente sin client_secret
+   - [x] Gestionar estados de error de autenticacion y permisos
+
+### TKT-057 - Backend/proxy OAuth + Drive mediation (fase lejana)
+
+- Estado: Backlog
+- Prioridad: Media
+- Fase: 6
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe backend/proxy para mediar OAuth/Drive sin exponer secretos en cliente.
+   - El proxy centraliza intercambio/renovacion de tokens y politicas de seguridad.
+   - La app cliente usa solo tokens de sesion de corta vida emitidos/validados por proxy.
+- Checklist:
+   - [ ] Definir arquitectura de proxy (Apps Script o backend dedicado)
+   - [ ] Mover intercambio de credenciales y renovacion de tokens al proxy
+   - [ ] Ajustar cliente para consumir endpoints proxy en vez de llamadas OAuth sensibles directas
+
+### TKT-058 - Estandar de lenguaje en codigo y textos user-facing
 
 - Estado: Backlog
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo
 - Criterio de aceptacion:
-   - Login con Google desde cliente usando OAuth2 PKCE.
-   - Token handling sin exponer secretos en repositorio.
-   - Cierre de sesion y expiracion de token manejados con UX clara.
+   - Todo texto user-facing cuenta con equivalentes locales definidos y consistentes (es-CO y en-US).
+   - Todo comentario nuevo o existente en codigo fuente queda en ingles claro y consistente.
+   - Nombres de funciones, helpers y bloques de codigo se mantienen en ingles para reducir deuda de mantenimiento.
+   - Se documenta una guia corta de convenciones para evitar regresiones en tickets futuros.
 - Checklist:
-   - [ ] Configurar OAuth client para entorno web
-   - [ ] Implementar flujo login/logout y refresco de sesion
-   - [ ] Gestionar estados de error de autenticacion y permisos
+   - [ ] Auditar textos user-facing y completar pares de traduccion faltantes por locale
+   - [ ] Migrar comentarios en espanol a ingles en modulos activos
+   - [ ] Renombrar funciones/bloques en espanol a ingles con pruebas de regresion
+   - [ ] Publicar guia de convenciones de lenguaje (codigo, comentarios, i18n)
 
 ### TKT-054 - Sincronizacion Drive <-> local con versionado
 
@@ -299,7 +334,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Datos locales pueden subirse y descargarse desde Drive sin perdida.
    - Cada snapshot remoto incluye version de esquema y timestamp consistente.
    - Sync incremental evita sobreescrituras silenciosas.
+   - UX en un solo paso: CTA "Sincronizar con Drive" dispara autenticacion (si aplica) y subida inicial sin separar login manual.
 - Checklist:
+   - [ ] Definir CTA unico "Sincronizar con Drive" en lugar de accion separada de login
+   - [ ] Encadenar autenticacion + push inicial en un mismo flujo (con manejo de cancelacion/errores)
    - [ ] Implementar operaciones pull/push con control de version
    - [ ] Agregar checksum/hash para validar integridad remota
    - [ ] Agregar modo simulacion dry-run para validar merges

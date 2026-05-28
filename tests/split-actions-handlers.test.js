@@ -147,3 +147,40 @@ test('saveApiAIConfig preserves explicit zero limits', () => {
   assert.equal(persistCalls, 1);
   assert.equal(renderCalls, 1);
 });
+
+test('saveGoogleAuthConfig persists without mutating iaConfig.updatedAt', () => {
+  let persistMainCalls = 0;
+  let persistAuxCalls = 0;
+  let renderCalls = 0;
+
+  const nodes = {
+    'google-oauth-client-id': { value: 'client-id-123' }
+  };
+
+  const appData = {
+    iaConfig: { updatedAt: '2026-05-01T00:00:00.000Z' },
+    googleAuth: { provider: 'google', clientId: '', scope: '', session: null, lastError: 'x' }
+  };
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['saveGoogleAuthConfig'], {
+    appData,
+    GOOGLE_OAUTH_DEFAULT_SCOPE: 'email profile',
+    persistAndStampNow: () => { throw new Error('should not call persistAndStampNow'); },
+    persistirDataPrincipalConFallback: () => { persistMainCalls += 1; },
+    persistirAuxiliaresConFallback: () => { persistAuxCalls += 1; },
+    renderGoogleAuthConfig: () => { renderCalls += 1; },
+    document: {
+      getElementById: (id) => nodes[id] || null
+    }
+  });
+
+  ctx.saveGoogleAuthConfig();
+
+  assert.equal(appData.iaConfig.updatedAt, '2026-05-01T00:00:00.000Z');
+  assert.equal(appData.googleAuth.clientId, 'client-id-123');
+  assert.equal(appData.googleAuth.scope, 'email profile');
+  assert.equal(appData.googleAuth.lastError, '');
+  assert.equal(persistMainCalls, 1);
+  assert.equal(persistAuxCalls, 1);
+  assert.equal(renderCalls, 1);
+});

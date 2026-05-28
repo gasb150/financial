@@ -42,6 +42,10 @@ function resolverDatosDefaultExternos() {
   return null;
 }
 
+const GOOGLE_OAUTH_DEFAULT_SCOPE = 'openid profile email https://www.googleapis.com/auth/drive.appdata';
+const GOOGLE_OAUTH_SESSION_TOKEN_KEY = 'finanzas_google_oauth_access_token';
+let googleOAuthAccessTokenRuntime = '';
+
 const datosDefault = resolverDatosDefaultExternos() || {
   ingresosList: [],
   primasList: [],
@@ -79,6 +83,13 @@ const datosDefault = resolverDatosDefaultExternos() || {
     version: 1,
     lastEventAt: null,
     events: []
+  },
+  googleAuth: {
+    provider: 'google',
+    clientId: '',
+    scope: GOOGLE_OAUTH_DEFAULT_SCOPE,
+    session: null,
+    lastError: ''
   }
 };
 
@@ -88,7 +99,7 @@ const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
-const APP_SCHEMA_VERSION = 3;
+const APP_SCHEMA_VERSION = 4;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
@@ -145,6 +156,25 @@ const APP_SCHEMA_MIGRATORS = {
     if(!Array.isArray(data.iaHistory.events)) data.iaHistory.events = [];
     if(typeof data.iaHistory.version !== 'number' || data.iaHistory.version < 1) data.iaHistory.version = 1;
     if(typeof data.iaHistory.lastEventAt !== 'string') data.iaHistory.lastEventAt = null;
+    return data;
+  },
+  4: (data) => {
+    if(!data.googleAuth || typeof data.googleAuth !== 'object') {
+      data.googleAuth = {
+        provider: 'google',
+        clientId: '',
+        scope: GOOGLE_OAUTH_DEFAULT_SCOPE,
+        session: null,
+        lastError: ''
+      };
+    }
+    if(typeof data.googleAuth.provider !== 'string' || !data.googleAuth.provider.trim()) data.googleAuth.provider = 'google';
+    if(typeof data.googleAuth.clientId !== 'string') data.googleAuth.clientId = '';
+    if(typeof data.googleAuth.scope !== 'string' || !data.googleAuth.scope.trim()) {
+      data.googleAuth.scope = GOOGLE_OAUTH_DEFAULT_SCOPE;
+    }
+    if(!data.googleAuth.session || typeof data.googleAuth.session !== 'object') data.googleAuth.session = null;
+    if(typeof data.googleAuth.lastError !== 'string') data.googleAuth.lastError = '';
     return data;
   }
 };
@@ -246,6 +276,278 @@ function normalizarEstadoCargado() {
       comp.diaPagoReal = (!isNaN(dpr) && dpr >= 1 && dpr <= 31) ? dpr : null;
     });
   }
+
+  if(!appData.googleAuth || typeof appData.googleAuth !== 'object') {
+    appData.googleAuth = {
+      provider: 'google',
+      clientId: '',
+      scope: GOOGLE_OAUTH_DEFAULT_SCOPE,
+      session: null,
+      lastError: ''
+    };
+  }
+  if(typeof appData.googleAuth.provider !== 'string' || !appData.googleAuth.provider.trim()) appData.googleAuth.provider = 'google';
+  if(typeof appData.googleAuth.clientId !== 'string') appData.googleAuth.clientId = '';
+  if(typeof appData.googleAuth.scope !== 'string' || !appData.googleAuth.scope.trim()) {
+    appData.googleAuth.scope = GOOGLE_OAUTH_DEFAULT_SCOPE;
+  }
+  if(typeof appData.googleAuth.lastError !== 'string') appData.googleAuth.lastError = '';
+  if(!appData.googleAuth.session || typeof appData.googleAuth.session !== 'object') {
+    appData.googleAuth.session = null;
+  } else if(appData.googleAuth.session.accessToken) {
+    setGoogleOAuthAccessToken(appData.googleAuth.session.accessToken);
+    delete appData.googleAuth.session.accessToken;
+  }
+}
+
+function getGoogleOAuthConfig() {
+  if(!appData.googleAuth || typeof appData.googleAuth !== 'object') normalizarEstadoCargado();
+  let cfg = appData.googleAuth || {};
+  return {
+    provider: 'google',
+    clientId: String(cfg.clientId || '').trim(),
+    scope: GOOGLE_OAUTH_DEFAULT_SCOPE
+  };
+}
+
+function getGoogleOAuthRedirectUri() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function setGoogleOAuthAccessToken(token) {
+  googleOAuthAccessTokenRuntime = String(token || '');
+  if(typeof sessionStorage === 'undefined') return;
+  try {
+    if(googleOAuthAccessTokenRuntime) {
+      sessionStorage.setItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY, googleOAuthAccessTokenRuntime);
+    } else {
+      sessionStorage.removeItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY);
+    }
+  } catch(_e) {}
+}
+
+function getGoogleOAuthAccessToken() {
+  if(googleOAuthAccessTokenRuntime) return googleOAuthAccessTokenRuntime;
+  if(typeof sessionStorage === 'undefined') return '';
+  try {
+    let token = sessionStorage.getItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY) || '';
+    if(token) googleOAuthAccessTokenRuntime = token;
+    return token;
+  } catch(_e) {
+    return '';
+  }
+}
+
+function getGoogleOAuthSession() {
+  let session = appData && appData.googleAuth ? appData.googleAuth.session : null;
+  if(!session || typeof session !== 'object') return null;
+  return session;
+}
+
+function isGoogleOAuthSessionActive() {
+  let session = getGoogleOAuthSession();
+  let accessToken = getGoogleOAuthAccessToken();
+  if(!session || !accessToken) return false;
+  let expiresAtMs = parseInt(session.expiresAtMs, 10) || 0;
+  return expiresAtMs > Date.now() + 15000;
+}
+
+function limpiarSesionGoogleOAuth(persist = true) {
+  if(!appData.googleAuth || typeof appData.googleAuth !== 'object') return;
+  appData.googleAuth.session = null;
+  setGoogleOAuthAccessToken('');
+  if(persist) {
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(new Date().toISOString());
+  }
+}
+
+function setErrorGoogleOAuth(msg) {
+  if(!appData.googleAuth || typeof appData.googleAuth !== 'object') return;
+  appData.googleAuth.lastError = String(msg || '').trim();
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+}
+
+function renderGoogleAuthConfig() {
+  let clientInput = document.getElementById('google-oauth-client-id');
+  let redirectInput = document.getElementById('google-oauth-redirect');
+  let statusEl = document.getElementById('google-auth-status');
+  let errorEl = document.getElementById('google-auth-error');
+  if(!clientInput || !redirectInput || !statusEl || !errorEl) return;
+
+  let cfg = getGoogleOAuthConfig();
+  let session = getGoogleOAuthSession();
+  let activo = isGoogleOAuthSessionActive();
+  let accessToken = getGoogleOAuthAccessToken();
+  clientInput.value = cfg.clientId;
+  redirectInput.value = getGoogleOAuthRedirectUri();
+
+  if(activo) {
+    let user = session.user && typeof session.user === 'object' ? session.user : {};
+    let email = String(user.email || '').trim();
+    let exp = session.expiresAtMs ? new Date(session.expiresAtMs).toLocaleString('es-CO') : 'N/D';
+    statusEl.innerText = `Sesión activa${email ? ` · ${email}` : ''}. Expira: ${exp}.`;
+  } else if(session && accessToken) {
+    statusEl.innerText = 'Sesión expirada. Inicia sesión de nuevo o refresca token.';
+  } else {
+    statusEl.innerText = 'Sesión no iniciada.';
+  }
+
+  errorEl.innerText = appData.googleAuth && appData.googleAuth.lastError ? appData.googleAuth.lastError : '';
+}
+
+let googleOAuthTokenClient = null;
+let googleOAuthTokenClientClientId = null;
+
+function googleSDKDisponible() {
+  return !!(
+    window.google
+    && window.google.accounts
+    && window.google.accounts.oauth2
+    && typeof window.google.accounts.oauth2.initTokenClient === 'function'
+  );
+}
+
+function limpiarQueryOAuthLegacy() {
+  let url = new URL(window.location.href);
+  let changed = false;
+  ['code', 'state', 'scope', 'authuser', 'prompt', 'error', 'iss'].forEach((k) => {
+    if(url.searchParams.has(k)) {
+      url.searchParams.delete(k);
+      changed = true;
+    }
+  });
+  if(changed) {
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
+function reiniciarClienteGoogleOAuth() {
+  googleOAuthTokenClient = null;
+  googleOAuthTokenClientClientId = null;
+}
+
+function inicializarClienteTokenGoogleOAuth() {
+  if(googleOAuthTokenClient) return googleOAuthTokenClient;
+  if(!googleSDKDisponible()) return null;
+
+  let cfg = getGoogleOAuthConfig();
+  if(!cfg.clientId) return null;
+
+  googleOAuthTokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: cfg.clientId,
+    scope: cfg.scope,
+    callback: async (resp) => {
+      if(!resp || resp.error) {
+        let detalle = resp && (resp.error_description || resp.error) ? (resp.error_description || resp.error) : 'Error desconocido en login Google.';
+        setErrorGoogleOAuth(`Google auth failed: ${detalle}`);
+        renderGoogleAuthConfig();
+        return;
+      }
+
+      try {
+        let expiresIn = Math.max(1, parseInt(resp.expires_in, 10) || 3600);
+        let now = Date.now();
+        let user = await obtenerPerfilGoogleOAuth(resp.access_token);
+        setGoogleOAuthAccessToken(resp.access_token);
+        appData.googleAuth.session = {
+          tokenType: 'Bearer',
+          scope: cfg.scope,
+          obtainedAtMs: now,
+          expiresAtMs: now + (expiresIn * 1000),
+          user: user || null
+        };
+        appData.googleAuth.lastError = '';
+        persistirDataPrincipalConFallback();
+        persistirAuxiliaresConFallback(new Date().toISOString());
+      } catch(err) {
+        setErrorGoogleOAuth(err && err.message ? err.message : 'No fue posible completar login Google.');
+      }
+
+      renderGoogleAuthConfig();
+    }
+  });
+
+  googleOAuthTokenClientClientId = cfg.clientId;
+  return googleOAuthTokenClient;
+}
+
+async function iniciarFlujoGoogleGISToken() {
+  let cfg = getGoogleOAuthConfig();
+  if(!cfg.clientId) {
+    setErrorGoogleOAuth('Configura el Client ID de Google antes de iniciar sesión.');
+    renderGoogleAuthConfig();
+    return;
+  }
+
+  if(!googleSDKDisponible()) {
+    setErrorGoogleOAuth('Google Identity Services no está disponible todavía. Recarga la página e intenta de nuevo.');
+    renderGoogleAuthConfig();
+    return;
+  }
+
+  if(googleOAuthTokenClient && googleOAuthTokenClientClientId !== cfg.clientId) {
+    reiniciarClienteGoogleOAuth();
+  }
+
+  let tokenClient = inicializarClienteTokenGoogleOAuth();
+  if(!tokenClient) {
+    setErrorGoogleOAuth('No fue posible inicializar cliente OAuth de Google.');
+    renderGoogleAuthConfig();
+    return;
+  }
+
+  appData.googleAuth.lastError = '';
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
+  let prompt = getGoogleOAuthSession() ? '' : 'consent';
+  tokenClient.requestAccessToken({ prompt });
+}
+
+async function obtenerPerfilGoogleOAuth(accessToken) {
+  let resp = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if(!resp.ok) return null;
+  try {
+    return await resp.json();
+  } catch(_e) {
+    return null;
+  }
+}
+
+async function refrescarSesionGoogleOAuth() {
+  return false;
+}
+
+async function procesarCallbackGoogleOAuthSiAplica() {
+  limpiarQueryOAuthLegacy();
+}
+
+async function cerrarSesionGoogleOAuth() {
+  let session = getGoogleOAuthSession();
+  let accessToken = getGoogleOAuthAccessToken();
+  try {
+    if(session && accessToken) {
+      if(googleSDKDisponible() && typeof window.google.accounts.oauth2.revoke === 'function') {
+        await new Promise((resolve) => {
+          window.google.accounts.oauth2.revoke(accessToken, () => resolve());
+        });
+      } else {
+        await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(accessToken)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+      }
+    }
+  } catch(_e) {}
+
+  reiniciarClienteGoogleOAuth();
+  limpiarSesionGoogleOAuth(false);
+  if(appData.googleAuth && typeof appData.googleAuth === 'object') appData.googleAuth.lastError = '';
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(new Date().toISOString());
 }
 
 function validarDataPrincipal(payload) {
@@ -925,7 +1227,20 @@ function renderConfigIA() {
   if(apiDailyCop) apiDailyCop.value = String(cfgApi.limits.dailyCopLimit);
   if(apiMonthlyCop) apiMonthlyCop.value = String(cfgApi.limits.monthlyCopLimit);
   if(apiCost1k) apiCost1k.value = String(cfgApi.limits.estimatedCopPer1kTokens);
+  renderGoogleAuthConfig();
   renderPanelConsumoIA();
+}
+
+function guardarConfigGoogleAuth() {
+  return window.FinancialActions.saveGoogleAuthConfig();
+}
+
+async function iniciarLoginGoogle() {
+  return window.FinancialActions.loginGoogleAuth();
+}
+
+async function cerrarSesionGoogleAuth() {
+  return window.FinancialActions.logoutGoogleAuth();
 }
 
 function setModoIA(modoNuevo) {
@@ -2112,6 +2427,14 @@ function registrarEventosHtmlEstaticos() {
       probarIAConfigurada();
       return;
     }
+    if(action === 'google-login') {
+      iniciarLoginGoogle();
+      return;
+    }
+    if(action === 'google-logout') {
+      cerrarSesionGoogleAuth();
+      return;
+    }
     if(action === 'extend-timeline-year') {
       extenderAnioLineaTiempo();
       return;
@@ -2163,6 +2486,10 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'save-api-ai-config') {
       guardarConfigIAApi();
+      return;
+    }
+    if(action === 'save-google-auth-config') {
+      guardarConfigGoogleAuth();
     }
   });
 
@@ -2196,7 +2523,8 @@ window.onload = function() {
     window.FinancialI18n.initializeLocale();
   }
 
-  hidratarDataDesdeIndexedDB().finally(() => {
+  hidratarDataDesdeIndexedDB().finally(async () => {
+    await procesarCallbackGoogleOAuthSiAplica();
     initApp();
     registrarServiceWorker();
   });

@@ -380,6 +380,23 @@
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>
 
+    <div class="sec" data-i18n="config.googleAuthTitle">Google Drive Auth (GIS Token)</div>
+    <div class="card">
+      <label class="sl" data-i18n="config.googleOAuthClientId">Google OAuth Client ID</label>
+      <input id="google-oauth-client-id" class="input-app" type="text" placeholder="xxxx.apps.googleusercontent.com" data-i18n-placeholder="config.googleOAuthClientIdPlaceholder" data-action="save-google-auth-config">
+
+      <label class="sl" style="margin-top:8px;" data-i18n="config.googleRedirectUri">Redirect URI</label>
+      <input id="google-oauth-redirect" class="input-app" type="text" readonly>
+
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-action" style="flex:1;padding:8px;background:#2f7a4a;" data-action="google-login" data-i18n="config.googleSignIn">Sign in with Google</button>
+        <button class="btn-action" style="flex:1;padding:8px;background:#7a2f2f;" data-action="google-logout" data-i18n="config.googleSignOut">Sign out</button>
+      </div>
+
+      <div id="google-auth-status" class="rm" style="margin-top:8px;" data-i18n="config.googleAuthStatusSignedOut">Sesión no iniciada.</div>
+      <div id="google-auth-error" class="rm" style="margin-top:4px;color:#E24B4A;"></div>
+    </div>
+
     <div class="sec" data-i18n="config.timelineTitle">Línea de Tiempo del Sistema</div>
     <div class="card">
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.timelineDescription">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
@@ -393,6 +410,7 @@
 
 <script src="./app.seed.js"></script>
 <script src="./app.seed.local.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="./app.js"></script>
 <script src="./app.data.js"></script>
 <script src="./app.rules.js"></script>

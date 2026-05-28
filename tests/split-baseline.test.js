@@ -192,6 +192,7 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
         estimatedCopPer1kTokens: 40
       }
     }),
+    renderGoogleAuthConfig: () => {},
     renderPanelConsumoIA: () => { consumoRenderCalls += 1; }
   });
 
