@@ -175,11 +175,16 @@ function normalizarEstadoCargado() {
   appData.iaConfig.timeoutMs = timeoutNormalizado;
   let retriesNum = parseInt(appData.iaConfig.retries, 10);
   appData.iaConfig.retries = isNaN(retriesNum) ? 1 : Math.min(Math.max(retriesNum, 0), 4);
-  appData.iaConfig.apiDailyTokenLimit = Math.max(0, parseInt(appData.iaConfig.apiDailyTokenLimit, 10) || 80000);
-  appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, parseInt(appData.iaConfig.apiMonthlyTokenLimit, 10) || 1200000);
-  appData.iaConfig.apiDailyCopLimit = Math.max(0, parseInt(appData.iaConfig.apiDailyCopLimit, 10) || 20000);
-  appData.iaConfig.apiMonthlyCopLimit = Math.max(0, parseInt(appData.iaConfig.apiMonthlyCopLimit, 10) || 200000);
-  appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, parseInt(appData.iaConfig.apiEstimatedCopPer1kTokens, 10) || 40);
+  let apiDailyTokenLimitNum = parseInt(appData.iaConfig.apiDailyTokenLimit, 10);
+  appData.iaConfig.apiDailyTokenLimit = Math.max(0, isNaN(apiDailyTokenLimitNum) ? 80000 : apiDailyTokenLimitNum);
+  let apiMonthlyTokenLimitNum = parseInt(appData.iaConfig.apiMonthlyTokenLimit, 10);
+  appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, isNaN(apiMonthlyTokenLimitNum) ? 1200000 : apiMonthlyTokenLimitNum);
+  let apiDailyCopLimitNum = parseInt(appData.iaConfig.apiDailyCopLimit, 10);
+  appData.iaConfig.apiDailyCopLimit = Math.max(0, isNaN(apiDailyCopLimitNum) ? 20000 : apiDailyCopLimitNum);
+  let apiMonthlyCopLimitNum = parseInt(appData.iaConfig.apiMonthlyCopLimit, 10);
+  appData.iaConfig.apiMonthlyCopLimit = Math.max(0, isNaN(apiMonthlyCopLimitNum) ? 200000 : apiMonthlyCopLimitNum);
+  let apiEstimatedCopPer1kTokensNum = parseInt(appData.iaConfig.apiEstimatedCopPer1kTokens, 10);
+  appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, isNaN(apiEstimatedCopPer1kTokensNum) ? 40 : apiEstimatedCopPer1kTokensNum);
   if(!appData.iaConfig.updatedAt) appData.iaConfig.updatedAt = null;
 
   if(!appData.iaUsage || typeof appData.iaUsage !== 'object') appData.iaUsage = {};
