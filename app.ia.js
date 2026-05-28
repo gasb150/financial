@@ -678,7 +678,7 @@ function revertirUltimosEventosIA(cantidad = 3) {
 
   if(!candidatos.length) {
     let recortes = getEstadoRecortesItemsMes();
-    recortes.error = '1';
+    recortes.error = '';
     recortes.result = 'No hay eventos IA activos para revertir.';
     initApp();
     return;
