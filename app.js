@@ -892,183 +892,31 @@ function guardarConfigIAApi() {
 }
 
 async function consultarIALocal(prompt) {
-  let cfg = getConfigIALocal();
-  let intentosTotales = cfg.retries + 1;
-  let ultimoError = null;
-
-  for(let intento = 1; intento <= intentosTotales; intento++) {
-    let controller = new AbortController();
-    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
-
-    try {
-      let resp = await fetch(cfg.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: cfg.model,
-          prompt,
-          stream: false,
-          options: { temperature: 0.2 }
-        })
-      });
-
-      if(!resp.ok) {
-        let detalleHttp = '';
-        try {
-          let body = await resp.json();
-          if(body && body.error) detalleHttp = String(body.error);
-        } catch(_e) {
-          // Si no hay JSON valido, intentamos leer texto plano para diagnostico.
-          try {
-            detalleHttp = (await resp.text() || '').trim();
-          } catch(_e2) {}
-        }
-
-        if(resp.status === 404 && /model .* not found/i.test(detalleHttp)) {
-          throw new Error(`${detalleHttp}. Ejecuta: ollama pull ${cfg.model}`);
-        }
-
-        throw new Error(detalleHttp ? `HTTP ${resp.status} en IA Local: ${detalleHttp}` : `HTTP ${resp.status} en IA Local`);
-      }
-      let data = await resp.json();
-      let txt = String(data && data.response ? data.response : '').trim();
-      if(!txt) throw new Error('IA Local no devolvio texto util.');
-
-      clearTimeout(timeoutId);
-      return { ok: true, mode: 'local', message: txt };
-    } catch(err) {
-      clearTimeout(timeoutId);
-      ultimoError = err;
-      if(intento < intentosTotales) continue;
-    }
+  if(window.FinancialIA && typeof window.FinancialIA.queryLocalAI === 'function') {
+    return window.FinancialIA.queryLocalAI(prompt);
   }
-
-  let detalle = '';
-  if(ultimoError && ultimoError.name === 'AbortError') {
-    detalle = `Tiempo de espera agotado en proveedor local (${cfg.timeoutMs} ms).`;
-  } else if(ultimoError && ultimoError.name === 'TypeError') {
-    detalle = `No se pudo conectar con IA LOCAL en ${cfg.endpoint}. Verifica que el servidor este arriba y accesible.\nSugerencia: si usas IA Local, inicia el servicio y prueba de nuevo.`;
-  } else {
-    detalle = ultimoError && ultimoError.message
-      ? ultimoError.message
-      : 'Error desconocido al consultar IA local.';
-  }
-  throw new Error(detalle);
+  throw new Error('Motor IA no disponible. Recarga la app para inicializar app.ia.js.');
 }
 
 function parsearRespuestaGatewayIA(data) {
-  let payload = data && typeof data === 'object' ? data : {};
-  let usage = payload.usage && typeof payload.usage === 'object' ? payload.usage : {};
-  let message = '';
-  if(typeof payload.message === 'string' && payload.message.trim()) {
-    message = payload.message.trim();
-  } else if(Array.isArray(payload.choices) && payload.choices[0]) {
-    let c0 = payload.choices[0];
-    if(c0.message && typeof c0.message.content === 'string') {
-      message = c0.message.content.trim();
-    } else if(typeof c0.text === 'string') {
-      message = c0.text.trim();
-    }
-  } else if(typeof payload.response === 'string') {
-    message = payload.response.trim();
+  if(window.FinancialIA && typeof window.FinancialIA.parseAIGatewayResponse === 'function') {
+    return window.FinancialIA.parseAIGatewayResponse(data);
   }
-  return { message, usage };
+  return { message: '', usage: {} };
 }
 
 async function consultarIAApiGateway(prompt) {
-  let cfg = getConfigIAApi();
-  if(!cfg.endpoint) {
-    throw new Error('Configura el endpoint del gateway IA para usar modo API.');
+  if(window.FinancialIA && typeof window.FinancialIA.queryApiAI === 'function') {
+    return window.FinancialIA.queryApiAI(prompt);
   }
-  validarLimitesIAAntesDeConsumir(cfg);
-
-  let intentosTotales = cfg.retries + 1;
-  let ultimoError = null;
-
-  for(let intento = 1; intento <= intentosTotales; intento++) {
-    let controller = new AbortController();
-    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
-    try {
-      let headers = { 'Content-Type': 'application/json' };
-      if(cfg.apiKey) {
-        headers.Authorization = `Bearer ${cfg.apiKey}`;
-        headers['x-api-key'] = cfg.apiKey;
-      }
-
-      let resp = await fetch(cfg.endpoint, {
-        method: 'POST',
-        headers,
-        signal: controller.signal,
-        body: JSON.stringify({
-          provider: cfg.provider,
-          model: cfg.model,
-          prompt,
-          temperature: 0.2
-        })
-      });
-
-      if(!resp.ok) {
-        let detalleHttp = '';
-        try {
-          let body = await resp.json();
-          detalleHttp = String(body && (body.error || body.message) ? (body.error || body.message) : '').trim();
-        } catch(_e) {
-          try {
-            detalleHttp = (await resp.text() || '').trim();
-          } catch(_e2) {}
-        }
-        throw new Error(detalleHttp ? `HTTP ${resp.status} en gateway IA: ${detalleHttp}` : `HTTP ${resp.status} en gateway IA`);
-      }
-
-      let data = await resp.json();
-      let parsed = parsearRespuestaGatewayIA(data);
-      if(!parsed.message) throw new Error('Gateway IA no devolvió texto util.');
-
-      let usage = parsed.usage || {};
-      let totalTokens = Math.max(
-        0,
-        parseInt(usage.totalTokens, 10)
-        || parseInt(usage.total_tokens, 10)
-        || (parseInt(usage.promptTokens, 10) || 0) + (parseInt(usage.completionTokens, 10) || 0)
-      );
-      if(totalTokens <= 0) {
-        totalTokens = estimarTokensDesdeTexto(prompt) + estimarTokensDesdeTexto(parsed.message);
-      }
-
-      let costCop = Math.max(0, Math.round(parseMontoInput(usage.costCop)) || 0);
-      if(costCop <= 0) {
-        costCop = Math.max(1, Math.round((totalTokens / 1000) * cfg.limits.estimatedCopPer1kTokens));
-      }
-
-      registrarConsumoIAApi({ tokens: totalTokens, costCop }, cfg);
-      clearTimeout(timeoutId);
-      return { ok: true, mode: 'api', provider: cfg.provider, message: parsed.message, usage: { totalTokens, costCop } };
-    } catch(err) {
-      clearTimeout(timeoutId);
-      ultimoError = err;
-      if(intento < intentosTotales) continue;
-    }
-  }
-
-  if(ultimoError && ultimoError.name === 'AbortError') {
-    throw new Error(`Tiempo de espera agotado en gateway IA (${cfg.timeoutMs} ms).`);
-  }
-  if(ultimoError && ultimoError.name === 'TypeError') {
-    throw new Error(`No se pudo conectar al gateway IA en ${cfg.endpoint}.`);
-  }
-  throw new Error(ultimoError && ultimoError.message ? ultimoError.message : 'Error desconocido al consultar gateway IA.');
+  throw new Error('Motor IA no disponible. Recarga la app para inicializar app.ia.js.');
 }
 
 async function ejecutarConsultaIA(prompt) {
-  let modo = getModoIA();
-  if(modo === 'off') {
-    throw new Error('Modo IA en OFF. Activa LOCAL o API para usar funciones IA.');
+  if(window.FinancialIA && typeof window.FinancialIA.executeAIQuery === 'function') {
+    return window.FinancialIA.executeAIQuery(prompt);
   }
-  if(modo === 'local') {
-    return consultarIALocal(prompt);
-  }
-  return consultarIAApiGateway(prompt);
+  throw new Error('Motor IA no disponible. Recarga la app para inicializar app.ia.js.');
 }
 
 async function probarIAConfigurada() {
@@ -1176,106 +1024,12 @@ function initApp(options = {}) {
     persistirAuxiliaresConFallback(marcaGuardado);
   }
 
-  actualizarSelectoresDeMes();
-  
-  document.getElementById('tit-cal-dinamico').innerText = i18nT(
-    'summary.flowCalendarTitle',
-    { month: mesActivoGlobal },
-    `Calendario de Flujo - ${mesActivoGlobal}`
-  );
-  document.getElementById('tit-semanas-dinamico').innerText = i18nT(
-    'weeks.timelineTitle',
-    { month: mesActivoGlobal },
-    `Línea de Semanas - ${mesActivoGlobal}`
-  );
-  const titSobrante = document.getElementById('tit-sobrante-dinamico');
-  if(titSobrante) {
-    titSobrante.innerText = i18nT(
-      'summary.surplusBaseMonthly',
-      { value: formatCOP(0) },
-      `Sobrante (Base mensual: ${formatCOP(0)})`
-    );
-  }
-
-  let compromisosMesActual = getCompromisosMesActual();
-  compromisosMesGlobalCache = compromisosMesActual;
-
-  let eventosIngresoMes = obtenerEventosIngresoDelMes(mesActivoGlobal);
-  let totalIngresos = eventosIngresoMes.reduce((acc, e) => acc + e.valor, 0);
-  let totalArrastreIngresos = eventosIngresoMes
-    .filter(e => e.origen === 'arrastre' || e.origen === 'prima-arrastre')
-    .reduce((acc, e) => acc + e.valor, 0);
-  let totalNormalIngresos = totalIngresos - totalArrastreIngresos;
-  let totalGastos = compromisosMesActual.reduce((acc, c) => acc + c.valor, 0);
-  let totalPendiente = compromisosMesActual.reduce((acc, c) => acc + (c.pagado ? 0 : c.valor), 0);
-  let balance = totalIngresos - totalGastos;
-  const totalGastosPorc = totalIngresos > 0 ? ((totalGastos / totalIngresos) * 100).toFixed(0) : '100';
-
-  document.getElementById('res-ingresos').innerText = formatCOP(totalIngresos);
-  document.getElementById('res-ingresos-detalle').innerText = i18nT(
-    'summary.incomeBreakdown',
-    {
-      normal: formatCOP(totalNormalIngresos),
-      carry: formatCOP(totalArrastreIngresos)
-    },
-    `Normal: ${formatCOP(totalNormalIngresos)} · Arrastre: ${formatCOP(totalArrastreIngresos)}`
-  );
-  document.getElementById('res-gastos').innerText = formatCOP(totalGastos);
-  document.getElementById('res-gastos-porc').innerText = i18nT(
-    'summary.percentIncomeDynamic',
-    { value: totalGastosPorc },
-    `${totalGastosPorc}% del ingreso`
-  );
-  
-  let balCard = document.getElementById('res-balance');
-  balCard.innerText = formatCOP(balance);
-  if(balance < 0) {
-    balCard.style.color = '#E24B4A';
-    document.getElementById('res-balance-text').innerText = i18nT(
-      'summary.balanceDeficitPeriod',
-      {},
-      'Déficit en este periodo'
-    );
-    document.getElementById('alerta-deficit').style.display = 'flex';
-    document.getElementById('alerta-b-text').innerText = i18nT(
-      'summary.alertDeficitBody',
-      {
-        expenses: formatCOP(totalGastos),
-        income: formatCOP(totalIngresos)
-      },
-      `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresos)}.`
-    );
-  } else {
-    balCard.style.color = '#1D9E75';
-    document.getElementById('res-balance-text').innerText = i18nT(
-      'summary.balanceSurplusPeriod',
-      {},
-      'Superávit en este periodo'
-    );
-    document.getElementById('alerta-deficit').style.display = 'none';
-  }
-  document.getElementById('res-pendiente').innerText = formatCOP(totalPendiente);
-  renderSobrante(balance);
-  renderIAPanelResumen();
-
-  renderIngresosResumen();
-  renderCalendario(compromisosMesActual);
-  renderQuincenas(compromisosMesActual);
-  if(typeof renderBalanceQuincena === 'function') {
-    renderBalanceQuincena(compromisosMesActual);
-  }
-  renderDeudasModulo(compromisosMesActual);
-  renderMenuSemanas();
-  renderSemanaActiva(compromisosMesActual);
-  renderSelectoresVigenciaIngreso();
-  renderConfigIngresos();
-  renderConfigPrimas();
-  renderConfigIA();
-  renderIAPanelSemanal();
-  renderIAPanelQuincena();
-  renderIAPanelDeudas();
-  renderUltimoGuardado();
-  aplicarFormatoMonedaInputs();
+  let dashboardState = (window.FinancialRender && typeof window.FinancialRender.composeDashboardRender === 'function')
+    ? window.FinancialRender.composeDashboardRender(i18nT)
+    : null;
+  let compromisosMesActual = dashboardState && Array.isArray(dashboardState.compromisosMesActual)
+    ? dashboardState.compromisosMesActual
+    : getCompromisosMesActual();
 
   if(window.FinancialI18n && typeof window.FinancialI18n.applyStaticTranslations === 'function') {
     window.FinancialI18n.applyStaticTranslations();

@@ -16,7 +16,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
-- [ ] TKT-045 Modularizacion final de app.js y dominio IA
 - [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
@@ -33,6 +32,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-045 Modularizacion final de app.js y dominio IA
 - [x] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 - [x] TKT-011 Asistente IA: simulador de escenarios
 - [x] TKT-010 Asistente IA: alertas de deficit
@@ -777,7 +777,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-045 - Modularizacion final de app.js y dominio IA
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -786,9 +786,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - El cliente IA y flujo de consulta quedan centralizados en app.ia.js.
    - Existen pruebas para consultarIALocal y ejecutarConsultaIA con casos de error/reintento.
 - Checklist:
-   - [ ] Extraer inicializacion y composicion de dashboard fuera de app.js
-   - [ ] Migrar transporte/errores/fallback IA a app.ia.js
-   - [ ] Agregar pruebas unitarias del cliente IA
+   - [x] Extraer inicializacion y composicion de dashboard fuera de app.js
+   - [x] Migrar transporte/errores/fallback IA a app.ia.js
+   - [x] Agregar pruebas unitarias del cliente IA
 
 ### TKT-046 - Validacion fuerte de persistencia y esquema de datos
 
@@ -899,6 +899,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-27
 
+1. TKT-045 completado: `initApp` delega composición de dashboard a `FinancialRender.composeDashboardRender`, y el transporte/consulta IA (`consultarIALocal`, `consultarIAApiGateway`, `ejecutarConsultaIA`) quedó centralizado en `app.ia.js` con pruebas de reintento/error del cliente local.
 1. TKT-029 completado: ejecutada matriz QA funcional IA con evidencia automatizada y smoke manual; se detectó y corrigió regresión de visibilidad quincenal (CTA de rebalanceo ahora oculto sin déficit), y se agregó prueba de regresión dedicada.
 1. TKT-012/TKT-013/TKT-014 completados en bloque: modo API ahora consulta gateway externo configurable (endpoint/proveedor/modelo/API key), con topes diarios/mensuales de tokens y costo que bloquean ejecuciones al superar limites, y panel de consumo en Config para visualizar requests/tokens/costo acumulado.
 2. TKT-046 completado: validadores de persistencia reforzados con saneamiento estructural por dominio (ingresos/primas/compromisos/iaConfig/iaUsage), recuperación parcial segura en hidratar/importar/restaurar y trazas de errores de persistencia.

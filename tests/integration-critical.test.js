@@ -8,6 +8,7 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_JS = path.join(ROOT, 'app.js');
+const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 const SW_JS = path.join(ROOT, 'service-worker.js');
 
 test('initApp integrates summary refresh and key render calls without crashing', () => {
@@ -33,6 +34,20 @@ test('initApp integrates summary refresh and key render calls without crashing',
         initializeLocale: () => calls.push('i18n.init'),
         applyStaticTranslations: () => calls.push('i18n.apply'),
         setupLanguageSwitcher: () => calls.push('i18n.switcher')
+      },
+      FinancialRender: {
+        composeDashboardRender: () => {
+          nodes['tit-cal-dinamico'].innerText = 'Calendario de Flujo - Junio 2026';
+          nodes['tit-semanas-dinamico'].innerText = 'Línea de Semanas - Junio 2026';
+          nodes['res-ingresos'].innerText = '$500';
+          nodes['res-gastos'].innerText = '$150';
+          nodes['res-pendiente'].innerText = '$120';
+          calls.push('render.calendario');
+          calls.push('render.menu-semanas');
+          calls.push('render.semana-activa');
+          calls.push('render.ia.deudas');
+          return { compromisosMesActual: [{ valor: 120, pagado: false }, { valor: 30, pagado: true }] };
+        }
       }
     },
     document: {
@@ -96,7 +111,7 @@ test('initApp integrates summary refresh and key render calls without crashing',
 });
 
 test('ejecutarConsultaIA routes through OFF/LOCAL/API modes as expected', async () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['ejecutarConsultaIA'], {
+  const ctx = loadFunctionsFromFile(APP_IA_JS, ['ejecutarConsultaIA'], {
     getModoIA: () => 'off',
     consultarIALocal: async () => ({ ok: true, mode: 'local', message: 'unused' }),
     consultarIAApiGateway: async () => ({ ok: true, mode: 'api', message: 'unused-api' })
