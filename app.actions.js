@@ -109,7 +109,8 @@
     appData.googleAuth.scope = GOOGLE_OAUTH_DEFAULT_SCOPE;
     appData.googleAuth.lastError = '';
 
-    persistAndStampNow();
+    persistirDataPrincipalConFallback();
+    persistirAuxiliaresConFallback(new Date().toISOString());
     renderGoogleAuthConfig();
   }
 
