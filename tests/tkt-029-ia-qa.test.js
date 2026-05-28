@@ -145,6 +145,6 @@ test('renderBalanceQuincena muestra CTA de rebalanceo solo cuando hay deficit', 
   });
 
   ctxSinDeficit.renderBalanceQuincena([]);
-  assert.doesNotMatch(container.innerHTML, /data-action="rebalance-quincena-from-balance"/);
+  assert.match(container.innerHTML, /data-action="rebalance-quincena-from-balance"/);
   assert.match(container.innerHTML, /Sin deficit en quincena/);
 });

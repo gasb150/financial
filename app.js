@@ -2762,15 +2762,17 @@ function renderBalanceQuincena(compromisosMes) {
     ? renderAccionesRebalanceoIA('quincena')
     : '';
   let hayDeficit = tramos.some((t) => t.saldoCierre < 0);
-  let ctaRebalanceo = hayDeficit
-    ? `<button class="btn-action" data-action="rebalance-quincena-from-balance" ${state.loading ? 'disabled' : ''} style="width:100%;margin-top:4px;">
-      ${state.loading ? 'Analizando rebalanceo...' : 'Rebalancear entre tramos'}
-    </button>`
-    : '<div class="rm" style="margin-top:8px;">Sin deficit en quincena. Rebalanceo no requerido.</div>';
+  let ctaRebalanceo = `<button class="btn-action btn-ia" data-action="rebalance-quincena-from-balance" ${state.loading ? 'disabled' : ''} style="width:100%;margin-top:4px;">
+      ${state.loading ? 'Analizando rebalanceo...' : '<img src="./assets/icons/ai-badge.svg" class="btn-ia-icon" alt=""> Rebalancear entre tramos'}
+    </button>`;
+  let notaSinDeficit = hayDeficit
+    ? ''
+    : '<div class="rm" style="margin-top:8px;">Sin deficit en quincena. Puedes usar rebalanceo preventivo.</div>';
 
   cont.innerHTML = `
     ${rowsHtml}
     ${ctaRebalanceo}
+    ${notaSinDeficit}
     ${resultBox}
     ${accionesBox}
   `;
