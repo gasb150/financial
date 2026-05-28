@@ -277,7 +277,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [x] Definir politicas de reintento, cuota y degradacion segura
    - [x] Documento tecnico: docs/TKT-052_DRIVE_ARCHITECTURE_MVP.md
 
-### TKT-053 - Autenticacion Google (OAuth2 PKCE) y sesion segura
+### TKT-053 - Autenticacion Google (GIS token flow) y sesion segura
 
 - Estado: Done
 - Prioridad: Alta
