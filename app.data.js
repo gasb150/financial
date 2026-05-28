@@ -161,18 +161,20 @@
     return out;
   }
 
+  function hasStrictSanitizedLists(payload, sanitized) {
+    return sanitized.ingresosList.length === payload.ingresosList.length
+      && sanitized.primasList.length === payload.primasList.length
+      && sanitized.compromisos.length === payload.compromisos.length
+      && sanitized.lineaTiempoGuardada.length === payload.lineaTiempoGuardada.length;
+  }
+
   function validateCoreDataShape(payload) {
     let sanitized = sanitizePrimaryData(payload, { strict: true });
-    return !!sanitized;
+    return !!sanitized && hasStrictSanitizedLists(payload, sanitized);
   }
 
   function validatePrimaryData(payload) {
-    let sanitized = sanitizePrimaryData(payload, { strict: true });
-    if(!sanitized) return false;
-    let sameIngresos = sanitized.ingresosList.length === payload.ingresosList.length;
-    let sameCompromisos = sanitized.compromisos.length === payload.compromisos.length;
-    let sameTimeline = sanitized.lineaTiempoGuardada.length === payload.lineaTiempoGuardada.length;
-    return sameIngresos && sameCompromisos && sameTimeline;
+    return validateCoreDataShape(payload);
   }
 
   function tracePersistenceError(event, error, details = {}) {

@@ -17,6 +17,7 @@ test('validatePrimaryData accepts only required array shape', () => {
     'sanitizeIAConfig',
     'sanitizeIAUsage',
     'sanitizePrimaryData',
+    'hasStrictSanitizedLists',
     'validateCoreDataShape',
     'validatePrimaryData'
   ], {
@@ -32,6 +33,15 @@ test('validatePrimaryData accepts only required array shape', () => {
   assert.equal(ctx.validatePrimaryData({ ingresosList: [], primasList: [], compromisos: [] }), false);
   assert.equal(
     ctx.validatePrimaryData({ ingresosList: {}, primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] }),
+    false
+  );
+  assert.equal(
+    ctx.validatePrimaryData({
+      ingresosList: [],
+      primasList: [{ id: 1, nombre: '', valor: 50000, diaPago: 15, mesKey: 'Junio 2026' }],
+      compromisos: [],
+      lineaTiempoGuardada: ['Junio 2026']
+    }),
     false
   );
 });
@@ -58,6 +68,7 @@ test('validateBackupPayload enforces required backup structure', () => {
     'sanitizeIAConfig',
     'sanitizeIAUsage',
     'sanitizePrimaryData',
+    'hasStrictSanitizedLists',
     'validateCoreDataShape',
     'validateBackupPayload'
   ], {
@@ -76,6 +87,15 @@ test('validateBackupPayload enforces required backup structure', () => {
   assert.equal(
     ctx.validateBackupPayload({ data: { ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] } }),
     true
+  );
+  assert.equal(
+    ctx.validateBackupPayload({
+      ingresosList: [],
+      primasList: [{ id: 1, nombre: '', valor: 50000, diaPago: 15, mesKey: 'Junio 2026' }],
+      compromisos: [],
+      lineaTiempoGuardada: ['Junio 2026']
+    }),
+    false
   );
   assert.equal(ctx.validateBackupPayload({}), false);
 });
