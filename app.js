@@ -770,6 +770,7 @@ async function googleDriveApiFetch(path, options = {}) {
 }
 
 async function buildDriveSyncEnvelope(remoteVersion = 0) {
+  let deviceId = ensureDriveSyncLocalDeviceId();
   let payload = buildBackupPayload();
   let checksum = await asegurarChecksumPayload(payload);
   let state = getDriveSyncState();
@@ -778,7 +779,7 @@ async function buildDriveSyncEnvelope(remoteVersion = 0) {
     version: Math.max(1, parseInt(remoteVersion, 10) + 1),
     checksum,
     updatedAt: new Date().toISOString(),
-    deviceId: ensureDriveSyncLocalDeviceId(),
+    deviceId,
     data: payload.data,
     encryption: null,
     ciphertext: null,
@@ -1021,6 +1022,13 @@ async function sincronizarDriveConGoogle(options = {}) {
     if(err && err.code === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' && !options._scopeRetryDone) {
       appendDriveSyncEvent('scope-upgrade-retry', { reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' });
       await iniciarFlujoGoogleGISToken({ forceConsent: true });
+
+      let retryState = getDriveSyncState();
+      retryState.syncInProgress = false;
+      persistirDataPrincipalConFallback();
+      persistirAuxiliaresConFallback(new Date().toISOString());
+      renderDriveSyncStatus();
+
       return sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
     }
 
