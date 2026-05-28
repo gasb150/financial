@@ -223,67 +223,85 @@
 
   <div id="s-ingresos" class="screen">
     <div class="sec" data-i18n="config.addIncome">Añadir Nueva Fuente de Ingreso</div>
-    <div class="card">
-      <label class="sl" data-i18n="config.incomeName">Nombre del Ingreso</label>
-      <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional" data-i18n-placeholder="config.incomeName.placeholder">
+    <div class="card add-compact-card">
+      <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('ingreso')" aria-expanded="false" id="btn-toggle-add-ingreso">
+        <div class="deuda-compact-main">
+          <div class="deuda-compact-name">Añadir nueva fuente de ingreso</div>
+          <div class="deuda-compact-meta">Salario o ingreso recurrente</div>
+        </div>
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="deuda-details" id="panel-add-ingreso" style="display:none;">
+        <label class="sl" data-i18n="config.incomeName">Nombre del Ingreso</label>
+        <input type="text" id="new-ing-nombre" class="input-app" placeholder="Ej: Salario Adicional" data-i18n-placeholder="config.incomeName.placeholder">
 
-      <div style="display:flex;gap:10px;margin-top:8px">
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.monthlyAmount">Monto Mensual ($)</label>
-          <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000" data-i18n-placeholder="config.monthlyAmount.placeholder">
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.monthlyAmount">Monto Mensual ($)</label>
+            <input type="text" inputmode="numeric" id="new-ing-valor" class="input-app money-input" placeholder="$1.500.000" data-i18n-placeholder="config.monthlyAmount.placeholder">
+          </div>
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.initialDistribution">Distribución inicial</label>
+            <select id="new-ing-periodo" class="input-app">
+              <option value="q1" data-i18n="config.dist.q1">Entra en Quincena 1</option>
+              <option value="q2" data-i18n="config.dist.q2">Entra en Quincena 2</option>
+              <option value="biweekly" data-i18n="config.dist.biweekly">Pago cada 14 días (quincenal real)</option>
+              <option value="todo" data-i18n="config.dist.all">Ambas quincenas (50/50)</option>
+            </select>
+          </div>
         </div>
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.initialDistribution">Distribución inicial</label>
-          <select id="new-ing-periodo" class="input-app">
-            <option value="q1" data-i18n="config.dist.q1">Entra en Quincena 1</option>
-            <option value="q2" data-i18n="config.dist.q2">Entra en Quincena 2</option>
-            <option value="biweekly" data-i18n="config.dist.biweekly">Pago cada 14 días (quincenal real)</option>
-            <option value="todo" data-i18n="config.dist.all">Ambas quincenas (50/50)</option>
-          </select>
+        <div style="margin-top:8px;">
+          <label class="sl" data-i18n="config.exactPayDay">Día exacto de pago (1-31)</label>
+          <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
         </div>
+        <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.validFrom">Vigencia desde</label>
+            <select id="new-ing-desde" class="input-app"></select>
+          </div>
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.validTo">Vigencia hasta</label>
+            <select id="new-ing-hasta" class="input-app"></select>
+          </div>
+        </div>
+        <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income" data-i18n="config.addIncomeBtn">Añadir Ingreso</button>
       </div>
-      <div style="margin-top:8px;">
-        <label class="sl" data-i18n="config.exactPayDay">Día exacto de pago (1-31)</label>
-        <input type="number" id="new-ing-dia" class="input-app" min="1" max="31" value="30" placeholder="30">
-      </div>
-      <div style="display:flex;gap:10px;margin-top:8px;align-items:end;">
-        <div style="flex:1;">
-          <label class="sl" data-i18n="config.validFrom">Vigencia desde</label>
-          <select id="new-ing-desde" class="input-app"></select>
-        </div>
-        <div style="flex:1;">
-          <label class="sl" data-i18n="config.validTo">Vigencia hasta</label>
-          <select id="new-ing-hasta" class="input-app"></select>
-        </div>
-      </div>
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-income" data-i18n="config.addIncomeBtn">Añadir Ingreso</button>
     </div>
 
     <div class="sec" data-i18n="config.incomeListEdit">Listado y Edición de Ingresos</div>
     <div id="lista-config-ingresos"></div>
 
     <div class="sec" data-i18n="config.bonusesTitle">Primas / Ingresos no recurrentes</div>
-    <div class="card">
-      <label class="sl" data-i18n="config.bonusName">Nombre de la Prima</label>
-      <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio" data-i18n-placeholder="config.bonusName.placeholder">
-
-      <div style="display:flex;gap:10px;margin-top:8px">
-        <div style="flex:1">
-          <label class="sl" data-i18n="config.value">Valor ($)</label>
-          <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000" data-i18n-placeholder="config.value.placeholder">
+    <div class="card add-compact-card">
+      <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('prima')" aria-expanded="false" id="btn-toggle-add-prima">
+        <div class="deuda-compact-main">
+          <div class="deuda-compact-name">Añadir prima / ingreso extra</div>
+          <div class="deuda-compact-meta">Pago extraordinario por mes</div>
         </div>
-        <div style="width:92px;">
-          <label class="sl" data-i18n="config.day">Día</label>
-          <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="deuda-details" id="panel-add-prima" style="display:none;">
+        <label class="sl" data-i18n="config.bonusName">Nombre de la Prima</label>
+        <input type="text" id="new-prima-nombre" class="input-app" placeholder="Ej: Prima Junio" data-i18n-placeholder="config.bonusName.placeholder">
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="flex:1">
+            <label class="sl" data-i18n="config.value">Valor ($)</label>
+            <input type="text" inputmode="numeric" id="new-prima-valor" class="input-app money-input" placeholder="$2.500.000" data-i18n-placeholder="config.value.placeholder">
+          </div>
+          <div style="width:92px;">
+            <label class="sl" data-i18n="config.day">Día</label>
+            <input type="number" id="new-prima-dia" class="input-app" min="1" max="31" value="15">
+          </div>
         </div>
-      </div>
 
-      <div style="margin-top:8px;">
-        <label class="sl" data-i18n="config.payMonth">Mes de pago</label>
-        <select id="new-prima-mes" class="input-app"></select>
-      </div>
+        <div style="margin-top:8px;">
+          <label class="sl" data-i18n="config.payMonth">Mes de pago</label>
+          <select id="new-prima-mes" class="input-app"></select>
+        </div>
 
-      <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus" data-i18n="config.addBonusBtn">Añadir Prima</button>
+        <button class="btn-action" style="width:100%;margin-top:12px;padding:8px;" data-action="add-bonus" data-i18n="config.addBonusBtn">Añadir Prima</button>
+      </div>
     </div>
 
     <div id="lista-config-primas"></div>

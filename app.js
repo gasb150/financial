@@ -9,6 +9,10 @@ let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista
 let filtroDiaDesde = null;
 let filtroDiaHasta = null;
 let deudasExpandState = new Set();
+let ingresosExpandState = new Set();
+let primasExpandState = new Set();
+let addIngresoCardExpanded = false;
+let addPrimaCardExpanded = false;
 let modoAltaDeuda = 'rapido';
 let deferredInstallPrompt = null;
 let htmlActionHandlersBound = false;
@@ -1633,6 +1637,8 @@ function obtenerSemanasDelMesActivo() {
 
 function cambiarMesDeVisualizacion(nuevoMes) {
   deudasExpandState = new Set();
+  ingresosExpandState = new Set();
+  primasExpandState = new Set();
   return window.FinancialRender.changeDisplayedMonth(nuevoMes);
 }
 
@@ -1967,6 +1973,51 @@ function toggleExpandDeuda(id) {
   renderDeudasModulo(getCompromisosMesActual());
 }
 
+function toggleExpandIngreso(id) {
+  let key = String(id);
+  if(ingresosExpandState.has(key)) {
+    ingresosExpandState.delete(key);
+  } else {
+    ingresosExpandState = new Set([key]);
+  }
+  renderConfigIngresos();
+}
+
+function toggleExpandPrima(id) {
+  let key = String(id);
+  if(primasExpandState.has(key)) {
+    primasExpandState.delete(key);
+  } else {
+    primasExpandState = new Set([key]);
+  }
+  renderConfigPrimas();
+}
+
+function aplicarEstadoCardAlta(tipo) {
+  let esIngreso = tipo === 'ingreso';
+  let expanded = esIngreso ? addIngresoCardExpanded : addPrimaCardExpanded;
+  let panel = document.getElementById(esIngreso ? 'panel-add-ingreso' : 'panel-add-prima');
+  let btn = document.getElementById(esIngreso ? 'btn-toggle-add-ingreso' : 'btn-toggle-add-prima');
+  if(!panel || !btn) return;
+
+  panel.style.display = expanded ? 'block' : 'none';
+  btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  let chevron = btn.querySelector('.deuda-chevron');
+  if(chevron) chevron.textContent = expanded ? '▾' : '▸';
+}
+
+function toggleExpandAddCard(tipo) {
+  if(tipo === 'ingreso') {
+    addIngresoCardExpanded = !addIngresoCardExpanded;
+    if(addIngresoCardExpanded) addPrimaCardExpanded = false;
+  } else if(tipo === 'prima') {
+    addPrimaCardExpanded = !addPrimaCardExpanded;
+    if(addPrimaCardExpanded) addIngresoCardExpanded = false;
+  }
+  aplicarEstadoCardAlta('ingreso');
+  aplicarEstadoCardAlta('prima');
+}
+
 function cambiarFiltroDeuda(tipo) {
   filtroDeudaActivo = tipo;
   ['todas','fijas','variables','creditos','pendientes'].forEach(f => {
@@ -2159,10 +2210,15 @@ function renderConfigIngresos() {
   const mesIdxActivo = ORDEN_MESES.indexOf(mesNombreActivo);
   const diasMesActivo = new Date(anioActivo, mesIdxActivo + 1, 0).getDate();
 
+  ingresosExpandState = new Set(
+    [...ingresosExpandState].filter((id) => appData.ingresosList.some((i) => String(i.id) === id))
+  );
+
   appData.ingresosList.forEach(i => {
     let nombreSeguro = escapeHTML(i.nombre);
     let desde = obtenerMesInicioIngreso(i);
     let hasta = obtenerMesFinIngreso(i);
+    let ingresoExpandido = ingresosExpandState.has(String(i.id));
     let diasReales = obtenerDiasPagoIngresoEnMes(i, mesActivoGlobal);
     let tieneArrastre = diasReales.some((d) => d >= 29);
     let fechaRealTxt = diasReales.length
@@ -2177,45 +2233,77 @@ function renderConfigIngresos() {
     let opcionesDesde = mesesLineaTiempo.map(m => `<option value="${m}" ${desde === m ? 'selected' : ''}>${m}</option>`).join('');
     let opcionesHasta = `<option value="__indefinido__" ${!hasta ? 'selected' : ''}>Indefinido</option>` + mesesLineaTiempo.map(m => `<option value="${m}" ${hasta === m ? 'selected' : ''}>${m}</option>`).join('');
     let card = document.createElement('div');
-    card.className = 'card';
+    card.className = 'card ingreso-card';
     card.style.padding = '12px';
     card.style.marginBottom = '8px';
     card.innerHTML = `
-      <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px">
-        <button class="btn-del" onclick="eliminarIngreso(${i.id})" title="Eliminar ingreso" aria-label="Eliminar ingreso"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""><span class="btn-del-text">Eliminar</span></button>
-        <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
-        <input type="text" inputmode="numeric" value="${formatCOP(i.valor)}" class="input-inline money-input" style="width:110px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
-      </div>
-      <div style="padding-left:24px; display:flex; gap:8px; align-items:end;">
-        <div style="flex:1;">
-        <label class="sl" style="display:block; margin-bottom:2px">Asignación de Tramo:</label>
-        <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'periodo', this.value)">
-          <option value="q1" ${i.periodo === 'q1' ? 'selected' : ''}>Cae en Quincena 1 (Días 1-14)</option>
-          <option value="q2" ${i.periodo === 'q2' ? 'selected' : ''}>Cae en Quincena 2 (Días 15-31)</option>
-          <option value="biweekly" ${i.periodo === 'biweekly' ? 'selected' : ''}>Quincenal real (cada 14 días)</option>
-          <option value="todo" ${i.periodo === 'todo' ? 'selected' : ''}>Dividir en Ambas Quincenas (50/50)</option>
-        </select>
+      ${ingresoExpandido ? `
+      <div class="ingreso-toggle ingreso-toggle-expanded">
+        <div style="flex:1;min-width:0;">
+          <div class="ingreso-compact-top">
+            <input type="text" value="${nombreSeguro}" class="input-inline ingreso-name" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
+            <input type="text" inputmode="numeric" value="${formatCOP(i.valor)}" class="input-inline ingreso-value money-input" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
+          </div>
+          <div class="ingreso-compact-meta">
+            <span>${i.periodo === 'biweekly' ? 'Quincenal real' : (i.periodo === 'q1' ? 'Q1' : (i.periodo === 'q2' ? 'Q2' : 'Q1+Q2'))}</span>
+            <span>Día ${getDiaIngreso(i)}</span>
+          </div>
         </div>
-        <div style="width:92px;">
-          <label class="sl" style="display:block; margin-bottom:2px">Día pago</label>
-          <input type="number" min="1" max="31" class="input-app" style="margin:0; padding:4px; font-size:12px;" value="${getDiaIngreso(i)}" onchange="modificarIngresoPropiedad(${i.id}, 'diaPago', this.value)">
+        <button class="deuda-chevron-btn" onclick="toggleExpandIngreso(${i.id})" aria-expanded="true" title="Contraer detalle"><span class="deuda-chevron" aria-hidden="true">▾</span></button>
+      </div>
+      ` : `
+      <button class="ingreso-toggle" onclick="toggleExpandIngreso(${i.id})" aria-expanded="false" title="Expandir detalle">
+        <div style="flex:1;min-width:0;">
+          <div class="ingreso-compact-top">
+            <div class="ingreso-compact-name">${nombreSeguro}</div>
+            <div class="ingreso-compact-value">${formatCOP(i.valor)}</div>
+          </div>
+          <div class="ingreso-compact-meta">
+            <span>${i.periodo === 'biweekly' ? 'Quincenal real' : (i.periodo === 'q1' ? 'Q1' : (i.periodo === 'q2' ? 'Q2' : 'Q1+Q2'))}</span>
+            <span>Día ${getDiaIngreso(i)}</span>
+          </div>
+        </div>
+        <span class="deuda-chevron" aria-hidden="true">▸</span>
+      </button>
+      `}
+
+      ${ingresoExpandido ? `
+      <div class="ingreso-details">
+        <div style="display:flex; gap:8px; align-items:end;">
+          <div style="flex:1;">
+          <label class="sl" style="display:block; margin-bottom:2px">Asignación de Tramo:</label>
+          <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'periodo', this.value)">
+            <option value="q1" ${i.periodo === 'q1' ? 'selected' : ''}>Cae en Quincena 1 (Días 1-14)</option>
+            <option value="q2" ${i.periodo === 'q2' ? 'selected' : ''}>Cae en Quincena 2 (Días 15-31)</option>
+            <option value="biweekly" ${i.periodo === 'biweekly' ? 'selected' : ''}>Quincenal real (cada 14 días)</option>
+            <option value="todo" ${i.periodo === 'todo' ? 'selected' : ''}>Dividir en Ambas Quincenas (50/50)</option>
+          </select>
+          </div>
+          <div style="width:92px;">
+            <label class="sl" style="display:block; margin-bottom:2px">Día pago</label>
+            <input type="number" min="1" max="31" class="input-app" style="margin:0; padding:4px; font-size:12px;" value="${getDiaIngreso(i)}" onchange="modificarIngresoPropiedad(${i.id}, 'diaPago', this.value)">
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:end; margin-top:8px;">
+          <div style="flex:1;">
+            <label class="sl" style="display:block; margin-bottom:2px">Vigente desde</label>
+            <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesInicio', this.value)">${opcionesDesde}</select>
+          </div>
+          <div style="flex:1;">
+            <label class="sl" style="display:block; margin-bottom:2px">Vigente hasta</label>
+            <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesFin', this.value)">${opcionesHasta}</select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--color-text-secondary);line-height:1.4;">
+          <div><strong>Fecha real de pago:</strong> ${fechaRealTxt}</div>
+          <div><strong>Fecha de impacto en flujo:</strong> ${fechaImpactoTxt}</div>
+          ${arrastreTxt}
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button class="btn-del btn-del-icon-only" onclick="eliminarIngreso(${i.id})" title="Eliminar ingreso" aria-label="Eliminar ingreso"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""></button>
         </div>
       </div>
-      <div style="padding-left:24px; display:flex; gap:8px; align-items:end; margin-top:8px;">
-        <div style="flex:1;">
-          <label class="sl" style="display:block; margin-bottom:2px">Vigente desde</label>
-          <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesInicio', this.value)">${opcionesDesde}</select>
-        </div>
-        <div style="flex:1;">
-          <label class="sl" style="display:block; margin-bottom:2px">Vigente hasta</label>
-          <select class="input-app" style="margin:0; padding:4px; font-size:12px;" onchange="modificarIngresoPropiedad(${i.id}, 'mesFin', this.value)">${opcionesHasta}</select>
-        </div>
-      </div>
-      <div style="padding-left:24px;margin-top:8px;font-size:11px;color:var(--color-text-secondary);line-height:1.4;">
-        <div><strong>Fecha real de pago:</strong> ${fechaRealTxt}</div>
-        <div><strong>Fecha de impacto en flujo:</strong> ${fechaImpactoTxt}</div>
-        ${arrastreTxt}
-      </div>
+      ` : ''}
     `;
     container.appendChild(card);
   });
@@ -2269,32 +2357,69 @@ function renderConfigPrimas() {
     return;
   }
 
+  primasExpandState = new Set(
+    [...primasExpandState].filter((id) => appData.primasList.some((p) => String(p.id) === id))
+  );
+
   appData.primasList
     .slice()
     .sort((a, b) => mesKeyToIndex(a.mesKey) - mesKeyToIndex(b.mesKey))
     .forEach(p => {
       let nombreSeguro = escapeHTML(p.nombre);
       let mesOptions = mesesLineaTiempo.map(m => `<option value="${m}" ${p.mesKey === m ? 'selected' : ''}>${m}</option>`).join('');
+      let primaExpandida = primasExpandState.has(String(p.id));
       let card = document.createElement('div');
-      card.className = 'card';
+      card.className = 'card prima-card';
       card.style.padding = '12px';
       card.style.marginBottom = '8px';
       card.innerHTML = `
-        <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
-          <button class="btn-del" onclick="eliminarPrima(${p.id})" title="Eliminar prima" aria-label="Eliminar prima"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""><span class="btn-del-text">Eliminar</span></button>
-          <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'nombre', this.value)">
-          <input type="text" inputmode="numeric" value="${formatCOP(p.valor)}" class="input-inline money-input" style="width:110px;text-align:right;color:#1D9E75;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
-        </div>
-        <div style="display:flex; gap:8px; align-items:end; padding-left:24px;">
-          <div style="width:88px;">
-            <label class="sl" style="display:block; margin-bottom:2px;">Día pago</label>
-            <input type="number" min="1" max="31" class="input-app" style="margin:0;padding:4px;font-size:12px;" value="${p.diaPago}" onchange="modificarPrimaPropiedad(${p.id}, 'diaPago', this.value)">
+        ${primaExpandida ? `
+        <div class="ingreso-toggle ingreso-toggle-expanded">
+          <div style="flex:1;min-width:0;">
+            <div class="ingreso-compact-top">
+              <input type="text" value="${nombreSeguro}" class="input-inline ingreso-name" onchange="modificarPrimaPropiedad(${p.id}, 'nombre', this.value)">
+              <input type="text" inputmode="numeric" value="${formatCOP(p.valor)}" class="input-inline ingreso-value money-input" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
+            </div>
+            <div class="ingreso-compact-meta">
+              <span>Prima</span>
+              <span>Día ${p.diaPago}</span>
+            </div>
           </div>
-          <div style="flex:1;">
-            <label class="sl" style="display:block; margin-bottom:2px;">Mes</label>
-            <select class="input-app" style="margin:0;padding:4px;font-size:12px;" onchange="modificarPrimaPropiedad(${p.id}, 'mesKey', this.value)">${mesOptions}</select>
+          <button class="deuda-chevron-btn" onclick="toggleExpandPrima(${p.id})" aria-expanded="true" title="Contraer detalle"><span class="deuda-chevron" aria-hidden="true">▾</span></button>
+        </div>
+        ` : `
+        <button class="ingreso-toggle" onclick="toggleExpandPrima(${p.id})" aria-expanded="false" title="Expandir detalle">
+          <div style="flex:1;min-width:0;">
+            <div class="ingreso-compact-top">
+              <div class="ingreso-compact-name">${nombreSeguro}</div>
+              <div class="ingreso-compact-value">${formatCOP(p.valor)}</div>
+            </div>
+            <div class="ingreso-compact-meta">
+              <span>Prima</span>
+              <span>Día ${p.diaPago}</span>
+            </div>
+          </div>
+          <span class="deuda-chevron" aria-hidden="true">▸</span>
+        </button>
+        `}
+
+        ${primaExpandida ? `
+        <div class="ingreso-details">
+          <div style="display:flex; gap:8px; align-items:end;">
+            <div style="width:88px;">
+              <label class="sl" style="display:block; margin-bottom:2px;">Día pago</label>
+              <input type="number" min="1" max="31" class="input-app" style="margin:0;padding:4px;font-size:12px;" value="${p.diaPago}" onchange="modificarPrimaPropiedad(${p.id}, 'diaPago', this.value)">
+            </div>
+            <div style="flex:1;">
+              <label class="sl" style="display:block; margin-bottom:2px;">Mes</label>
+              <select class="input-app" style="margin:0;padding:4px;font-size:12px;" onchange="modificarPrimaPropiedad(${p.id}, 'mesKey', this.value)">${mesOptions}</select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+            <button class="btn-del btn-del-icon-only" onclick="eliminarPrima(${p.id})" title="Eliminar prima" aria-label="Eliminar prima"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""></button>
           </div>
         </div>
+        ` : ''}
       `;
       container.appendChild(card);
     });
