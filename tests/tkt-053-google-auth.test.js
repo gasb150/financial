@@ -9,25 +9,16 @@ const APP_JS = path.join(ROOT, 'app.js');
 
 test('isGoogleOAuthSessionActive validates token expiry window', () => {
   const now = Date.now();
-  const ctx = loadFunctionsFromFile(APP_JS, [
-    'getGoogleOAuthSession',
-    'getGoogleOAuthAccessToken',
-    'isGoogleOAuthSessionActive'
-  ], {
+  const ctx = loadFunctionsFromFile(APP_JS, ['getGoogleOAuthSession', 'isGoogleOAuthSessionActive'], {
+    googleOAuthAccessTokenRuntime: '',
     appData: {
       googleAuth: {
         session: {
+          accessToken: 'token-ok',
           expiresAtMs: now + 120000
         }
       }
     },
-    sessionStorage: {
-      getItem: () => 'token-ok',
-      setItem: () => {},
-      removeItem: () => {}
-    },
-    googleOAuthAccessTokenRuntime: '',
-    GOOGLE_OAUTH_SESSION_TOKEN_KEY: 'finanzas_google_oauth_access_token',
     Date: { now: () => now }
   });
 
@@ -52,11 +43,11 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
   const ctx = loadFunctionsFromFile(APP_JS, [
     'getGoogleOAuthConfig',
     'getGoogleOAuthRedirectUri',
-    'getGoogleOAuthAccessToken',
     'getGoogleOAuthSession',
     'isGoogleOAuthSessionActive',
     'renderGoogleAuthConfig'
   ], {
+    googleOAuthAccessTokenRuntime: '',
     appData: {
       googleAuth: {
         provider: 'google',
@@ -64,6 +55,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
         scope: 'openid profile email',
         lastError: '',
         session: {
+          accessToken: 'token',
           expiresAtMs: now + 300000,
           user: { email: 'demo@example.com' }
         }
@@ -78,13 +70,6 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
     document: {
       getElementById: (id) => nodes[id] || null
     },
-    sessionStorage: {
-      getItem: () => 'token',
-      setItem: () => {},
-      removeItem: () => {}
-    },
-    googleOAuthAccessTokenRuntime: '',
-    GOOGLE_OAUTH_SESSION_TOKEN_KEY: 'finanzas_google_oauth_access_token',
     Date: class extends Date {
       static now() { return now; }
     },
@@ -95,7 +80,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
 
   assert.equal(nodes['google-oauth-client-id'].value, 'abc.apps.googleusercontent.com');
   assert.equal(nodes['google-oauth-redirect'].value, 'https://demo.test/index.html');
-  assert.match(nodes['google-auth-status'].innerText, /Sesi[oó]n activa/);
+  assert.match(nodes['google-auth-status'].innerText, /Sesión activa/);
   assert.match(nodes['google-auth-status'].innerText, /demo@example.com/);
   assert.equal(nodes['google-auth-error'].innerText, '');
 });

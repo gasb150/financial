@@ -121,6 +121,31 @@
   async function logoutGoogleAuth() {
     await cerrarSesionGoogleOAuth();
     renderGoogleAuthConfig();
+    renderDriveSyncStatus();
+  }
+
+  async function syncDriveNow() {
+    try {
+      await sincronizarDriveConGoogle();
+      renderGoogleAuthConfig();
+      renderDriveSyncStatus();
+      alert('Sincronización con Drive completada.');
+    } catch(err) {
+      let detalle = err && err.message ? err.message : 'No se pudo sincronizar con Drive.';
+      alert(`Sincronización detenida: ${detalle}`);
+    }
+  }
+
+  async function restoreFromDriveNow() {
+    try {
+      await sincronizarDriveConGoogle({ forcePull: true });
+      renderGoogleAuthConfig();
+      renderDriveSyncStatus();
+      alert('Recuperación desde Drive completada.');
+    } catch(err) {
+      let detalle = err && err.message ? err.message : 'No se pudo recuperar desde Drive.';
+      alert(`Recuperación detenida: ${detalle}`);
+    }
   }
 
   async function testConfiguredAI() {
@@ -405,6 +430,8 @@
     saveGoogleAuthConfig,
     loginGoogleAuth,
     logoutGoogleAuth,
+    syncDriveNow,
+    restoreFromDriveNow,
     testConfiguredAI,
     installPWAApp,
     toggleInstallmentFields,

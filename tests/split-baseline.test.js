@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const { webcrypto } = require('node:crypto');
+const { TextEncoder, TextDecoder } = require('node:util');
 
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
@@ -193,6 +195,7 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
       }
     }),
     renderGoogleAuthConfig: () => {},
+    renderDriveSyncStatus: () => {},
     renderPanelConsumoIA: () => { consumoRenderCalls += 1; }
   });
 
@@ -204,4 +207,124 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
   assert.equal(nodes['ia-api-endpoint'].value, 'https://gateway.example.test');
   assert.equal(nodes['ia-api-model'].value, 'gpt-4.1-mini');
   assert.equal(consumoRenderCalls, 1);
+});
+
+test('evaluarPlanSyncDrive bloquea push cuando remoto va adelante y checksum difiere', () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['evaluarPlanSyncDrive']);
+
+  const ahead = ctx.evaluarPlanSyncDrive({
+    remoteVersion: 5,
+    remoteChecksum: 'remote-abc',
+    localChecksum: 'local-def',
+    lastKnownRemoteVersion: 4
+  });
+  assert.equal(ahead.needsPull, true);
+  assert.equal(ahead.pushAllowed, false);
+  assert.equal(ahead.reason, 'remote-ahead');
+
+  const sameChecksum = ctx.evaluarPlanSyncDrive({
+    remoteVersion: 5,
+    remoteChecksum: 'same',
+    localChecksum: 'same',
+    lastKnownRemoteVersion: 1
+  });
+  assert.equal(sameChecksum.needsPull, false);
+  assert.equal(sameChecksum.pushAllowed, true);
+  assert.equal(sameChecksum.reason, 'ok');
+});
+
+test('restauracion cifrada de Drive recupera payload original con passphrase', async () => {
+  const payloadOriginal = {
+    schemaVersion: 5,
+    compromisos: [{ id: 1, nombre: 'Prueba', valor: 12345, dia: 7 }],
+    ingresosList: [{ id: 9, nombre: 'Ingreso', valor: 999999, dia: 1 }]
+  };
+
+  const ctx = loadFunctionsFromFile(
+    APP_JS,
+    [
+      'bytesToBase64',
+      'base64ToBytes',
+      'deriveDriveSyncAesKey',
+      'encryptDriveSyncData',
+      'decryptDriveSyncData',
+      'resolveDriveEnvelopeData'
+    ],
+    {
+      DRIVE_SYNC_KDF_ITERATIONS: 120000,
+      TextEncoder,
+      TextDecoder,
+      Uint8Array,
+      crypto: webcrypto,
+      window: { crypto: webcrypto },
+      btoa: (value) => Buffer.from(value, 'binary').toString('base64'),
+      atob: (value) => Buffer.from(value, 'base64').toString('binary'),
+      getDriveSyncPassphrase: () => 'clave-secreta-123',
+      prompt: () => ''
+    }
+  );
+
+  const encrypted = await ctx.encryptDriveSyncData(payloadOriginal, 'clave-secreta-123');
+  const remoteEnvelope = {
+    encryption: encrypted.encryption,
+    ciphertext: encrypted.ciphertext
+  };
+
+  const restaurado = await ctx.resolveDriveEnvelopeData(remoteEnvelope);
+  assert.deepEqual(restaurado, payloadOriginal);
+});
+
+test('snapshot replicado de Drive excluye metadata volatile de driveSync', async () => {
+  const ctx = loadFunctionsFromFile(
+    APP_JS,
+    [
+      'sanitizarSnapshotReplicadoDriveSync',
+      'generarChecksumSnapshotDriveSync'
+    ],
+    {
+      clonarJSONSeguro: (data) => JSON.parse(JSON.stringify(data)),
+      generarChecksumPayload: async (data) => JSON.stringify(data)
+    }
+  );
+
+  const base = {
+    schemaVersion: 5,
+    ingresosList: [{ id: 1, valor: 1000 }],
+    driveSync: {
+      localDeviceId: 'device-a',
+      syncInProgress: true,
+      lastSyncAt: '2026-05-28T00:00:00.000Z',
+      syncEvents: [{ id: 'evt-1' }]
+    }
+  };
+  const changedMetadata = {
+    ...base,
+    driveSync: {
+      localDeviceId: 'device-b',
+      syncInProgress: false,
+      lastSyncAt: '2026-05-29T00:00:00.000Z',
+      syncEvents: [{ id: 'evt-2' }]
+    }
+  };
+
+  const sanitized = ctx.sanitizarSnapshotReplicadoDriveSync(base);
+  const checksumA = await ctx.generarChecksumSnapshotDriveSync(base);
+  const checksumB = await ctx.generarChecksumSnapshotDriveSync(changedMetadata);
+
+  assert.equal('driveSync' in sanitized, false);
+  assert.equal(checksumA, checksumB);
+});
+
+test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['validarChecksumEnvelopeDriveSync'], {
+    generarChecksumPayload: async (data) => JSON.stringify(data)
+  });
+
+  await assert.rejects(
+    () => ctx.validarChecksumEnvelopeDriveSync(
+      { checksum: '{"schemaVersion":5,"ok":false}' },
+      { schemaVersion: 5, ok: true }
+    ),
+    /checksum del snapshot remoto de Drive/
+  );
 });

@@ -380,7 +380,7 @@
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>
 
-    <div class="sec" data-i18n="config.googleAuthTitle">Google Drive Auth (GIS Token)</div>
+    <div class="sec" data-i18n="config.googleDriveAuthTitle">Google Drive Auth (GIS Token)</div>
     <div class="card">
       <label class="sl" data-i18n="config.googleOAuthClientId">Google OAuth Client ID</label>
       <input id="google-oauth-client-id" class="input-app" type="text" placeholder="xxxx.apps.googleusercontent.com" data-i18n-placeholder="config.googleOAuthClientIdPlaceholder" data-action="save-google-auth-config">
@@ -388,13 +388,17 @@
       <label class="sl" style="margin-top:8px;" data-i18n="config.googleRedirectUri">Redirect URI</label>
       <input id="google-oauth-redirect" class="input-app" type="text" readonly>
 
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn-action" style="flex:1;padding:8px;background:#2f7a4a;" data-action="google-login" data-i18n="config.googleSignIn">Sign in with Google</button>
-        <button class="btn-action" style="flex:1;padding:8px;background:#7a2f2f;" data-action="google-logout" data-i18n="config.googleSignOut">Sign out</button>
-      </div>
-
-      <div id="google-auth-status" class="rm" style="margin-top:8px;" data-i18n="config.googleAuthStatusSignedOut">Sesión no iniciada.</div>
+      <div id="google-auth-status" class="rm" style="margin-top:8px;">Sesión no iniciada.</div>
       <div id="google-auth-error" class="rm" style="margin-top:4px;color:#E24B4A;"></div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-action" style="width:100%;padding:8px;background:#1f6ea8;" data-action="sync-drive-now" data-i18n="config.syncDriveNow">Sincronizar con Drive</button>
+        <button class="btn-action" style="width:100%;padding:8px;background:#6b4fa3;" data-action="restore-drive-now" data-i18n="config.restoreDriveNow">Recuperar desde Drive</button>
+      </div>
+      <label class="sl" style="margin-top:8px;" data-i18n="config.driveSyncPassphrase">Passphrase de cifrado remoto (opcional)</label>
+      <input id="drive-sync-passphrase" class="input-app" type="password" placeholder="Solo para cifrar/descifrar en tu dispositivo" data-i18n-placeholder="config.driveSyncPassphrase.placeholder">
+      <div id="drive-sync-status" class="rm" style="margin-top:8px;" data-i18n="config.driveSyncIdle">Aún no hay sincronización con Drive.</div>
+      <div id="drive-sync-error" class="rm" style="margin-top:4px;color:#E24B4A;"></div>
     </div>
 
     <div class="sec" data-i18n="config.timelineTitle">Línea de Tiempo del Sistema</div>
