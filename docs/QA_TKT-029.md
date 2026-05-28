@@ -58,7 +58,7 @@ Cobertura relevante validada:
 ### 2) Smoke manual guiado (file://)
 
 URL ejecutada:
-- file:///Users/gsanmartin/Downloads/carpeta%20sin%20t%C3%ADtulo/finanzas_tavo_app.html
+- file:///.../finanzas_tavo_app.html
 
 Resultados por escenario:
 - QA-IA-01 (Semanal con déficit): ✅ CTA semanal visible.
