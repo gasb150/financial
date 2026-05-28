@@ -438,7 +438,7 @@ function inicializarClienteTokenGoogleOAuth() {
   return googleOAuthTokenClient;
 }
 
-async function iniciarFlujoGoogleOAuthPKCE() {
+async function iniciarFlujoGoogleGISToken() {
   let cfg = getGoogleOAuthConfig();
   if(!cfg.clientId) {
     setErrorGoogleOAuth('Configura el Client ID de Google antes de iniciar sesión.');

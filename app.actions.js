@@ -114,7 +114,7 @@
   }
 
   async function loginGoogleAuth() {
-    await iniciarFlujoGoogleOAuthPKCE();
+    await iniciarFlujoGoogleGISToken();
   }
 
   async function logoutGoogleAuth() {
