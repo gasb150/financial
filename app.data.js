@@ -62,12 +62,19 @@
     let tipo = String(raw.tipo || 'variable').toLowerCase();
     let pagado = !!raw.pagado;
     let mesKey = typeof raw.mesKey === 'string' && raw.mesKey.trim() ? raw.mesKey : null;
+    let diaPagoRealRaw = raw.diaPagoReal;
     if(!nombre || !isFiniteNumber(valor) || valor <= 0) return null;
     if(dia !== -1 && (!Number.isFinite(dia) || dia < 1 || dia > 31)) return null;
     if(!['variable', 'fijo', 'credito'].includes(tipo)) return null;
     if(!mesKey) return null;
 
-    let out = { id, nombre, valor: Math.round(valor), dia: Math.round(dia), pagado, tipo, mesKey };
+    let diaPagoReal = null;
+    if(diaPagoRealRaw !== null && diaPagoRealRaw !== undefined && String(diaPagoRealRaw).trim() !== '') {
+      let dpr = toSafeInt(diaPagoRealRaw, 0, 0);
+      if(dpr >= 1 && dpr <= 31) diaPagoReal = dpr;
+    }
+
+    let out = { id, nombre, valor: Math.round(valor), dia: Math.round(dia), diaPagoReal, pagado, tipo, mesKey };
     if(tipo === 'credito') {
       out.faltantes = toSafeInt(raw.faltantes, 1, 1);
       out.totales = toSafeInt(raw.totales, out.faltantes, 1);
@@ -114,6 +121,53 @@
     };
   }
 
+  function sanitizeIAHistoryEvent(raw, idx = 0) {
+    if(!raw || typeof raw !== 'object') return null;
+
+    let id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : `ia-${Date.now()}-${idx}`;
+    let source = typeof raw.source === 'string' ? raw.source.trim().toLowerCase() : 'desconocido';
+    let action = typeof raw.action === 'string' ? raw.action.trim().toLowerCase() : 'desconocida';
+    let itemId = Number.isFinite(raw.itemId) ? raw.itemId : null;
+    let itemName = typeof raw.itemName === 'string' ? raw.itemName.trim() : '';
+    let monthKey = typeof raw.monthKey === 'string' && raw.monthKey.trim() ? raw.monthKey.trim() : null;
+    let appliedAt = typeof raw.appliedAt === 'string' ? raw.appliedAt : null;
+    let revertedAt = typeof raw.revertedAt === 'string' ? raw.revertedAt : null;
+
+    if(!appliedAt || !monthKey || !itemName || itemId === null) return null;
+
+    let before = sanitizeCompromisoItem(raw.before, idx);
+    let after = sanitizeCompromisoItem(raw.after, idx);
+    if(!before || !after) return null;
+
+    return {
+      id,
+      source,
+      action,
+      itemId,
+      itemName,
+      monthKey,
+      appliedAt,
+      revertedAt,
+      reason: typeof raw.reason === 'string' ? raw.reason.trim() : '',
+      before,
+      after,
+      meta: raw.meta && typeof raw.meta === 'object' ? raw.meta : {}
+    };
+  }
+
+  function sanitizeIAHistory(raw) {
+    let history = raw && typeof raw === 'object' ? raw : {};
+    let events = Array.isArray(history.events)
+      ? history.events.map((evt, idx) => sanitizeIAHistoryEvent(evt, idx)).filter(Boolean)
+      : [];
+
+    return {
+      version: Math.max(1, toSafeInt(history.version, 1, 1)),
+      lastEventAt: typeof history.lastEventAt === 'string' ? history.lastEventAt : null,
+      events
+    };
+  }
+
   function sanitizePrimaryData(payload, options = {}) {
     if(!payload || typeof payload !== 'object') return null;
     let strict = options.strict !== false;
@@ -150,7 +204,8 @@
       compromisos,
       lineaTiempoGuardada,
       iaConfig: sanitizeIAConfig(payload.iaConfig),
-      iaUsage: sanitizeIAUsage(payload.iaUsage)
+      iaUsage: sanitizeIAUsage(payload.iaUsage),
+      iaHistory: sanitizeIAHistory(payload.iaHistory)
     };
 
     if(!out.schemaVersion || !Number.isFinite(out.schemaVersion)) {

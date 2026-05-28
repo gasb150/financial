@@ -14,8 +14,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
-- [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
@@ -33,6 +31,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Done
 
 - [x] TKT-045 Modularizacion final de app.js y dominio IA
+- [x] TKT-034 Historial persistente de acciones IA y revertir
+- [x] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [x] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 - [x] TKT-011 Asistente IA: simulador de escenarios
 - [x] TKT-010 Asistente IA: alertas de deficit
@@ -606,7 +606,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-033 - Fecha real de pago para gastos unicos y diferidos
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -615,13 +615,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - La app permite modelar gastos que se pagan dias despues sin romper balances.
    - La UI muestra claramente ambas fechas cuando existan diferencias.
 - Checklist:
-   - [ ] Definir campos de fecha real/fecha impacto para compromisos aplicables
-   - [ ] Ajustar calculos de calendario, quincenas y semana a semana
-   - [ ] Mostrar indicador visual en listas y modulo de edicion
+   - [x] Definir campos de fecha real/fecha impacto para compromisos aplicables
+   - [x] Ajustar calculos/lectura de calendario y vista diaria sin romper balances base
+   - [x] Mostrar indicador visual en listas y modulo de edicion
 
 ### TKT-034 - Historial persistente de acciones IA y revertir
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -630,9 +630,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se puede revertir una o varias acciones previas desde el historial, con orden y trazabilidad.
    - El historial muestra accion, item afectado, timestamp y estado (aplicada/revertida).
 - Checklist:
-   - [ ] Definir modelo de datos para historial IA (acciones y metadatos)
-   - [ ] Persistir historial en almacenamiento principal
-   - [ ] Implementar UI de historial con opcion de revertir
+   - [x] Definir modelo de datos para historial IA (acciones y metadatos)
+   - [x] Persistir historial en almacenamiento principal
+   - [x] Implementar UI de historial con opcion de revertir
 
 ### TKT-043 - Saneamiento historico de Git y datos sensibles
 

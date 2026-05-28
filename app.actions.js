@@ -144,17 +144,22 @@
     let resumen = document.getElementById('pv-resumen');
     let semanaTxt = document.getElementById('pv-semana');
     let quincenaTxt = document.getElementById('pv-quincena');
+    let fechaRealTxt = document.getElementById('pv-fecha-real');
     let alerta = document.getElementById('add-warn-deuda');
-    if(!resumen || !semanaTxt || !quincenaTxt || !alerta) return;
+    if(!resumen || !semanaTxt || !quincenaTxt || !fechaRealTxt || !alerta) return;
 
     let nombre = document.getElementById('add-nombre').value.trim();
     let valor = parseMontoInput(document.getElementById('add-valor').value);
     let dia = parseInt(document.getElementById('add-dia').value, 10);
+    let diaPagoRealInput = document.getElementById('add-dia-real');
+    let diaPagoRealRaw = String(diaPagoRealInput && diaPagoRealInput.value ? diaPagoRealInput.value : '').trim();
+    let diaPagoReal = diaPagoRealRaw ? parseInt(diaPagoRealRaw, 10) : null;
 
-    if(!nombre || isNaN(valor) || valor <= 0 || (dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31))) {
+    if(!nombre || isNaN(valor) || valor <= 0 || (dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31)) || (diaPagoRealRaw && !isValidDayInMonth(diaPagoReal))) {
       resumen.innerText = 'Completa nombre, valor y día para simular impacto.';
       semanaTxt.innerText = '';
       quincenaTxt.innerText = '';
+      fechaRealTxt.innerText = '';
       alerta.style.display = 'none';
       alerta.innerText = '';
       return;
@@ -175,6 +180,7 @@
     resumen.innerText = `${nombre} por ${formatCOP(valor)} en día ${dia === -1 ? 'pre-mes' : dia}.`;
     semanaTxt.innerText = `Impacta: ${semanaNombre}. Balance semanal estimado: ${formatCOP(balanceAntes)} -> ${formatCOP(balanceDespues)}.`;
     quincenaTxt.innerText = `Impacta tramo: ${quincena}.`;
+    fechaRealTxt.innerText = `Pago real: ${isValidDayInMonth(diaPagoReal) ? `día ${diaPagoReal}` : 'sin definir (usa fecha tentativa)'}.`;
 
     let ingresosMes = obtenerEventosIngresoDelMes(mesActivoGlobal).reduce((acc, e) => acc + e.valor, 0);
     let ratio = ingresosMes > 0 ? valor / ingresosMes : 1;
@@ -300,6 +306,9 @@
     let nombre = document.getElementById('add-nombre').value.trim();
     let valor = parseMontoInput(document.getElementById('add-valor').value);
     let dia = parseInt(document.getElementById('add-dia').value, 10);
+    let diaPagoRealInput = document.getElementById('add-dia-real');
+    let diaPagoRealRaw = String(diaPagoRealInput && diaPagoRealInput.value ? diaPagoRealInput.value : '').trim();
+    let diaPagoReal = diaPagoRealRaw ? parseInt(diaPagoRealRaw, 10) : null;
     let tipoGasto = document.getElementById('add-tipo-gasto').value;
     let mesDestino = modoAltaDeuda === 'rapido' ? mesActivoGlobal : document.getElementById('add-mes-destino').value;
     let faltantes = parseInt(document.getElementById('add-faltantes').value, 10);
@@ -315,6 +324,11 @@
       return;
     }
 
+    if(diaPagoRealRaw && !isValidDayInMonth(diaPagoReal)) {
+      alert('La fecha real de pago debe estar entre 1 y 31.');
+      return;
+    }
+
     if(tipoGasto === 'credito') {
       if(isNaN(faltantes) || isNaN(totales) || faltantes <= 0 || totales <= 0 || faltantes > totales) {
         alert('Para créditos, valida cuotas restantes y totales.');
@@ -327,6 +341,7 @@
       nombre: nombre,
       valor: valor,
       dia: dia,
+      diaPagoReal: diaPagoRealRaw ? diaPagoReal : null,
       pagado: false,
       tipo: tipoGasto,
       mesKey: mesDestino
@@ -342,6 +357,7 @@
     document.getElementById('add-nombre').value = '';
     document.getElementById('add-valor').value = '';
     document.getElementById('add-dia').value = '1';
+    if(diaPagoRealInput) diaPagoRealInput.value = '';
     document.getElementById('add-tipo-gasto').value = 'variable';
     document.getElementById('add-faltantes').value = '6';
     document.getElementById('add-totales').value = '12';
