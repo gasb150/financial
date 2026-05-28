@@ -41,7 +41,7 @@
     <button class="nb" data-action="switch-screen" data-value="semanal"><i class="ti ti-calendar-event" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-weeks-label">Semanas</span></button>
     <button class="nb" data-action="switch-screen" data-value="quincena"><i class="ti ti-calendar" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-fortnights-label">Quincenas</span></button>
     <button class="nb" data-action="switch-screen" data-value="deudas"><i class="ti ti-credit-card" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-debts-label">Deudas</span></button>
-    <button class="nb" data-action="switch-screen" data-value="ingresos"><i class="ti ti-cash" style="font-size:16px;display:block;margin:0 auto 2px"></i><span>Ingresos</span></button>
+    <button class="nb" data-action="switch-screen" data-value="ingresos"><i class="ti ti-cash" style="font-size:16px;display:block;margin:0 auto 2px"></i><span data-i18n="nav.income">Ingresos</span></button>
     <button class="nb" data-action="switch-screen" data-value="config"><i class="ti ti-settings" style="font-size:16px;display:block;margin:0 auto 2px"></i><span id="nav-settings-label">Config</span></button>
   </div>
 
@@ -226,8 +226,8 @@
     <div class="card add-compact-card">
       <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('ingreso')" aria-expanded="false" id="btn-toggle-add-ingreso">
         <div class="deuda-compact-main">
-          <div class="deuda-compact-name">Añadir nueva fuente de ingreso</div>
-          <div class="deuda-compact-meta">Salario o ingreso recurrente</div>
+          <div class="deuda-compact-name" data-i18n="config.addIncomeCompactTitle">Añadir nueva fuente de ingreso</div>
+          <div class="deuda-compact-meta" data-i18n="config.addIncomeCompactMeta">Salario o ingreso recurrente</div>
         </div>
         <span class="deuda-chevron" aria-hidden="true">▸</span>
       </button>
@@ -275,8 +275,8 @@
     <div class="card add-compact-card">
       <button class="deuda-toggle" type="button" onclick="toggleExpandAddCard('prima')" aria-expanded="false" id="btn-toggle-add-prima">
         <div class="deuda-compact-main">
-          <div class="deuda-compact-name">Añadir prima / ingreso extra</div>
-          <div class="deuda-compact-meta">Pago extraordinario por mes</div>
+          <div class="deuda-compact-name" data-i18n="config.addBonusCompactTitle">Añadir prima / ingreso extra</div>
+          <div class="deuda-compact-meta" data-i18n="config.addBonusCompactMeta">Pago extraordinario por mes</div>
         </div>
         <span class="deuda-chevron" aria-hidden="true">▸</span>
       </button>
