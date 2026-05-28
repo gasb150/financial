@@ -78,7 +78,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
 
   assert.equal(nodes['google-oauth-client-id'].value, 'abc.apps.googleusercontent.com');
   assert.equal(nodes['google-oauth-redirect'].value, 'https://demo.test/index.html');
-  assert.match(nodes['google-auth-status'].innerText, /Sesion activa/);
+  assert.match(nodes['google-auth-status'].innerText, /Sesión activa/);
   assert.match(nodes['google-auth-status'].innerText, /demo@example.com/);
   assert.equal(nodes['google-auth-error'].innerText, '');
 });

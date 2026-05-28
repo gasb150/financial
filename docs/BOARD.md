@@ -16,13 +16,12 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 - [ ] TKT-057 Backend/proxy OAuth + Drive mediation (fase lejana)
 - [ ] TKT-058 Estandar de lenguaje en codigo y textos user-facing
-- [ ] TKT-054 Sincronizacion Drive <-> local con versionado
-- [ ] TKT-055 Cifrado de respaldo y secretos en cliente
-- [ ] TKT-056 Resolucion de conflictos multi-dispositivo
 
 ## En curso
 
-- [ ] Sin tickets en curso
+- [ ] TKT-054 Sincronizacion Drive <-> local con versionado
+- [ ] TKT-055 Cifrado de respaldo y secretos en cliente
+- [ ] TKT-056 Resolucion de conflictos multi-dispositivo
 
 ## Bloqueado
 
@@ -326,7 +325,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-054 - Sincronizacion Drive <-> local con versionado
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo
@@ -336,15 +335,16 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Sync incremental evita sobreescrituras silenciosas.
    - UX en un solo paso: CTA "Sincronizar con Drive" dispara autenticacion (si aplica) y subida inicial sin separar login manual.
 - Checklist:
-   - [ ] Definir CTA unico "Sincronizar con Drive" en lugar de accion separada de login
-   - [ ] Encadenar autenticacion + push inicial en un mismo flujo (con manejo de cancelacion/errores)
-   - [ ] Implementar operaciones pull/push con control de version
-   - [ ] Agregar checksum/hash para validar integridad remota
-   - [ ] Agregar modo simulacion dry-run para validar merges
+   - [x] Definir CTA unico "Sincronizar con Drive" en lugar de accion separada de login
+   - [x] Encadenar autenticacion + push inicial en un mismo flujo (con manejo de cancelacion/errores)
+   - [x] Implementar operaciones pull/push con control de version
+   - [x] Agregar checksum/hash para validar integridad remota
+   - [x] Agregar modo simulacion dry-run para validar merges
+   - [x] Agregar boton explicito de recuperacion desde Drive (force pull) para contingencia
 
 ### TKT-055 - Cifrado de respaldo y secretos en cliente
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Media
 - Fase: 5
 - Owner: Gustavo
@@ -353,13 +353,13 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Material sensible no queda en texto plano en almacenamiento persistente.
    - Flujo de recuperacion documentado (con y sin passphrase).
 - Checklist:
-   - [ ] Definir estrategia de cifrado cliente (Web Crypto)
-   - [ ] Implementar derivacion de clave y manejo de passphrase
+   - [x] Definir estrategia de cifrado cliente (Web Crypto)
+   - [x] Implementar derivacion de clave y manejo de passphrase
    - [ ] Probar restauracion completa desde payload cifrado
 
 ### TKT-056 - Resolucion de conflictos multi-dispositivo
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo
@@ -368,9 +368,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Usuario puede elegir estrategia (mantener local, mantener remoto o merge asistido).
    - Se conserva historial minimo para auditoria de sincronizaciones.
 - Checklist:
-   - [ ] Definir politica de conflicto (LWW + confirmacion usuario)
-   - [ ] Implementar UI de decision de conflicto
-   - [ ] Registrar eventos de sync/conflicto para trazabilidad
+   - [x] Definir politica de conflicto (LWW + confirmacion usuario)
+   - [x] Implementar UI de decision de conflicto
+   - [x] Registrar eventos de sync/conflicto para trazabilidad
 
 ### TKT-015 - Panel IA accionable (tarjetas + CTA)
 

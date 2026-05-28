@@ -193,6 +193,7 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
       }
     }),
     renderGoogleAuthConfig: () => {},
+    renderDriveSyncStatus: () => {},
     renderPanelConsumoIA: () => { consumoRenderCalls += 1; }
   });
 
@@ -204,4 +205,28 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
   assert.equal(nodes['ia-api-endpoint'].value, 'https://gateway.example.test');
   assert.equal(nodes['ia-api-model'].value, 'gpt-4.1-mini');
   assert.equal(consumoRenderCalls, 1);
+});
+
+test('evaluarPlanSyncDrive bloquea push cuando remoto va adelante y checksum difiere', () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['evaluarPlanSyncDrive']);
+
+  const ahead = ctx.evaluarPlanSyncDrive({
+    remoteVersion: 5,
+    remoteChecksum: 'remote-abc',
+    localChecksum: 'local-def',
+    lastKnownRemoteVersion: 4
+  });
+  assert.equal(ahead.needsPull, true);
+  assert.equal(ahead.pushAllowed, false);
+  assert.equal(ahead.reason, 'remote-ahead');
+
+  const sameChecksum = ctx.evaluarPlanSyncDrive({
+    remoteVersion: 5,
+    remoteChecksum: 'same',
+    localChecksum: 'same',
+    lastKnownRemoteVersion: 1
+  });
+  assert.equal(sameChecksum.needsPull, false);
+  assert.equal(sameChecksum.pushAllowed, true);
+  assert.equal(sameChecksum.reason, 'ok');
 });
