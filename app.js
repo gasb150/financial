@@ -354,11 +354,11 @@ function renderGoogleAuthConfig() {
     let user = session.user && typeof session.user === 'object' ? session.user : {};
     let email = String(user.email || '').trim();
     let exp = session.expiresAtMs ? new Date(session.expiresAtMs).toLocaleString('es-CO') : 'N/D';
-    statusEl.innerText = `Sesion activa${email ? ` · ${email}` : ''}. Expira: ${exp}.`;
+    statusEl.innerText = `Sesión activa${email ? ` · ${email}` : ''}. Expira: ${exp}.`;
   } else if(session && session.accessToken) {
-    statusEl.innerText = 'Sesion expirada. Inicia sesion de nuevo o refresca token.';
+    statusEl.innerText = 'Sesión expirada. Inicia sesión de nuevo o refresca token.';
   } else {
-    statusEl.innerText = 'Sesion no iniciada.';
+    statusEl.innerText = 'Sesión no iniciada.';
   }
 
   errorEl.innerText = appData.googleAuth && appData.googleAuth.lastError ? appData.googleAuth.lastError : '';
