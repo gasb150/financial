@@ -1,6 +1,7 @@
 # TKT-029 - Matriz QA funcional IA y visibilidad
 
 Fecha: 2026-05-27
+Rama: feat/tkt-029-qa-closeout
 
 ## Objetivo
 
@@ -31,5 +32,55 @@ Validar reglas de visibilidad y flujo funcional IA (TKT-022/TKT-023/TKT-024) con
 ## Estado de ejecución
 
 - Matriz definida: ✅
-- Ejecución manual guiada con evidencia visual: ⏳ Pendiente
-- Ajuste final de criterios según hallazgos: ⏳ Pendiente a ejecución manual
+- Ejecución manual guiada con evidencia visual: ✅
+- Ajuste final de criterios según hallazgos: ✅
+
+## Evidencia ejecutada
+
+### 1) Validación automatizada
+
+Comandos ejecutados:
+
+```bash
+node --test tests/tkt-029-ia-qa.test.js
+npm test
+```
+
+Resultado:
+- Suite TKT-029: 5 pass, 0 fail.
+- Suite completa: 45 pass, 0 fail.
+
+Cobertura relevante validada:
+- Guardas de aplicación/deshacer en rebalanceo IA.
+- Visibilidad condicional de CTA quincenal con/sin déficit.
+- No regresión de flujos IA OFF/LOCAL/API y límites de consumo.
+
+### 2) Smoke manual guiado (file://)
+
+URL ejecutada:
+- file:///Users/gsanmartin/Downloads/carpeta%20sin%20t%C3%ADtulo/finanzas_tavo_app.html
+
+Resultados por escenario:
+- QA-IA-01 (Semanal con déficit): ✅ CTA semanal visible.
+- QA-IA-02 (Semanal sin déficit): ✅ CTA semanal oculto al retirar compromisos del mes activo.
+- QA-IA-03 (Quincenal con déficit): ✅ CTA quincenal visible.
+- QA-IA-04 (Quincenal sin déficit): ✅ CTA quincenal oculto tras fix aplicado.
+- QA-IA-05 (Mes con gastos variables): ✅ Tarjeta de recortes y CTA presentes.
+- QA-IA-06 (Mes sin gastos variables): ✅ Mensaje de no gastos pendientes visible.
+
+### 3) Hallazgo y corrección aplicada
+
+Hallazgo:
+- El CTA de rebalanceo quincenal permanecía visible en escenario sin déficit.
+
+Corrección:
+- Se ajustó renderBalanceQuincena para mostrar CTA solo cuando existe déficit por tramo.
+- Se agregó regresión automatizada para evitar reincidencia.
+
+Impacto:
+- Se restablece la regla de visibilidad esperada por TKT-022/TKT-023/TKT-024.
+
+## Conclusión
+
+- TKT-029 queda en estado Done para el alcance definido.
+- Criterios de aceptación cubiertos con evidencia automatizada y manual.

@@ -25,7 +25,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## En curso
 
-- [ ] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
+- [ ] Sin tickets en curso
 
 ## Bloqueado
 
@@ -33,6 +33,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-029 QA funcional de sugerencias IA y reglas de visibilidad
 - [x] TKT-011 Asistente IA: simulador de escenarios
 - [x] TKT-010 Asistente IA: alertas de deficit
 - [x] TKT-009 Asistente IA: resumen mensual
@@ -545,7 +546,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-029 - QA funcional de sugerencias IA y reglas de visibilidad
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -555,8 +556,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se documentan casos borde y resultados esperados.
 - Checklist:
    - [x] Definir matriz de escenarios criticos
-   - [ ] Ejecutar pruebas manuales guiadas y registrar evidencia
-   - [ ] Ajustar criterios de aceptacion segun hallazgos
+   - [x] Ejecutar pruebas manuales guiadas y registrar evidencia
+   - [x] Ajustar criterios de aceptacion segun hallazgos
 
 ### TKT-030 - Balance quincena a quincena con rebalanceo
 
@@ -898,9 +899,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### 2026-05-27
 
+1. TKT-029 completado: ejecutada matriz QA funcional IA con evidencia automatizada y smoke manual; se detectó y corrigió regresión de visibilidad quincenal (CTA de rebalanceo ahora oculto sin déficit), y se agregó prueba de regresión dedicada.
 1. TKT-012/TKT-013/TKT-014 completados en bloque: modo API ahora consulta gateway externo configurable (endpoint/proveedor/modelo/API key), con topes diarios/mensuales de tokens y costo que bloquean ejecuciones al superar limites, y panel de consumo en Config para visualizar requests/tokens/costo acumulado.
 2. TKT-046 completado: validadores de persistencia reforzados con saneamiento estructural por dominio (ingresos/primas/compromisos/iaConfig/iaUsage), recuperación parcial segura en hidratar/importar/restaurar y trazas de errores de persistencia.
-3. TKT-029 en curso: matriz QA y casos borde documentados en `docs/QA_TKT-029.md`; pendiente ejecución manual guiada con evidencia.
+3. TKT-029 evidencias: detalle de ejecución en docs/QA_TKT-029.md.
 
 ### 2026-05-26
 

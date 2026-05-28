@@ -1906,12 +1906,16 @@ function renderBalanceQuincena(compromisosMes) {
   let accionesBox = typeof renderAccionesRebalanceoIA === 'function'
     ? renderAccionesRebalanceoIA('quincena')
     : '';
+  let hayDeficit = tramos.some((t) => t.saldoCierre < 0);
+  let ctaRebalanceo = hayDeficit
+    ? `<button class="btn-action" data-action="rebalance-quincena-from-balance" ${state.loading ? 'disabled' : ''} style="width:100%;margin-top:4px;">
+      ${state.loading ? 'Analizando rebalanceo...' : 'Rebalancear entre tramos'}
+    </button>`
+    : '<div class="rm" style="margin-top:8px;">Sin deficit en quincena. Rebalanceo no requerido.</div>';
 
   cont.innerHTML = `
     ${rowsHtml}
-    <button class="btn-action" data-action="rebalance-quincena-from-balance" ${state.loading ? 'disabled' : ''} style="width:100%;margin-top:4px;">
-      ${state.loading ? 'Analizando rebalanceo...' : 'Rebalancear entre tramos'}
-    </button>
+    ${ctaRebalanceo}
     ${resultBox}
     ${accionesBox}
   `;
