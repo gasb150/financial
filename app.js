@@ -771,7 +771,7 @@ async function googleDriveApiFetch(path, options = {}) {
 
 async function buildDriveSyncEnvelope(remoteVersion = 0) {
   let deviceId = ensureDriveSyncLocalDeviceId();
-  let payload = buildBackupPayload();
+  let payload = buildDriveSyncBackupPayload();
   let checksum = await asegurarChecksumPayload(payload);
   let state = getDriveSyncState();
   let envelope = {
@@ -827,6 +827,54 @@ async function resolveDriveEnvelopeData(remoteEnvelope) {
   }
   if(!passphrase) throw new Error('Se requiere passphrase para descifrar el respaldo remoto.');
   return decryptDriveSyncData(remoteEnvelope, passphrase);
+}
+
+function sanitizarSnapshotReplicadoDriveSync(dataObj) {
+  let snapshot = clonarJSONSeguro(dataObj);
+  if(!snapshot || typeof snapshot !== 'object') return {};
+  delete snapshot.driveSync;
+  return snapshot;
+}
+
+function buildDriveSyncBackupPayload() {
+  let payload = buildBackupPayload();
+  return {
+    ...payload,
+    data: sanitizarSnapshotReplicadoDriveSync(payload.data),
+    checksum: ''
+  };
+}
+
+async function generarChecksumSnapshotDriveSync(dataObj) {
+  return generarChecksumPayload(sanitizarSnapshotReplicadoDriveSync(dataObj));
+}
+
+async function validarChecksumEnvelopeDriveSync(remoteEnvelope, remoteData) {
+  let envelopeChecksum = String(remoteEnvelope && remoteEnvelope.checksum ? remoteEnvelope.checksum : '').trim();
+  let payloadChecksum = await generarChecksumPayload(remoteData);
+  if(envelopeChecksum && payloadChecksum !== envelopeChecksum) {
+    throw new Error('El checksum del snapshot remoto de Drive no coincide con el contenido descargado.');
+  }
+  return envelopeChecksum || payloadChecksum;
+}
+
+async function resolverChecksumComparacionDriveSync(remoteEnvelope, checksumBase = '') {
+  let checksum = String(checksumBase || '').trim();
+  if(remoteEnvelope && remoteEnvelope.data) {
+    return generarChecksumSnapshotDriveSync(remoteEnvelope.data);
+  }
+  if(remoteEnvelope && remoteEnvelope.encryption && remoteEnvelope.ciphertext) {
+    let passphrase = getDriveSyncPassphrase();
+    if(passphrase) {
+      try {
+        let decrypted = await decryptDriveSyncData(remoteEnvelope, passphrase);
+        if(validarPayloadRespaldo(decrypted)) {
+          return generarChecksumSnapshotDriveSync(decrypted);
+        }
+      } catch(_e) {}
+    }
+  }
+  return checksum;
 }
 
 function crearMultipartDriveBody(metadata, contentObj, boundary) {
@@ -895,24 +943,11 @@ async function sincronizarDriveConGoogle(options = {}) {
     if(remoteFile && remoteFile.id) {
       remoteEnvelope = await downloadDriveSyncEnvelope(remoteFile.id);
       remoteVersion = Math.max(0, parseInt(remoteEnvelope && remoteEnvelope.version, 10) || 0);
-      remoteChecksum = String(remoteEnvelope && remoteEnvelope.checksum ? remoteEnvelope.checksum : '').trim();
-      if(!remoteChecksum && remoteEnvelope && remoteEnvelope.data) {
-        remoteChecksum = await generarChecksumPayload(remoteEnvelope.data);
-      } else if(!remoteChecksum && remoteEnvelope && remoteEnvelope.encryption && remoteEnvelope.ciphertext) {
-        let passphrase = getDriveSyncPassphrase();
-        if(passphrase) {
-          try {
-            let decrypted = await decryptDriveSyncData(remoteEnvelope, passphrase);
-            if(validarPayloadRespaldo(decrypted)) {
-              remoteChecksum = await generarChecksumPayload(decrypted);
-            }
-          } catch(_e) {}
-        }
-      }
+      remoteChecksum = await resolverChecksumComparacionDriveSync(remoteEnvelope, remoteEnvelope && remoteEnvelope.checksum);
       state.fileId = remoteFile.id;
     }
 
-    let localPayload = buildBackupPayload();
+    let localPayload = buildDriveSyncBackupPayload();
     let localChecksum = await asegurarChecksumPayload(localPayload);
     let plan = evaluarPlanSyncDrive({
       remoteVersion,
@@ -928,6 +963,8 @@ async function sincronizarDriveConGoogle(options = {}) {
       if(!validarPayloadRespaldo(remoteData)) {
         throw new Error('El snapshot remoto de Drive es inválido o está corrupto.');
       }
+      await validarChecksumEnvelopeDriveSync(remoteEnvelope, remoteData);
+      remoteChecksum = await generarChecksumSnapshotDriveSync(remoteData);
 
       if(dryRun) {
         return { ok: true, dryRun: true, action: 'force-pull-ready', remoteVersion };
@@ -956,6 +993,8 @@ async function sincronizarDriveConGoogle(options = {}) {
       if(!remoteEnvelope || !validarPayloadRespaldo(remoteData)) {
         throw new Error('Se detectaron cambios remotos, pero el snapshot remoto no es válido.');
       }
+      await validarChecksumEnvelopeDriveSync(remoteEnvelope, remoteData);
+      remoteChecksum = await generarChecksumSnapshotDriveSync(remoteData);
 
       if(dryRun) {
         return { ok: true, dryRun: true, action: 'pull-required', remoteVersion };
@@ -993,6 +1032,30 @@ async function sincronizarDriveConGoogle(options = {}) {
 
     if(dryRun) {
       return { ok: true, dryRun: true, action: 'push-ready', remoteVersion };
+    }
+
+    if(state.fileId) {
+      let refreshedRemoteEnvelope = await downloadDriveSyncEnvelope(state.fileId);
+      let refreshedRemoteVersion = Math.max(0, parseInt(refreshedRemoteEnvelope && refreshedRemoteEnvelope.version, 10) || 0);
+      let refreshedRemoteChecksum = await resolverChecksumComparacionDriveSync(
+        refreshedRemoteEnvelope,
+        refreshedRemoteEnvelope && refreshedRemoteEnvelope.checksum
+      );
+      let refreshedPlan = evaluarPlanSyncDrive({
+        remoteVersion: refreshedRemoteVersion,
+        remoteChecksum: refreshedRemoteChecksum,
+        localChecksum,
+        lastKnownRemoteVersion: state.lastKnownRemoteVersion
+      });
+
+      if(
+        refreshedPlan.needsPull
+        || refreshedPlan.reason === 'diverged-same-version'
+        || refreshedRemoteVersion !== remoteVersion
+        || refreshedRemoteChecksum !== remoteChecksum
+      ) {
+        throw new Error('El snapshot remoto cambió antes de subirse a Drive. Vuelve a sincronizar para revalidar el estado remoto.');
+      }
     }
 
     let uploadEnvelope = await buildDriveSyncEnvelope(remoteVersion);

@@ -273,3 +273,58 @@ test('restauracion cifrada de Drive recupera payload original con passphrase', a
   const restaurado = await ctx.resolveDriveEnvelopeData(remoteEnvelope);
   assert.deepEqual(restaurado, payloadOriginal);
 });
+
+test('snapshot replicado de Drive excluye metadata volatile de driveSync', async () => {
+  const ctx = loadFunctionsFromFile(
+    APP_JS,
+    [
+      'sanitizarSnapshotReplicadoDriveSync',
+      'generarChecksumSnapshotDriveSync'
+    ],
+    {
+      clonarJSONSeguro: (data) => JSON.parse(JSON.stringify(data)),
+      generarChecksumPayload: async (data) => JSON.stringify(data)
+    }
+  );
+
+  const base = {
+    schemaVersion: 5,
+    ingresosList: [{ id: 1, valor: 1000 }],
+    driveSync: {
+      localDeviceId: 'device-a',
+      syncInProgress: true,
+      lastSyncAt: '2026-05-28T00:00:00.000Z',
+      syncEvents: [{ id: 'evt-1' }]
+    }
+  };
+  const changedMetadata = {
+    ...base,
+    driveSync: {
+      localDeviceId: 'device-b',
+      syncInProgress: false,
+      lastSyncAt: '2026-05-29T00:00:00.000Z',
+      syncEvents: [{ id: 'evt-2' }]
+    }
+  };
+
+  const sanitized = ctx.sanitizarSnapshotReplicadoDriveSync(base);
+  const checksumA = await ctx.generarChecksumSnapshotDriveSync(base);
+  const checksumB = await ctx.generarChecksumSnapshotDriveSync(changedMetadata);
+
+  assert.equal('driveSync' in sanitized, false);
+  assert.equal(checksumA, checksumB);
+});
+
+test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['validarChecksumEnvelopeDriveSync'], {
+    generarChecksumPayload: async (data) => JSON.stringify(data)
+  });
+
+  await assert.rejects(
+    () => ctx.validarChecksumEnvelopeDriveSync(
+      { checksum: '{"schemaVersion":5,"ok":false}' },
+      { schemaVersion: 5, ok: true }
+    ),
+    /checksum del snapshot remoto de Drive/
+  );
+});
