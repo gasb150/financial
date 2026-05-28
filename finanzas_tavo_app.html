@@ -310,6 +310,31 @@
   <div id="s-config" class="screen">
     <div class="sec">Conexiones externas</div>
 
+    <div class="sec" data-i18n="config.installApp">Instalar App</div>
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary" data-i18n="config.installApp">Instalar App</summary>
+      <div class="config-accordion-body">
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.installDescription">Instala esta app en tu telefono para abrirla como aplicacion y usarla mas rapido.</p>
+        <button id="btn-install-app" class="btn-action" style="width:100%;padding:8px;display:none;" data-action="install-pwa" data-i18n="config.installButton">Instalar en este dispositivo</button>
+        <div id="install-hint" class="rm" data-i18n="config.installHint">Si no ves el boton, usa "Agregar a pantalla de inicio" en el navegador.</div>
+      </div>
+    </details>
+
+    <div class="sec" data-i18n="config.backupTitle">Respaldo de Datos</div>
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary" data-i18n="config.backupTitle">Respaldo de Datos</summary>
+      <div class="config-accordion-body">
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.backupDescription">Guarda y recupera tu información para evitar pérdidas al cambiar de dispositivo o limpiar el navegador.</p>
+        <div id="last-save-indicator" class="rm" style="margin-bottom:8px;" data-i18n="config.lastSavePending">Ultimo guardado: pendiente...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-action" style="padding:8px 10px;" data-action="export-backup" data-i18n="config.exportBackup">Exportar respaldo</button>
+          <button class="btn-action" style="padding:8px 10px;background:#3f8f6b;" data-action="open-import-backup" data-i18n="config.importBackup">Importar respaldo</button>
+          <button class="btn-action" style="padding:8px 10px;background:#1f6ea8;" data-action="restore-backup" data-i18n="config.restoreBackup">Recuperar último auto-respaldo</button>
+        </div>
+        <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" data-action="import-backup-file">
+      </div>
+    </details>
+
     <div class="sec" data-i18n="config.aiTitle">Asistente IA</div>
     <details class="card config-accordion">
       <summary class="config-accordion-summary">Asistente IA</summary>
@@ -416,6 +441,9 @@
       <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px" data-i18n="config.timelineDescription">Agrega un año posterior si deseas planificar más allá del límite actual.</p>
       <button class="btn-action" style="background:#534AB7;" data-action="extend-timeline-year" data-i18n="config.extendYear">Expandir un Año Más 🚀</button>
     </div>
+
+    <div class="sec" data-i18n="config.resetTitle">Resetear Datos</div>
+    <button class="btn-action" style="background:#E24B4A;width:100%;padding:8px" data-action="reset-factory" data-i18n="config.resetButton">Restaurar Datos por Defecto</button>
   </div>
 </div>
 

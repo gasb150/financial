@@ -15,6 +15,7 @@ function toggleExpandIAActionable(key) {
     expandState.add(k);
   }
   renderIAPanelResumen();
+  renderIAPanelSemanal();
   renderIAPanelQuincena();
 }
 
