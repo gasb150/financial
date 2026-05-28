@@ -114,6 +114,12 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .deuda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .deuda-sub{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
 .btn-del-icon-only{padding:2px}
+.config-accordion{padding:10px 12px}
+.config-accordion-summary{list-style:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--color-text-primary);display:flex;align-items:center;justify-content:space-between}
+.config-accordion-summary::-webkit-details-marker{display:none}
+.config-accordion-summary::after{content:'▸';font-size:14px;color:var(--color-text-tertiary)}
+.config-accordion[open] .config-accordion-summary::after{content:'▾'}
+.config-accordion-body{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
 .ia-stack{display:grid;gap:10px;margin-bottom:10px}
 .ia-card{background:linear-gradient(180deg,#313131 0%,#2a2a2a 100%);color:#f5f5f5;border:1px solid #4a4a4a;border-radius:12px;padding:12px 12px 10px}
 .ia-card .ttl{font-size:11px;font-weight:700;letter-spacing:.06em;color:#b9b9b9;text-transform:uppercase;margin-bottom:8px}
