@@ -30,7 +30,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Done
 
 - [x] TKT-045 Modularizacion final de app.js y dominio IA
-- [x] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
+- [x] TKT-053 Autenticacion Google (GIS token flow) y sesion segura
 - [x] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [x] TKT-034 Historial persistente de acciones IA y revertir
 - [x] TKT-033 Fecha real de pago para gastos unicos y diferidos
