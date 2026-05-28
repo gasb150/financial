@@ -258,6 +258,10 @@
     let comp = appData.compromisos.find(c => c.id === id);
     if(comp) {
       comp.pagado = !comp.pagado;
+      if(comp.pagado && comp.mesKey === mesActivoGlobal) {
+        let hoy = new Date();
+        comp.diaPagoReal = hoy.getDate();
+      }
       commitAppChange({ refreshDailyView: true });
     }
   }

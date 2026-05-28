@@ -2409,6 +2409,29 @@ function renderDeudasModulo(compromisosMes) {
     </div>
   `;
 
+  let alertasVencimiento = construirAlertasVencimientoDeudas(compromisosMes || []);
+  if(alertasVencimiento && (alertasVencimiento.vencidos.length > 0 || alertasVencimiento.proximos.length > 0)) {
+    let resumenVencidos = alertasVencimiento.vencidos.length > 0
+      ? `${alertasVencimiento.vencidos.length} vencido(s)`
+      : 'Sin vencidos';
+    let resumenProximos = alertasVencimiento.proximos.length > 0
+      ? `${alertasVencimiento.proximos.length} próximo(s) a vencer en <= ${alertasVencimiento.umbralDias} días`
+      : 'Sin vencimientos próximos';
+
+    let muestraProximos = alertasVencimiento.proximos
+      .slice(0, 3)
+      .map((c) => `${escapeHTML(c.nombre)} (día ${c.dia})`)
+      .join(' · ');
+
+    container.innerHTML += `
+      <div class="card" style="border-left:4px solid #BA7517;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Aviso de vencimientos</div>
+        <div class="rm">${resumenVencidos} · ${resumenProximos}</div>
+        ${muestraProximos ? `<div class="rm" style="margin-top:4px;">Próximos: ${muestraProximos}</div>` : ''}
+      </div>
+    `;
+  }
+
   deudasFiltradas.forEach(c => {
     let nombreSeguro = escapeHTML(c.nombre);
     let tipoLabel = c.tipo === 'fijo' ? 'Fijo' : (c.tipo === 'credito' ? 'Crédito' : 'Variable');
@@ -2491,6 +2514,30 @@ function renderDeudasModulo(compromisosMes) {
     `;
     container.appendChild(card);
   });
+}
+
+function obtenerMesKeyActualSistema() {
+  let now = new Date();
+  return `${ORDEN_MESES[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+function construirAlertasVencimientoDeudas(compromisosMes, umbralDias = 3) {
+  if(!Array.isArray(compromisosMes)) return null;
+  if(mesActivoGlobal !== obtenerMesKeyActualSistema()) return null;
+
+  let hoy = new Date().getDate();
+  let pendientes = compromisosMes
+    .filter((c) => !c.pagado)
+    .map((c) => ({ ...c, dia: parseInt(c.dia, 10) }))
+    .filter((c) => !isNaN(c.dia) && c.dia >= 1 && c.dia <= 31)
+    .sort((a, b) => a.dia - b.dia);
+
+  return {
+    hoy,
+    umbralDias,
+    vencidos: pendientes.filter((c) => c.dia < hoy),
+    proximos: pendientes.filter((c) => c.dia >= hoy && c.dia <= hoy + umbralDias)
+  };
 }
 
 function renderQuincenas(compromisosMes) {

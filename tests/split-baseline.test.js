@@ -328,3 +328,40 @@ test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async 
     /checksum del snapshot remoto de Drive/
   );
 });
+
+test('construirAlertasVencimientoDeudas clasifica vencidos y proximos del mes activo', () => {
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const now = new Date();
+  const today = now.getDate();
+  const activeMonthKey = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+  const overdueDay = Math.max(1, today - 1);
+  const dueSoonDay1 = today;
+  const dueSoonDay2 = Math.min(31, today + 2);
+  const farDay = Math.min(31, today + 8);
+
+  const ctx = loadFunctionsFromFile(APP_JS, ['obtenerMesKeyActualSistema', 'construirAlertasVencimientoDeudas'], {
+    ORDEN_MESES: monthNames,
+    mesActivoGlobal: activeMonthKey
+  });
+
+  const alertas = ctx.construirAlertasVencimientoDeudas([
+    { id: 1, nombre: 'Agua', dia: overdueDay, pagado: false },
+    { id: 2, nombre: 'Luz', dia: dueSoonDay1, pagado: false },
+    { id: 3, nombre: 'Internet', dia: dueSoonDay2, pagado: false },
+    { id: 4, nombre: 'Credito', dia: farDay, pagado: false },
+    { id: 5, nombre: 'Pagado', dia: dueSoonDay1, pagado: true }
+  ], 3);
+
+  let expectedOverdue = overdueDay < today ? 1 : 0;
+  let expectedSoon = [overdueDay, dueSoonDay1, dueSoonDay2, farDay]
+    .filter((day) => day >= today && day <= today + 3)
+    .length;
+  assert.equal(alertas.vencidos.length, expectedOverdue);
+  assert.equal(alertas.proximos.length, expectedSoon);
+  assert.equal(alertas.proximos.some((c) => c.nombre === 'Luz'), true);
+  assert.equal(alertas.proximos.some((c) => c.nombre === 'Internet'), true);
+});

@@ -1,6 +1,6 @@
 # Dashboard de Tickets - Financial
 
-Actualizado: 2026-05-27
+Actualizado: 2026-05-28
 Proyecto: financial (gasb150/financial)
 Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con costo controlado.
 
@@ -14,6 +14,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
+- [ ] TKT-059 Arquitectura modular evolutiva (capas + puertos/adaptadores)
 - [ ] TKT-057 Backend/proxy OAuth + Drive mediation (fase lejana)
 - [ ] TKT-058 Estandar de lenguaje en codigo y textos user-facing
 
@@ -26,6 +27,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-060 Auto-fecha real al pagar y alertas de vencimiento en Deudas
 - [x] TKT-054 Sincronizacion Drive <-> local con versionado
 - [x] TKT-055 Cifrado de respaldo y secretos en cliente
 - [x] TKT-056 Resolucion de conflictos multi-dispositivo
@@ -305,6 +307,42 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Definir arquitectura de proxy (Apps Script o backend dedicado)
    - [ ] Mover intercambio de credenciales y renovacion de tokens al proxy
    - [ ] Ajustar cliente para consumir endpoints proxy en vez de llamadas OAuth sensibles directas
+
+### TKT-059 - Arquitectura modular evolutiva (capas + puertos/adaptadores)
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 6
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Existe documento de arquitectura por capas con limites claros entre UI, dominio, casos de uso y adaptadores.
+   - Se define roadmap incremental de migracion sin big-bang, con criterios de aceptacion por fase.
+   - Se define estrategia de pruebas por capa y matriz minima de regresion para deuda/sync/backup.
+   - Se crean subtickets de implementacion para ejecutar Fase 1 y Fase 2.
+- Checklist:
+   - [x] Publicar arquitectura objetivo y principios de diseno en docs/planning
+   - [x] Definir estructura objetivo de modulos y puertos/adaptadores
+   - [x] Definir plan de migracion por fases con criterios de aceptacion
+   - [ ] Crear subtickets ejecutables (TKT-059.1, TKT-059.2, ...)
+   - [ ] Iniciar implementacion de Fase 1 (store + selectors)
+
+### TKT-060 - Auto-fecha real al pagar y alertas de vencimiento en Deudas
+
+- Estado: Done
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Al marcar una deuda como pagada, se completa automaticamente `diaPagoReal` con el dia actual cuando pertenece al mes activo.
+   - El modulo de Deudas muestra un aviso de vencimientos para pendientes vencidos y proximos (umbral configurable).
+   - El aviso de vencimientos solo aplica para el mes activo del sistema para evitar ruido en meses historicos/futuros.
+   - Existen pruebas automatizadas para la auto-fecha y para la clasificacion de vencidos/proximos.
+- Checklist:
+   - [x] Actualizar handler de cambio de estado pagado para autocompletar `diaPagoReal`
+   - [x] Implementar helper de alertas de vencimiento y renderizar resumen en tarjeta
+   - [x] Restringir evaluacion de alertas al mes activo del sistema
+   - [x] Agregar/ajustar pruebas en `tests/split-actions-handlers.test.js`
+   - [x] Agregar/ajustar pruebas en `tests/split-baseline.test.js`
 
 ### TKT-058 - Estandar de lenguaje en codigo y textos user-facing
 
@@ -942,6 +980,12 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 1. TKT-012/TKT-013/TKT-014 completados en bloque: modo API ahora consulta gateway externo configurable (endpoint/proveedor/modelo/API key), con topes diarios/mensuales de tokens y costo que bloquean ejecuciones al superar limites, y panel de consumo en Config para visualizar requests/tokens/costo acumulado.
 2. TKT-046 completado: validadores de persistencia reforzados con saneamiento estructural por dominio (ingresos/primas/compromisos/iaConfig/iaUsage), recuperación parcial segura en hidratar/importar/restaurar y trazas de errores de persistencia.
 3. TKT-029 evidencias: detalle de ejecución en docs/QA_TKT-029.md.
+
+### 2026-05-28
+
+1. TKT-059 documentado: se publico arquitectura modular evolutiva con enfoque por capas, puertos/adaptadores, roadmap por fases y matriz de pruebas en docs/planning/TKT-059_ARQUITECTURA_MODULAR_EVOLUTIVA.md.
+2. Se registra TKT-059 en catalogo de tickets con criterios de aceptacion y checklist para ejecucion incremental (sin apertura de PR en esta etapa).
+3. TKT-060 completado: se implementa auto-asignacion de `diaPagoReal` al marcar deudas como pagadas (mes activo), se agrega tarjeta de alertas de vencimiento en Deudas y se cubre con pruebas unitarias en handlers/baseline.
 
 ### 2026-05-26
 
