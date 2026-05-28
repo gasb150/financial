@@ -8,17 +8,30 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_JS = path.join(ROOT, 'app.data.js');
 
 test('validatePrimaryData accepts only required array shape', () => {
-  const ctx = loadFunctionsFromFile(DATA_JS, ['validateCoreDataShape', 'validatePrimaryData']);
+  const ctx = loadFunctionsFromFile(DATA_JS, [
+    'toSafeInt',
+    'isFiniteNumber',
+    'sanitizeIngresoItem',
+    'sanitizePrimaItem',
+    'sanitizeCompromisoItem',
+    'sanitizeIAConfig',
+    'sanitizeIAUsage',
+    'sanitizePrimaryData',
+    'validateCoreDataShape',
+    'validatePrimaryData'
+  ], {
+    APP_SCHEMA_VERSION: 2
+  });
 
   assert.equal(
-    ctx.validatePrimaryData({ ingresosList: [], compromisos: [], lineaTiempoGuardada: [] }),
+    ctx.validatePrimaryData({ ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] }),
     true
   );
 
   assert.equal(ctx.validatePrimaryData(null), false);
-  assert.equal(ctx.validatePrimaryData({ ingresosList: [], compromisos: [] }), false);
+  assert.equal(ctx.validatePrimaryData({ ingresosList: [], primasList: [], compromisos: [] }), false);
   assert.equal(
-    ctx.validatePrimaryData({ ingresosList: {}, compromisos: [], lineaTiempoGuardada: [] }),
+    ctx.validatePrimaryData({ ingresosList: {}, primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] }),
     false
   );
 });
@@ -36,22 +49,64 @@ test('hashFallbackHex is deterministic and returns fixed-length hash', () => {
 });
 
 test('validateBackupPayload enforces required backup structure', () => {
-  const ctx = loadFunctionsFromFile(DATA_JS, ['validateCoreDataShape', 'validateBackupPayload']);
+  const ctx = loadFunctionsFromFile(DATA_JS, [
+    'toSafeInt',
+    'isFiniteNumber',
+    'sanitizeIngresoItem',
+    'sanitizePrimaItem',
+    'sanitizeCompromisoItem',
+    'sanitizeIAConfig',
+    'sanitizeIAUsage',
+    'sanitizePrimaryData',
+    'validateCoreDataShape',
+    'validateBackupPayload'
+  ], {
+    APP_SCHEMA_VERSION: 2
+  });
 
   assert.equal(
-    ctx.validateBackupPayload({ ingresosList: [], compromisos: [], lineaTiempoGuardada: [] }),
+    ctx.validateBackupPayload({ ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] }),
     true
   );
 
   assert.equal(
-    ctx.validateBackupPayload({ ingresosList: [], compromisos: [], lineaTiempoGuardada: null }),
+    ctx.validateBackupPayload({ ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: null }),
     false
+  );
+  assert.equal(
+    ctx.validateBackupPayload({ data: { ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] } }),
+    true
   );
   assert.equal(ctx.validateBackupPayload({}), false);
 });
 
+test('sanitizePrimaryData supports partial recovery in non-strict mode', () => {
+  const ctx = loadFunctionsFromFile(DATA_JS, [
+    'toSafeInt',
+    'isFiniteNumber',
+    'sanitizeIngresoItem',
+    'sanitizePrimaItem',
+    'sanitizeCompromisoItem',
+    'sanitizeIAConfig',
+    'sanitizeIAUsage',
+    'sanitizePrimaryData'
+  ], {
+    APP_SCHEMA_VERSION: 2
+  });
+
+  const recovered = ctx.sanitizePrimaryData({
+    ingresosList: [{ id: 1, nombre: 'Salario', valor: 1000000, periodo: 'q1', diaPago: 30, mesInicio: 'Junio 2026' }, { broken: true }],
+    compromisos: [{ id: 2, nombre: 'Arriendo', valor: 700000, dia: 5, tipo: 'fijo', mesKey: 'Junio 2026' }],
+    lineaTiempoGuardada: ['Junio 2026']
+  }, { strict: false });
+
+  assert.equal(Array.isArray(recovered.ingresosList), true);
+  assert.equal(recovered.ingresosList.length, 1);
+  assert.equal(recovered.compromisos.length, 1);
+});
+
 test('buildBackupPayload uses app data and schema version from current state', () => {
-  const fakeAppData = { schemaVersion: 9, ingresosList: [], compromisos: [], lineaTiempoGuardada: [] };
+  const fakeAppData = { schemaVersion: 9, ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] };
 
   const ctx = loadFunctionsFromFile(DATA_JS, ['buildBackupPayload'], {
     appData: fakeAppData,

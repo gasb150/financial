@@ -71,7 +71,9 @@
     appData.iaConfig.providerApiEndpoint = normalizarEndpointIAGateway(endpointInput ? endpointInput.value : '');
     appData.iaConfig.providerApiName = String(providerInput && providerInput.value ? providerInput.value : 'generic').trim() || 'generic';
     appData.iaConfig.providerApiModel = String(modelInput && modelInput.value ? modelInput.value : 'gpt-4.1-mini').trim() || 'gpt-4.1-mini';
-    appData.iaConfig.providerApiKey = String(keyInput && keyInput.value ? keyInput.value : '').trim();
+    let apiKey = String(keyInput && keyInput.value ? keyInput.value : '').trim();
+    if(apiKey) guardarApiKeySesionIA(apiKey);
+    appData.iaConfig.providerApiKey = '';
     appData.iaConfig.apiDailyTokenLimit = Math.max(0, parseInt(dailyTokensInput && dailyTokensInput.value, 10) || 80000);
     appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, parseInt(monthlyTokensInput && monthlyTokensInput.value, 10) || 1200000);
     appData.iaConfig.apiDailyCopLimit = Math.max(0, parseInt(dailyCopInput && dailyCopInput.value, 10) || 20000);

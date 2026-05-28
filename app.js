@@ -87,6 +87,7 @@ const APP_SCHEMA_VERSION = 2;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
+let iaApiKeyRuntime = '';
 
 const APP_SCHEMA_MIGRATORS = {
   1: (data) => {
@@ -163,6 +164,10 @@ function normalizarEstadoCargado() {
   if(typeof appData.iaConfig.providerApiName !== 'string' || !appData.iaConfig.providerApiName.trim()) appData.iaConfig.providerApiName = 'generic';
   if(typeof appData.iaConfig.providerApiModel !== 'string' || !appData.iaConfig.providerApiModel.trim()) appData.iaConfig.providerApiModel = 'gpt-4.1-mini';
   if(typeof appData.iaConfig.providerApiKey !== 'string') appData.iaConfig.providerApiKey = '';
+  if(appData.iaConfig.providerApiKey) {
+    guardarApiKeySesionIA(appData.iaConfig.providerApiKey);
+    appData.iaConfig.providerApiKey = '';
+  }
   let timeoutNum = parseInt(appData.iaConfig.timeoutMs, 10);
   let timeoutNormalizado = isNaN(timeoutNum) ? 45000 : Math.min(Math.max(timeoutNum, 10000), 180000);
   // Migra configuraciones legacy de 12s, insuficientes para primer arranque de modelos locales.
@@ -322,8 +327,18 @@ function importarRespaldoArchivo(event) {
 
       let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
       if(!validarPayloadRespaldo(candidato)) {
-        alert('El archivo no tiene un formato de respaldo válido.');
-        return;
+        let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
+          ? window.FinancialData.sanitizePrimaryData(candidato || raw, { strict: false })
+          : null;
+        if(!parcial) {
+          alert('El archivo no tiene un formato de respaldo válido.');
+          return;
+        }
+        if(window.FinancialData && typeof window.FinancialData.tracePersistenceError === 'function') {
+          window.FinancialData.tracePersistenceError('import.partial_recovery', new Error('Respaldo importado parcialmente'), { source: 'file' });
+        }
+        candidato = parcial;
+        alert('El respaldo tenía bloques inválidos. Se recuperó parcialmente la información válida.');
       }
       appData = aplicarMigracionesSchema(candidato);
       if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
@@ -365,8 +380,18 @@ async function restaurarUltimoRespaldoLocal() {
 
     let candidato = payload && payload.data ? payload.data : payload;
     if(!validarPayloadRespaldo(candidato)) {
-      alert('El auto-respaldo local está incompleto.');
-      return;
+      let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
+        ? window.FinancialData.sanitizePrimaryData(candidato || payload, { strict: false })
+        : null;
+      if(!parcial) {
+        alert('El auto-respaldo local está incompleto.');
+        return;
+      }
+      if(window.FinancialData && typeof window.FinancialData.tracePersistenceError === 'function') {
+        window.FinancialData.tracePersistenceError('restore.partial_recovery', new Error('Auto-respaldo restaurado parcialmente'), { source: 'local_backup' });
+      }
+      candidato = parcial;
+      alert('El auto-respaldo tenía bloques inválidos. Se restauró parcialmente la información válida.');
     }
     appData = aplicarMigracionesSchema(candidato);
     if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
@@ -694,13 +719,21 @@ function normalizarEndpointIAGateway(endpointRaw) {
   return String(endpointRaw || '').trim();
 }
 
+function leerApiKeySesionIA() {
+  return String(iaApiKeyRuntime || '').trim();
+}
+
+function guardarApiKeySesionIA(apiKeyRaw) {
+  iaApiKeyRuntime = String(apiKeyRaw || '').trim();
+}
+
 function getConfigIAApi() {
   let cfg = appData.iaConfig || {};
   return {
     endpoint: normalizarEndpointIAGateway(cfg.providerApiEndpoint),
     provider: String(cfg.providerApiName || 'generic').trim() || 'generic',
     model: String(cfg.providerApiModel || 'gpt-4.1-mini').trim() || 'gpt-4.1-mini',
-    apiKey: String(cfg.providerApiKey || '').trim(),
+    apiKey: leerApiKeySesionIA() || String(cfg.providerApiKey || '').trim(),
     timeoutMs: Math.min(Math.max(parseInt(cfg.timeoutMs, 10) || 45000, 10000), 180000),
     retries: Math.min(Math.max(parseInt(cfg.retries, 10) || 1, 0), 4),
     limits: {
