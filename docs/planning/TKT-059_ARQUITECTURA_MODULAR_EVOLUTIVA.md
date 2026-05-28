@@ -288,3 +288,36 @@ Matriz minima de regresion:
 2. Roadmap por fases con criterios de aceptacion definido.
 3. Matriz de pruebas por capa acordada.
 4. Primer corte de implementacion (Fase 1 o Fase 2) creado como ticket ejecutable.
+
+---
+
+## 14. Roadmap incremental y próximos pasos
+
+### Fase 1: Store central y selectors
+
+- Crear módulo `store/appStore.js` para el estado global y dispatch.
+- Implementar `selectors.js` para cálculos derivados y evitar duplicidad en render.
+- Refactorizar el render actual para consumir el store y selectors, sin cambiar la UI visible.
+- Validar que no existan cambios funcionales en navegador y que la suite de pruebas mantenga o aumente cobertura.
+
+**Criterios de aceptación:**
+- Estado centralizado y selectors puros en uso.
+- Render adaptado a selectors.
+- Sin regresión funcional ni visual.
+- Pruebas unitarias y de integración cubren rutas críticas.
+
+### Fase 2: Casos de uso de deudas
+
+- Extraer lógica de `markDebtPaid` y `buildDebtDueAlerts` a `use-cases/debts/`.
+- Mantener `app.actions.js` como facade temporal para compatibilidad.
+- Adaptar UI para disparar casos de uso desde el store.
+- Validar reglas de negocio (`diaPagoReal`, alertas de vencimiento) y persistencia.
+
+**Criterios de aceptación:**
+- Casos de uso desacoplados de la UI y del DOM.
+- Validación de auto-set de `diaPagoReal` y alertas de vencimiento para el mes activo.
+- Pruebas unitarias y de integración para los casos de uso.
+
+---
+
+**Próximo paso:** Ejecutar Fase 1 (TKT-059.1) y documentar avances en BOARD y este archivo.

@@ -15,6 +15,8 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Backlog
 
 - [ ] TKT-059 Arquitectura modular evolutiva (capas + puertos/adaptadores)
+   - [ ] TKT-059.1 Store central y selectors
+   - [ ] TKT-059.2 Casos de uso de deudas
 - [ ] TKT-057 Backend/proxy OAuth + Drive mediation (fase lejana)
 - [ ] TKT-058 Estandar de lenguaje en codigo y textos user-facing
 
@@ -90,6 +92,39 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] OPS-004 Respaldo local/app (export/import) integrado
 
 ## Catalogo de tickets (detalle)
+### TKT-059.1 - Store central y selectors
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 1
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Introducir store centralizado para el estado de la app sin cambiar la UI visible.
+   - Mover estado derivado a selectors puros.
+   - Adaptar el render actual para leer del store.
+   - Sin cambios funcionales en navegador.
+   - Suite de pruebas igual o mayor cobertura.
+- Checklist:
+   - [ ] Crear modulo `store/appStore.js` con estado y dispatch.
+   - [ ] Implementar `selectors.js` para calculos derivados.
+   - [ ] Refactorizar render para consumir selectors.
+   - [ ] Validar cobertura de pruebas y no-regresion.
+
+### TKT-059.2 - Casos de uso de deudas
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 2
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Extraer `markDebtPaid` y `buildDebtDueAlerts` a use-cases.
+   - Mantener `app.actions.js` como facade temporal.
+   - Validar auto-set de `diaPagoReal` y aviso de vencimientos para mes activo.
+- Checklist:
+   - [ ] Crear carpeta `use-cases/debts/` y mover lógica de casos de uso.
+   - [ ] Adaptar UI para disparar casos de uso desde el store.
+   - [ ] Validar reglas de negocio y persistencia.
+   - [ ] Pruebas unitarias y de integración para casos de uso.
 
 ### TKT-001 - PWA base (manifest + install)
 
