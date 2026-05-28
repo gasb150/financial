@@ -552,20 +552,9 @@ function asegurarHistorialIA() {
 
 function clonarCompromisoHistorial(comp) {
   if(!comp || typeof comp !== 'object') return null;
-  let out = {
-    id: comp.id,
-    nombre: comp.nombre,
-    valor: comp.valor,
-    dia: comp.dia,
-    diaPagoReal: comp.diaPagoReal === undefined ? null : comp.diaPagoReal,
-    pagado: !!comp.pagado,
-    tipo: comp.tipo,
-    mesKey: comp.mesKey
-  };
-  if(comp.tipo === 'credito') {
-    out.faltantes = comp.faltantes;
-    out.totales = comp.totales;
-  }
+  let out = { ...comp };
+  out.diaPagoReal = comp.diaPagoReal === undefined ? null : comp.diaPagoReal;
+  out.pagado = !!comp.pagado;
   return out;
 }
 

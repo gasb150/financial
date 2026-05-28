@@ -68,7 +68,7 @@ test('revertirEventoHistorialIA restaura snapshot previo y marca evento revertid
   ], {
     appData: {
       compromisos: [
-        { id: 30, nombre: 'Streaming', valor: 90000, dia: 20, diaPagoReal: 22, pagado: false, tipo: 'variable', mesKey: 'Julio 2026' }
+        { id: 30, nombre: 'Streaming', valor: 90000, dia: 20, diaPagoReal: 22, pagado: false, tipo: 'fijo', mesKey: 'Julio 2026', recurringKey: 'rk-streaming', autoGenerado: true }
       ],
       iaHistory: { version: 1, lastEventAt: null, events: [] }
     },
@@ -102,6 +102,8 @@ test('revertirEventoHistorialIA restaura snapshot previo y marca evento revertid
   assert.equal(out.ok, true);
   assert.equal(ctx.appData.compromisos[0].valor, 90000);
   assert.equal(ctx.appData.compromisos[0].dia, 20);
+  assert.equal(ctx.appData.compromisos[0].recurringKey, 'rk-streaming');
+  assert.equal(ctx.appData.compromisos[0].autoGenerado, true);
   assert.equal(typeof ctx.obtenerEventoHistorialIA(evt.id).revertedAt, 'string');
   assert.equal(typeof persistedAt, 'string');
 });
