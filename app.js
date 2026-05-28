@@ -42,6 +42,8 @@ function resolverDatosDefaultExternos() {
   return null;
 }
 
+const GOOGLE_OAUTH_DEFAULT_SCOPE = 'openid profile email https://www.googleapis.com/auth/drive.appdata';
+
 const datosDefault = resolverDatosDefaultExternos() || {
   ingresosList: [],
   primasList: [],
@@ -99,7 +101,6 @@ const APP_SCHEMA_VERSION = 4;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
-const GOOGLE_OAUTH_DEFAULT_SCOPE = 'openid profile email https://www.googleapis.com/auth/drive.appdata';
 let iaApiKeyRuntime = '';
 
 const APP_SCHEMA_MIGRATORS = {
