@@ -188,16 +188,26 @@ test('saveGoogleAuthConfig persists without mutating iaConfig.updatedAt', () => 
 test('togglePaidCheck marks diaPagoReal when paying active-month debt', () => {
   let commitCalls = 0;
   const todayDay = new Date().getDate();
+  const now = new Date();
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const activeMonthKey = `${meses[now.getMonth()]} ${now.getFullYear()}`;
+
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthKey = `${meses[nextMonthDate.getMonth()]} ${nextMonthDate.getFullYear()}`;
+
   const appData = {
     compromisos: [
-      { id: 1, mesKey: 'Mayo 2026', pagado: false, diaPagoReal: null },
-      { id: 2, mesKey: 'Junio 2026', pagado: false, diaPagoReal: null }
+      { id: 1, mesKey: activeMonthKey, pagado: false, diaPagoReal: null },
+      { id: 2, mesKey: nextMonthKey, pagado: false, diaPagoReal: null }
     ]
   };
 
   const ctx = loadFunctionsFromFile(ACTIONS_JS, ['togglePaidCheck'], {
     appData,
-    mesActivoGlobal: 'Mayo 2026',
+    mesActivoGlobal: activeMonthKey,
     commitAppChange: () => { commitCalls += 1; }
   });
 
