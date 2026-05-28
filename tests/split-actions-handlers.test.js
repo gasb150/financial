@@ -184,3 +184,30 @@ test('saveGoogleAuthConfig persists without mutating iaConfig.updatedAt', () => 
   assert.equal(persistAuxCalls, 1);
   assert.equal(renderCalls, 1);
 });
+
+test('togglePaidCheck marks diaPagoReal when paying active-month debt', () => {
+  let commitCalls = 0;
+  const todayDay = new Date().getDate();
+  const appData = {
+    compromisos: [
+      { id: 1, mesKey: 'Mayo 2026', pagado: false, diaPagoReal: null },
+      { id: 2, mesKey: 'Junio 2026', pagado: false, diaPagoReal: null }
+    ]
+  };
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['togglePaidCheck'], {
+    appData,
+    mesActivoGlobal: 'Mayo 2026',
+    commitAppChange: () => { commitCalls += 1; }
+  });
+
+  ctx.togglePaidCheck(1);
+  assert.equal(appData.compromisos[0].pagado, true);
+  assert.equal(appData.compromisos[0].diaPagoReal, todayDay);
+
+  ctx.togglePaidCheck(2);
+  assert.equal(appData.compromisos[1].pagado, true);
+  assert.equal(appData.compromisos[1].diaPagoReal, null);
+
+  assert.equal(commitCalls, 2);
+});
