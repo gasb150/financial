@@ -1,3 +1,66 @@
+// --- Service Worker Update & Manual Cache Clear ---
+function showToast(msg, duration = 2500, id = 'toast-cache') {
+  const toast = document.getElementById(id);
+  if (!toast) return;
+  toast.innerText = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, duration);
+}
+
+function showI18nToast(i18nKey, duration = 2500, id = 'toast-cache') {
+  let tr = window.FinancialI18n?.t || ((k) => k);
+  showToast(tr(i18nKey), duration, id);
+}
+
+function clearStaticCacheAndReload() {
+  if (!('caches' in window)) return;
+  caches.keys().then(keys => {
+    Promise.all(keys.filter(k => k.startsWith('finanzas-cache')).map(k => caches.delete(k)))
+      .then(() => {
+        showI18nToast('config.cacheCleared');
+        setTimeout(() => location.reload(), 1200);
+      });
+  });
+}
+
+function setupCacheClearButton() {
+  const btn = document.getElementById('btn-clear-cache');
+  if (btn) {
+    btn.onclick = clearStaticCacheAndReload;
+  }
+}
+
+function setupServiceWorkerUpdateToast() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistration().then(function(reg) {
+    if (!reg) return;
+    reg.addEventListener('updatefound', function() {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed') {
+          if (navigator.serviceWorker.controller) {
+            // Nueva versión disponible
+            const toast = document.getElementById('toast-update');
+            if (toast) toast.style.display = 'block';
+            const btn = document.getElementById('btn-update-app');
+            if (btn) {
+              btn.onclick = function() {
+                newWorker.postMessage({ action: 'skipWaiting' });
+                window.location.reload();
+              };
+            }
+          }
+        }
+      });
+    });
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  setupCacheClearButton();
+  setupServiceWorkerUpdateToast();
+});
+
 let mesesLineaTiempo = [
   "Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"
 ];

@@ -335,7 +335,18 @@
       </div>
     </details>
 
-    <div class="sec" data-i18n="config.aiTitle">Asistente IA</div>
+    <div class="sec" data-i18n="config.cacheTitle">Caché y versión</div>
+    <details class="card config-accordion">
+      <summary class="config-accordion-summary" data-i18n="config.cacheTitle">Caché y versión</summary>
+      <div class="config-accordion-body">
+        <button id="btn-clear-cache" class="btn-action" style="padding:8px 10px;background:#a85f1f;" data-action="clear-cache" data-i18n="config.clearCache">Borrar caché</button>
+        <div id="toast-cache" class="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 2px 8px #0002;"></div>
+        <div id="toast-update" class="toast" style="display:none;position:fixed;bottom:64px;left:50%;transform:translateX(-50%);background:#534AB7;color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 2px 8px #0002;">
+          <span data-i18n="config.newVersion">Nueva versión disponible.</span>
+          <button id="btn-update-app" class="btn-action" style="margin-left:12px;padding:4px 10px;font-size:13px;background:#fff;color:#534AB7;">Actualizar</button>
+        </div>
+      </div>
+    </details>
     <details class="card config-accordion">
       <summary class="config-accordion-summary">Asistente IA</summary>
       <div class="config-accordion-body">
