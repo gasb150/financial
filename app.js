@@ -323,6 +323,9 @@ function normalizarEstadoCargado() {
   if(typeof appData.googleAuth.lastError !== 'string') appData.googleAuth.lastError = '';
   if(!appData.googleAuth.session || typeof appData.googleAuth.session !== 'object') {
     appData.googleAuth.session = null;
+  } else if(appData.googleAuth.session.accessToken) {
+    // Keep bearer tokens runtime-only; do not persist inside app data.
+    delete appData.googleAuth.session.accessToken;
   }
 
   if(!appData.driveSync || typeof appData.driveSync !== 'object') {
@@ -367,6 +370,9 @@ function getGoogleOAuthRedirectUri() {
 function getGoogleOAuthSession() {
   let session = appData && appData.googleAuth ? appData.googleAuth.session : null;
   if(!session || typeof session !== 'object') return null;
+  if(googleOAuthAccessTokenRuntime) {
+    return { ...session, accessToken: googleOAuthAccessTokenRuntime };
+  }
   return session;
 }
 
@@ -386,6 +392,7 @@ function isGoogleOAuthSessionActive() {
 function limpiarSesionGoogleOAuth(persist = true) {
   if(!appData.googleAuth || typeof appData.googleAuth !== 'object') return;
   appData.googleAuth.session = null;
+  googleOAuthAccessTokenRuntime = '';
   if(persist) {
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
@@ -427,7 +434,9 @@ function renderGoogleAuthConfig() {
 }
 
 let googleOAuthTokenClient = null;
+let googleOAuthTokenClientClientId = '';
 let googleOAuthPendingRequest = null;
+let googleOAuthAccessTokenRuntime = '';
 
 function googleSDKDisponible() {
   return !!(
@@ -454,6 +463,7 @@ function limpiarQueryOAuthLegacy() {
 
 function reiniciarClienteGoogleOAuth() {
   googleOAuthTokenClient = null;
+  googleOAuthTokenClientClientId = '';
 }
 
 function inicializarClienteTokenGoogleOAuth() {
@@ -482,8 +492,8 @@ function inicializarClienteTokenGoogleOAuth() {
         let expiresIn = Math.max(1, parseInt(resp.expires_in, 10) || 3600);
         let now = Date.now();
         let user = await obtenerPerfilGoogleOAuth(resp.access_token);
+        googleOAuthAccessTokenRuntime = resp.access_token;
         appData.googleAuth.session = {
-          accessToken: resp.access_token,
           tokenType: 'Bearer',
           scope: String(resp.scope || cfg.scope || '').trim(),
           obtainedAtMs: now,
@@ -509,6 +519,8 @@ function inicializarClienteTokenGoogleOAuth() {
     }
   });
 
+  googleOAuthTokenClientClientId = cfg.clientId;
+
   return googleOAuthTokenClient;
 }
 
@@ -527,7 +539,7 @@ async function iniciarFlujoGoogleGISToken(options = {}) {
     throw new Error('Google Identity Services no está disponible todavía.');
   }
 
-  if(googleOAuthTokenClient && getGoogleOAuthConfig().clientId !== cfg.clientId) {
+  if(googleOAuthTokenClient && googleOAuthTokenClientClientId !== cfg.clientId) {
     reiniciarClienteGoogleOAuth();
   }
 
@@ -759,11 +771,12 @@ async function googleDriveApiFetch(path, options = {}) {
 
 async function buildDriveSyncEnvelope(remoteVersion = 0) {
   let payload = buildBackupPayload();
+  let checksum = await asegurarChecksumPayload(payload);
   let state = getDriveSyncState();
   let envelope = {
     schema: 'financial.drive.sync.v1',
     version: Math.max(1, parseInt(remoteVersion, 10) + 1),
-    checksum: payload.checksum,
+    checksum,
     updatedAt: new Date().toISOString(),
     deviceId: ensureDriveSyncLocalDeviceId(),
     data: payload.data,
@@ -882,11 +895,14 @@ async function sincronizarDriveConGoogle(options = {}) {
       remoteEnvelope = await downloadDriveSyncEnvelope(remoteFile.id);
       remoteVersion = Math.max(0, parseInt(remoteEnvelope && remoteEnvelope.version, 10) || 0);
       remoteChecksum = String(remoteEnvelope && remoteEnvelope.checksum ? remoteEnvelope.checksum : '').trim();
+      if(!remoteChecksum && remoteEnvelope && remoteEnvelope.data) {
+        remoteChecksum = await generarChecksumPayload(remoteEnvelope.data);
+      }
       state.fileId = remoteFile.id;
     }
 
     let localPayload = buildBackupPayload();
-    let localChecksum = String(localPayload.checksum || '').trim();
+    let localChecksum = await asegurarChecksumPayload(localPayload);
     let plan = evaluarPlanSyncDrive({
       remoteVersion,
       remoteChecksum,
@@ -912,9 +928,10 @@ async function sincronizarDriveConGoogle(options = {}) {
       persistirAuxiliaresConFallback(new Date().toISOString());
       initApp({ skipDataNormalization: false });
 
-      state.lastKnownRemoteVersion = remoteVersion;
-      state.lastKnownRemoteChecksum = remoteChecksum;
-      state.lastSyncAt = new Date().toISOString();
+      let refreshedState = getDriveSyncState();
+      refreshedState.lastKnownRemoteVersion = remoteVersion;
+      refreshedState.lastKnownRemoteChecksum = remoteChecksum;
+      refreshedState.lastSyncAt = new Date().toISOString();
       appendDriveSyncEvent('force-pull-applied', {
         remoteVersion,
         remoteChecksum
@@ -951,9 +968,10 @@ async function sincronizarDriveConGoogle(options = {}) {
         persistirAuxiliaresConFallback(new Date().toISOString());
         initApp({ skipDataNormalization: false });
         alert('Se descargó la versión remota de Drive. Vuelve a ejecutar sincronizar para subir cambios locales nuevos.');
-        state.lastKnownRemoteVersion = remoteVersion;
-        state.lastKnownRemoteChecksum = remoteChecksum;
-        state.lastSyncAt = new Date().toISOString();
+        let refreshedState = getDriveSyncState();
+        refreshedState.lastKnownRemoteVersion = remoteVersion;
+        refreshedState.lastKnownRemoteChecksum = remoteChecksum;
+        refreshedState.lastSyncAt = new Date().toISOString();
         appendDriveSyncEvent('conflict-resolved-remote-wins', {
           remoteVersion,
           remoteChecksum
@@ -1002,7 +1020,8 @@ async function sincronizarDriveConGoogle(options = {}) {
     renderDriveSyncStatus();
     throw err;
   } finally {
-    state.syncInProgress = false;
+    let latestState = getDriveSyncState();
+    latestState.syncInProgress = false;
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
     renderDriveSyncStatus();
@@ -1130,6 +1149,15 @@ function hashFallbackHex(texto) {
 
 async function generarChecksumPayload(dataObj) {
   return window.FinancialData.generatePayloadChecksum(dataObj);
+}
+
+async function asegurarChecksumPayload(backupPayload) {
+  if(!backupPayload || typeof backupPayload !== 'object') return '';
+  let checksum = String(backupPayload.checksum || '').trim();
+  if(checksum) return checksum;
+  checksum = await generarChecksumPayload(backupPayload.data);
+  backupPayload.checksum = checksum;
+  return checksum;
 }
 
 async function validarChecksumBackup(backupObj) {

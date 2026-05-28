@@ -10,6 +10,7 @@ const APP_JS = path.join(ROOT, 'app.js');
 test('isGoogleOAuthSessionActive validates token expiry window', () => {
   const now = Date.now();
   const ctx = loadFunctionsFromFile(APP_JS, ['getGoogleOAuthSession', 'isGoogleOAuthSessionActive'], {
+    googleOAuthAccessTokenRuntime: '',
     appData: {
       googleAuth: {
         session: {
@@ -46,6 +47,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
     'isGoogleOAuthSessionActive',
     'renderGoogleAuthConfig'
   ], {
+    googleOAuthAccessTokenRuntime: '',
     appData: {
       googleAuth: {
         provider: 'google',
