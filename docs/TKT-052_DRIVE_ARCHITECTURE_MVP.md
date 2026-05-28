@@ -146,7 +146,7 @@ Track in envelope:
 
 ## 10. Rollout Plan
 
-1. TKT-053: OAuth2 PKCE and secure session in browser.
+1. TKT-053: GIS token flow and secure session handling in browser (no PKCE).
 2. TKT-054: pull/push sync with version checks and dry-run merge path.
 3. TKT-055: optional client-side encryption for remote payload.
 4. TKT-056: conflict resolution UX and sync audit timeline.
