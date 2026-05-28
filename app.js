@@ -8,6 +8,7 @@ let semanaSeleccionadaIndex = 0;
 let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista diaria
 let filtroDiaDesde = null;
 let filtroDiaHasta = null;
+let deudasExpandState = new Set();
 let modoAltaDeuda = 'rapido';
 let deferredInstallPrompt = null;
 let htmlActionHandlersBound = false;
@@ -1955,6 +1956,16 @@ function toggleCheckPago(id) {
   return window.FinancialActions.togglePaidCheck(id);
 }
 
+function toggleExpandDeuda(id) {
+  let key = String(id);
+  if(deudasExpandState.has(key)) {
+    deudasExpandState.delete(key);
+  } else {
+    deudasExpandState.add(key);
+  }
+  renderDeudasModulo(getCompromisosMesActual());
+}
+
 function cambiarFiltroDeuda(tipo) {
   filtroDeudaActivo = tipo;
   ['todas','fijas','variables','creditos','pendientes'].forEach(f => {
@@ -2170,7 +2181,7 @@ function renderConfigIngresos() {
     card.style.marginBottom = '8px';
     card.innerHTML = `
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px">
-        <button class="btn-del" onclick="eliminarIngreso(${i.id})"><i class="ti ti-trash"></i></button>
+        <button class="btn-del" onclick="eliminarIngreso(${i.id})" title="Eliminar ingreso" aria-label="Eliminar ingreso"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""><span class="btn-del-text">Eliminar</span></button>
         <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'nombre', this.value)">
         <input type="text" inputmode="numeric" value="${formatCOP(i.valor)}" class="input-inline money-input" style="width:110px; text-align:right; color:#1D9E75; font-weight:600;" onchange="modificarIngresoPropiedad(${i.id}, 'valor', this.value)">
       </div>
@@ -2269,7 +2280,7 @@ function renderConfigPrimas() {
       card.style.marginBottom = '8px';
       card.innerHTML = `
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
-          <button class="btn-del" onclick="eliminarPrima(${p.id})"><i class="ti ti-trash"></i></button>
+          <button class="btn-del" onclick="eliminarPrima(${p.id})" title="Eliminar prima" aria-label="Eliminar prima"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""><span class="btn-del-text">Eliminar</span></button>
           <input type="text" value="${nombreSeguro}" class="input-inline" style="flex:1;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'nombre', this.value)">
           <input type="text" inputmode="numeric" value="${formatCOP(p.valor)}" class="input-inline money-input" style="width:110px;text-align:right;color:#1D9E75;font-weight:600;" onchange="modificarPrimaPropiedad(${p.id}, 'valor', this.value)">
         </div>
@@ -2383,6 +2394,11 @@ function renderDeudasModulo(compromisosMes) {
     return true;
   });
 
+  // Prevent stale IDs from accumulating when debts are removed or month changes.
+  deudasExpandState = new Set(
+    [...deudasExpandState].filter((id) => deudasFiltradas.some((c) => String(c.id) === id))
+  );
+
   if(fechaInfo) {
     if(filtroDiaDesde === null && filtroDiaHasta === null) {
       fechaInfo.innerText = 'Mostrando todos los días del mes.';
@@ -2447,6 +2463,9 @@ function renderDeudasModulo(compromisosMes) {
     let pctBarra = c.tipo === 'credito' ? (((c.totales||12)-(c.faltantes||6))/(c.totales||12))*100 : 100;
     let mesOptions = mesesLineaTiempo.map(m => `<option value="${m}" ${c.mesKey === m ? 'selected' : ''}>${m}</option>`).join('');
     let colorBarra = c.pagado ? '#1D9E75' : '#E24B4A';
+    let estadoCompactoIcon = c.pagado ? '●' : '○';
+    let estadoCompactoTxt = c.pagado ? 'Pagado' : 'Pendiente';
+    let deudaExpandida = deudasExpandState.has(String(c.id));
     let extraCredito = '';
     if(c.tipo === 'credito') {
       extraCredito = `
@@ -2467,50 +2486,69 @@ function renderDeudasModulo(compromisosMes) {
     }
 
     card.innerHTML = `
-      <div class="deuda-head">
-        <div style="display:flex; align-items:center; gap:4px;">
-          <button class="btn-del" onclick="eliminarCompromiso(${c.id})"><i class="ti ti-trash"></i></button>
-        </div>
-        <input type="text" value="${nombreSeguro}" class="input-inline deuda-name" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
-        <input type="text" inputmode="numeric" value="${formatCOP(c.valor)}" class="input-inline deuda-valor money-input" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
-      </div>
-
-      <div class="deuda-meta">
-        <div>
-          <div class="deuda-mini"><span class="deuda-tipo-pill ${tipoPillClass}">${tipoLabel}</span><span>${semTxt}</span></div>
-          <select class="input-app" style="margin:4px 0 0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'tipo', this.value)">
-            <option value="fijo" ${c.tipo === 'fijo' ? 'selected' : ''}>Fijo</option>
-            <option value="variable" ${c.tipo === 'variable' ? 'selected' : ''}>Variable</option>
-            <option value="credito" ${c.tipo === 'credito' ? 'selected' : ''}>Crédito</option>
-          </select>
-        </div>
-        <div>
-          <label class="sl">Mes</label>
-          <select class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'mesKey', this.value)">${mesOptions}</select>
-        </div>
-      </div>
-
-      <div class="deuda-grid">
-        <div>
-          <label class="sl">Día</label>
-          <input type="number" value="${c.dia}" min="-1" max="31" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'dia', this.value)">
-        </div>
-        <div>
-          <label class="sl">Pago real (opcional)</label>
-          <input type="number" value="${diaPagoRealValido ? diaPagoReal : ''}" min="1" max="31" placeholder="Auto" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'diaPagoReal', this.value)">
-        </div>
-        <div>
-          <label class="sl">Estado</label>
-          <div class="deuda-mini" style="height:31px;border:1px solid var(--color-border-secondary);border-radius:6px;padding:0 8px;">
-            <input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> ¿Pagado?
+      <button class="deuda-toggle" onclick="toggleExpandDeuda(${c.id})" aria-expanded="${deudaExpandida ? 'true' : 'false'}" title="${deudaExpandida ? 'Contraer detalle' : 'Expandir detalle'}">
+        <div style="flex:1;min-width:0;">
+          <div class="deuda-compact-top">
+            <div class="deuda-compact-name">${nombreSeguro}</div>
+            <div class="deuda-compact-value">${formatCOP(c.valor)}</div>
+          </div>
+          <div class="deuda-compact-meta">
+            <span class="deuda-tipo-pill ${tipoPillClass}">${tipoLabel}</span>
+            <span>${semTxt}</span>
+            <span class="deuda-compact-status ${c.pagado ? 'paid' : 'pending'}" title="${estadoCompactoTxt}">${estadoCompactoIcon}</span>
           </div>
         </div>
-      </div>
+        <span class="deuda-chevron" aria-hidden="true">${deudaExpandida ? '▾' : '▸'}</span>
+      </button>
 
-      ${extraCredito}
-      <div class="rm" style="margin-top:6px;">Fecha tentativa: día ${diaNormalizado} · ${semTxt}</div>
-      <div class="rm" style="margin-top:4px;">Fecha real de pago: ${diaPagoRealValido ? `día ${diaPagoReal}` : 'sin definir (usa tentativa)'}</div>
-      <div class="deuda-bar" style="margin-top:6px;"><div class="deuda-fill" style="width:${pctBarra}%;background:${colorBarra}"></div></div>
+      ${deudaExpandida ? `
+      <div class="deuda-details">
+        <div class="deuda-head deuda-head-edit" style="margin-top:10px;">
+          <input type="text" value="${nombreSeguro}" class="input-inline deuda-name" onchange="modificarCompromisoPropiedad(${c.id}, 'nombre', this.value)">
+          <input type="text" inputmode="numeric" value="${formatCOP(c.valor)}" class="input-inline deuda-valor money-input" onchange="modificarCompromisoPropiedad(${c.id}, 'valor', this.value)">
+        </div>
+
+        <div class="deuda-meta">
+          <div>
+            <div class="deuda-mini"><span class="deuda-tipo-pill ${tipoPillClass}">${tipoLabel}</span><span>${semTxt}</span></div>
+            <select class="input-app" style="margin:4px 0 0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'tipo', this.value)">
+              <option value="fijo" ${c.tipo === 'fijo' ? 'selected' : ''}>Fijo</option>
+              <option value="variable" ${c.tipo === 'variable' ? 'selected' : ''}>Variable</option>
+              <option value="credito" ${c.tipo === 'credito' ? 'selected' : ''}>Crédito</option>
+            </select>
+          </div>
+          <div>
+            <label class="sl">Mes</label>
+            <select class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'mesKey', this.value)">${mesOptions}</select>
+          </div>
+        </div>
+
+        <div class="deuda-grid">
+          <div>
+            <label class="sl">Día</label>
+            <input type="number" value="${c.dia}" min="-1" max="31" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'dia', this.value)">
+          </div>
+          <div>
+            <label class="sl">Pago real (opcional)</label>
+            <input type="number" value="${diaPagoRealValido ? diaPagoReal : ''}" min="1" max="31" placeholder="Auto" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'diaPagoReal', this.value)">
+          </div>
+          <div>
+            <label class="sl">Estado</label>
+            <div class="deuda-mini" style="height:31px;border:1px solid var(--color-border-secondary);border-radius:6px;padding:0 8px;">
+              <input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> ¿Pagado?
+            </div>
+          </div>
+        </div>
+
+        ${extraCredito}
+        <div class="rm" style="margin-top:6px;">Fecha tentativa: día ${diaNormalizado} · ${semTxt}</div>
+        <div class="rm" style="margin-top:4px;">Fecha real de pago: ${diaPagoRealValido ? `día ${diaPagoReal}` : 'sin definir (usa tentativa)'}</div>
+        <div class="deuda-bar" style="margin-top:6px;"><div class="deuda-fill" style="width:${pctBarra}%;background:${colorBarra}"></div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button class="btn-del btn-del-icon-only" onclick="eliminarCompromiso(${c.id})" title="Eliminar compromiso" aria-label="Eliminar compromiso"><img src="./assets/icons/trash.svg" class="btn-del-icon" alt=""></button>
+        </div>
+      </div>
+      ` : ''}
     `;
     container.appendChild(card);
   });

@@ -48,7 +48,9 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .input-inline:focus{outline:none; border-bottom-color:#534AB7; background:#f1f3f5}
 .money-input{text-align:right}
 .btn-action{background:#534AB7;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer}
-.btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:14px;display:flex;align-items:center}
+.btn-del{background:none;border:none;color:#E24B4A;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;line-height:1}
+.btn-del-icon{width:14px;height:14px;display:block;flex-shrink:0}
+.btn-del-text{font-size:11px;font-weight:600}
 .chk-box{width:16px;height:16px;cursor:pointer}
 .row-paid{opacity:0.5;text-decoration:line-through}
 .cal-container{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;text-align:center;font-size:11px}
@@ -86,7 +88,18 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .deuda-card.tipo-fijo{border-left-color:#1D9E75}
 .deuda-card.tipo-variable{border-left-color:#BA7517}
 .deuda-card.tipo-credito{border-left-color:#534AB7}
+.deuda-toggle{width:100%;display:flex;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+.deuda-compact-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.deuda-compact-name{font-size:14px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deuda-compact-value{font-size:20px;font-weight:700;color:#E24B4A;white-space:nowrap}
+.deuda-compact-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;color:var(--color-text-secondary)}
+.deuda-compact-status{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;font-size:12px;font-weight:700}
+.deuda-compact-status.paid{color:#1D9E75;background:#E7F8F0}
+.deuda-compact-status.pending{color:#BA7517;background:#FFF4DF}
+.deuda-chevron{font-size:16px;color:var(--color-text-tertiary);line-height:1;flex-shrink:0}
+.deuda-details{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
 .deuda-head{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.deuda-head-edit{grid-template-columns:1fr auto}
 .deuda-name{width:100%}
 .deuda-valor{width:108px;text-align:right;color:#E24B4A;font-weight:600}
 .deuda-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end;margin-bottom:8px}
@@ -97,6 +110,7 @@ body{font-family:var(--font-sans);background:#e9ecef;color:var(--color-text-prim
 .pill-credito{background:#efecff;color:#4339a2;border-color:#cdc7ff}
 .deuda-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
 .deuda-sub{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border-secondary)}
+.btn-del-icon-only{padding:2px}
 .ia-stack{display:grid;gap:10px;margin-bottom:10px}
 .ia-card{background:linear-gradient(180deg,#313131 0%,#2a2a2a 100%);color:#f5f5f5;border:1px solid #4a4a4a;border-radius:12px;padding:12px 12px 10px}
 .ia-card .ttl{font-size:11px;font-weight:700;letter-spacing:.06em;color:#b9b9b9;text-transform:uppercase;margin-bottom:8px}
