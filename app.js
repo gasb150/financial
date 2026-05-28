@@ -897,6 +897,16 @@ async function sincronizarDriveConGoogle(options = {}) {
       remoteChecksum = String(remoteEnvelope && remoteEnvelope.checksum ? remoteEnvelope.checksum : '').trim();
       if(!remoteChecksum && remoteEnvelope && remoteEnvelope.data) {
         remoteChecksum = await generarChecksumPayload(remoteEnvelope.data);
+      } else if(!remoteChecksum && remoteEnvelope && remoteEnvelope.encryption && remoteEnvelope.ciphertext) {
+        let passphrase = getDriveSyncPassphrase();
+        if(passphrase) {
+          try {
+            let decrypted = await decryptDriveSyncData(remoteEnvelope, passphrase);
+            if(validarPayloadRespaldo(decrypted)) {
+              remoteChecksum = await generarChecksumPayload(decrypted);
+            }
+          } catch(_e) {}
+        }
       }
       state.fileId = remoteFile.id;
     }
