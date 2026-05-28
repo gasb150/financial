@@ -43,6 +43,8 @@ function resolverDatosDefaultExternos() {
 }
 
 const GOOGLE_OAUTH_DEFAULT_SCOPE = 'openid profile email https://www.googleapis.com/auth/drive.appdata';
+const GOOGLE_OAUTH_SESSION_TOKEN_KEY = 'finanzas_google_oauth_access_token';
+let googleOAuthAccessTokenRuntime = '';
 
 const datosDefault = resolverDatosDefaultExternos() || {
   ingresosList: [],
@@ -292,6 +294,9 @@ function normalizarEstadoCargado() {
   if(typeof appData.googleAuth.lastError !== 'string') appData.googleAuth.lastError = '';
   if(!appData.googleAuth.session || typeof appData.googleAuth.session !== 'object') {
     appData.googleAuth.session = null;
+  } else if(appData.googleAuth.session.accessToken) {
+    setGoogleOAuthAccessToken(appData.googleAuth.session.accessToken);
+    delete appData.googleAuth.session.accessToken;
   }
 }
 
@@ -309,6 +314,30 @@ function getGoogleOAuthRedirectUri() {
   return `${window.location.origin}${window.location.pathname}`;
 }
 
+function setGoogleOAuthAccessToken(token) {
+  googleOAuthAccessTokenRuntime = String(token || '');
+  if(typeof sessionStorage === 'undefined') return;
+  try {
+    if(googleOAuthAccessTokenRuntime) {
+      sessionStorage.setItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY, googleOAuthAccessTokenRuntime);
+    } else {
+      sessionStorage.removeItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY);
+    }
+  } catch(_e) {}
+}
+
+function getGoogleOAuthAccessToken() {
+  if(googleOAuthAccessTokenRuntime) return googleOAuthAccessTokenRuntime;
+  if(typeof sessionStorage === 'undefined') return '';
+  try {
+    let token = sessionStorage.getItem(GOOGLE_OAUTH_SESSION_TOKEN_KEY) || '';
+    if(token) googleOAuthAccessTokenRuntime = token;
+    return token;
+  } catch(_e) {
+    return '';
+  }
+}
+
 function getGoogleOAuthSession() {
   let session = appData && appData.googleAuth ? appData.googleAuth.session : null;
   if(!session || typeof session !== 'object') return null;
@@ -317,7 +346,8 @@ function getGoogleOAuthSession() {
 
 function isGoogleOAuthSessionActive() {
   let session = getGoogleOAuthSession();
-  if(!session || !session.accessToken) return false;
+  let accessToken = getGoogleOAuthAccessToken();
+  if(!session || !accessToken) return false;
   let expiresAtMs = parseInt(session.expiresAtMs, 10) || 0;
   return expiresAtMs > Date.now() + 15000;
 }
@@ -325,6 +355,7 @@ function isGoogleOAuthSessionActive() {
 function limpiarSesionGoogleOAuth(persist = true) {
   if(!appData.googleAuth || typeof appData.googleAuth !== 'object') return;
   appData.googleAuth.session = null;
+  setGoogleOAuthAccessToken('');
   if(persist) {
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
@@ -348,6 +379,7 @@ function renderGoogleAuthConfig() {
   let cfg = getGoogleOAuthConfig();
   let session = getGoogleOAuthSession();
   let activo = isGoogleOAuthSessionActive();
+  let accessToken = getGoogleOAuthAccessToken();
   clientInput.value = cfg.clientId;
   redirectInput.value = getGoogleOAuthRedirectUri();
 
@@ -356,7 +388,7 @@ function renderGoogleAuthConfig() {
     let email = String(user.email || '').trim();
     let exp = session.expiresAtMs ? new Date(session.expiresAtMs).toLocaleString('es-CO') : 'N/D';
     statusEl.innerText = `Sesión activa${email ? ` · ${email}` : ''}. Expira: ${exp}.`;
-  } else if(session && session.accessToken) {
+  } else if(session && accessToken) {
     statusEl.innerText = 'Sesión expirada. Inicia sesión de nuevo o refresca token.';
   } else {
     statusEl.innerText = 'Sesión no iniciada.';
@@ -418,8 +450,8 @@ function inicializarClienteTokenGoogleOAuth() {
         let expiresIn = Math.max(1, parseInt(resp.expires_in, 10) || 3600);
         let now = Date.now();
         let user = await obtenerPerfilGoogleOAuth(resp.access_token);
+        setGoogleOAuthAccessToken(resp.access_token);
         appData.googleAuth.session = {
-          accessToken: resp.access_token,
           tokenType: 'Bearer',
           scope: cfg.scope,
           obtainedAtMs: now,
@@ -495,14 +527,15 @@ async function procesarCallbackGoogleOAuthSiAplica() {
 
 async function cerrarSesionGoogleOAuth() {
   let session = getGoogleOAuthSession();
+  let accessToken = getGoogleOAuthAccessToken();
   try {
-    if(session && session.accessToken) {
+    if(session && accessToken) {
       if(googleSDKDisponible() && typeof window.google.accounts.oauth2.revoke === 'function') {
         await new Promise((resolve) => {
-          window.google.accounts.oauth2.revoke(session.accessToken, () => resolve());
+          window.google.accounts.oauth2.revoke(accessToken, () => resolve());
         });
       } else {
-        await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(session.accessToken)}`, {
+        await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(accessToken)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
