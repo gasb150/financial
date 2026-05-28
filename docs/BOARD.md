@@ -1,6 +1,6 @@
 # Dashboard de Tickets - Financial
 
-Actualizado: 2026-05-26
+Actualizado: 2026-05-27
 Proyecto: financial (gasb150/financial)
 Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con costo controlado.
 
@@ -14,13 +14,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Backlog
 
-- [ ] TKT-012 Gateway IA para proveedores externos
-- [ ] TKT-013 Limites de gasto IA (diario/mensual/tokens)
-- [ ] TKT-014 Panel de consumo IA
 - [ ] TKT-033 Fecha real de pago para gastos unicos y diferidos
 - [ ] TKT-034 Historial persistente de acciones IA y revertir
 - [ ] TKT-045 Modularizacion final de app.js y dominio IA
-- [ ] TKT-046 Validacion fuerte de persistencia y esquema de datos
 - [ ] TKT-052 Arquitectura backend en Google Drive (MVP)
 - [ ] TKT-053 Autenticacion Google (OAuth2 PKCE) y sesion segura
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
@@ -40,6 +36,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - [x] TKT-011 Asistente IA: simulador de escenarios
 - [x] TKT-010 Asistente IA: alertas de deficit
 - [x] TKT-009 Asistente IA: resumen mensual
+- [x] TKT-014 Panel de consumo IA
+- [x] TKT-013 Limites de gasto IA (diario/mensual/tokens)
+- [x] TKT-012 Gateway IA para proveedores externos
+- [x] TKT-046 Validacion fuerte de persistencia y esquema de datos
 - [x] TKT-038 Split dominio reglas financieras y calculos
 - [x] TKT-039 Split dominio acciones de usuario y formularios
 - [x] TKT-040 QA de regresion post-split y saneamiento
@@ -221,30 +221,42 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-012 - Gateway IA para proveedores externos
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Un punto unico de integracion para API externa.
+- Checklist:
+   - [x] Agregar configuracion de gateway API externo (endpoint, proveedor, modelo, API key)
+   - [x] Integrar transporte comun para consultas API externas con reintentos/timeout
+   - [x] Conectar modo API para ejecutar consultas reales via gateway
 
 ### TKT-013 - Limites de gasto IA (diario/mensual/tokens)
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Bloqueo automatico al superar topes.
+- Checklist:
+   - [x] Definir topes configurables de tokens y costo diario/mensual
+   - [x] Bloquear ejecucion de llamadas cuando el consumo acumulado supera topes
+   - [x] Persistir contadores de consumo para mantener trazabilidad entre sesiones
 
 ### TKT-014 - Panel de consumo IA
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
 - Criterio de aceptacion:
    - Vista simple de costo/uso acumulado.
+- Checklist:
+   - [x] Agregar panel de consumo IA en Config con requests/tokens/costo diario y mensual
+   - [x] Mostrar topes configurados para costo/tokens en la misma vista
+   - [x] Refrescar panel despues de guardar configuracion o ejecutar consultas IA
 
 ### TKT-052 - Arquitectura backend en Google Drive (MVP)
 
@@ -533,7 +545,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-029 - QA funcional de sugerencias IA y reglas de visibilidad
 
-- Estado: Backlog
+- Estado: En curso
 - Prioridad: Media
 - Fase: 4
 - Owner: Gustavo
@@ -542,7 +554,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se valida no-regresion de reglas de visibilidad (TKT-022/023/024).
    - Se documentan casos borde y resultados esperados.
 - Checklist:
-   - [ ] Definir matriz de escenarios criticos
+   - [x] Definir matriz de escenarios criticos
    - [ ] Ejecutar pruebas manuales guiadas y registrar evidencia
    - [ ] Ajustar criterios de aceptacion segun hallazgos
 
@@ -779,7 +791,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-046 - Validacion fuerte de persistencia y esquema de datos
 
-- Estado: Backlog
+- Estado: Done
 - Prioridad: Alta
 - Fase: 4
 - Owner: Gustavo
@@ -788,9 +800,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Se soporta recuperacion parcial segura cuando algun bloque del payload esta corrupto.
    - Se registra trazabilidad de errores de persistencia para diagnostico.
 - Checklist:
-   - [ ] Definir esquema de ingresos/primas/compromisos/iaConfig
-   - [ ] Implementar validador estructural y sanitizacion de entradas
-   - [ ] Agregar logs de error y pruebas de payloads invalidos
+   - [x] Definir esquema de ingresos/primas/compromisos/iaConfig
+   - [x] Implementar validador estructural y sanitizacion de entradas
+   - [x] Agregar logs de error y pruebas de payloads invalidos
 
 ### TKT-047 - Eliminacion de handlers inline en HTML
 
@@ -883,6 +895,12 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [x] Registrar incidencias y aplicar correcciones de saneamiento
 
 ## Bitacora de avance
+
+### 2026-05-27
+
+1. TKT-012/TKT-013/TKT-014 completados en bloque: modo API ahora consulta gateway externo configurable (endpoint/proveedor/modelo/API key), con topes diarios/mensuales de tokens y costo que bloquean ejecuciones al superar limites, y panel de consumo en Config para visualizar requests/tokens/costo acumulado.
+2. TKT-046 completado: validadores de persistencia reforzados con saneamiento estructural por dominio (ingresos/primas/compromisos/iaConfig/iaUsage), recuperación parcial segura en hidratar/importar/restaurar y trazas de errores de persistencia.
+3. TKT-029 en curso: matriz QA y casos borde documentados en `docs/QA_TKT-029.md`; pendiente ejecución manual guiada con evidencia.
 
 ### 2026-05-26
 

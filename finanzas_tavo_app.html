@@ -329,6 +329,48 @@
           </div>
         </div>
       </div>
+      <div style="margin-top:10px; border-top:1px dashed var(--color-border-secondary); padding-top:10px;">
+        <div class="sl" style="margin-bottom:6px;" data-i18n="config.apiConfigTitle">Configuración API/Gateway</div>
+        <label class="sl" data-i18n="config.gatewayEndpoint">Endpoint gateway</label>
+        <input id="ia-api-endpoint" class="input-app" type="text" placeholder="https://tu-gateway-ia.com/v1/chat" data-action="save-api-ai-config">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.provider">Proveedor</label>
+            <input id="ia-api-provider" class="input-app" type="text" placeholder="openai" data-action="save-api-ai-config">
+          </div>
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.model">Modelo</label>
+            <input id="ia-api-model" class="input-app" type="text" placeholder="gpt-4.1-mini" data-action="save-api-ai-config">
+          </div>
+        </div>
+        <label class="sl" style="margin-top:8px;" data-i18n="config.apiKey">API Key</label>
+        <input id="ia-api-key" class="input-app" type="password" placeholder="sk-..." autocomplete="off" data-action="save-api-ai-config">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.dailyTokenLimit">Tope diario tokens</label>
+            <input id="ia-api-daily-tokens" class="input-app" type="number" min="0" step="1000" data-action="save-api-ai-config">
+          </div>
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.monthlyTokenLimit">Tope mensual tokens</label>
+            <input id="ia-api-monthly-tokens" class="input-app" type="number" min="0" step="1000" data-action="save-api-ai-config">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.dailyCostLimit">Tope diario costo (COP)</label>
+            <input id="ia-api-daily-cop" class="input-app" type="number" min="0" step="100" data-action="save-api-ai-config">
+          </div>
+          <div style="flex:1;">
+            <label class="sl" data-i18n="config.monthlyCostLimit">Tope mensual costo (COP)</label>
+            <input id="ia-api-monthly-cop" class="input-app" type="number" min="0" step="100" data-action="save-api-ai-config">
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <label class="sl" data-i18n="config.estimatedCostPer1k">Costo estimado por 1K tokens (COP)</label>
+          <input id="ia-api-cost-1k" class="input-app" type="number" min="1" step="1" data-action="save-api-ai-config">
+        </div>
+      </div>
+      <div id="ia-usage-panel" class="rm" style="margin-top:10px;"></div>
       <button class="btn-action" style="width:100%;margin-top:10px;padding:8px;background:#6a5fd2;" data-action="test-ai-mode" data-i18n="config.testAiMode">Probar modo IA</button>
       <div id="ia-test-result" class="rm" style="margin-top:8px;"></div>
     </div>

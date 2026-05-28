@@ -98,7 +98,8 @@ test('initApp integrates summary refresh and key render calls without crashing',
 test('ejecutarConsultaIA routes through OFF/LOCAL/API modes as expected', async () => {
   const ctx = loadFunctionsFromFile(APP_JS, ['ejecutarConsultaIA'], {
     getModoIA: () => 'off',
-    consultarIALocal: async () => ({ ok: true, mode: 'local', message: 'unused' })
+    consultarIALocal: async () => ({ ok: true, mode: 'local', message: 'unused' }),
+    consultarIAApiGateway: async () => ({ ok: true, mode: 'api', message: 'unused-api' })
   });
 
   await assert.rejects(
@@ -118,10 +119,44 @@ test('ejecutarConsultaIA routes through OFF/LOCAL/API modes as expected', async 
   assert.deepEqual(localOut, { ok: true, mode: 'local', message: 'ok local' });
 
   ctx.getModoIA = () => 'api';
+  let apiPrompt = '';
+  ctx.consultarIAApiGateway = async (prompt) => {
+    apiPrompt = prompt;
+    return { ok: true, mode: 'api', message: 'ok api' };
+  };
+
   const apiOut = await ctx.ejecutarConsultaIA('resumen');
-  assert.equal(apiOut.ok, false);
+  assert.equal(apiPrompt, 'resumen');
+  assert.equal(apiOut.ok, true);
   assert.equal(apiOut.mode, 'api');
-  assert.match(apiOut.message, /Gateway\/API externa aun no integrada/);
+  assert.match(apiOut.message, /ok api/);
+});
+
+test('validarLimitesIAAntesDeConsumir blocks when daily token cap is reached', () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['validarLimitesIAAntesDeConsumir'], {
+    asegurarVentanasConsumoIA: () => {},
+    appData: {
+      iaUsage: {
+        dailyTokens: 1000,
+        monthlyTokens: 1000,
+        dailyCostCop: 100,
+        monthlyCostCop: 100
+      }
+    },
+    formatCOP: (n) => `$${n}`
+  });
+
+  assert.throws(
+    () => ctx.validarLimitesIAAntesDeConsumir({
+      limits: {
+        dailyTokenLimit: 1000,
+        monthlyTokenLimit: 5000,
+        dailyCopLimit: 1000,
+        monthlyCopLimit: 10000
+      }
+    }),
+    /Límite diario de tokens IA alcanzado/
+  );
 });
 
 test('service worker caches stable CSS opaque responses and handles offline miss safely', async () => {

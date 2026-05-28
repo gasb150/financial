@@ -51,9 +51,29 @@ const datosDefault = resolverDatosDefaultExternos() || {
     mode: 'off',
     providerLocalEndpoint: 'http://localhost:11434/api/generate',
     providerLocalModel: 'llama3.1:8b',
+    providerApiEndpoint: '',
+    providerApiName: 'generic',
+    providerApiModel: 'gpt-4.1-mini',
+    providerApiKey: '',
+    apiDailyTokenLimit: 80000,
+    apiMonthlyTokenLimit: 1200000,
+    apiDailyCopLimit: 20000,
+    apiMonthlyCopLimit: 200000,
+    apiEstimatedCopPer1kTokens: 40,
     timeoutMs: 45000,
     retries: 1,
     updatedAt: null
+  },
+  iaUsage: {
+    dayKey: null,
+    monthKey: null,
+    dailyRequests: 0,
+    monthlyRequests: 0,
+    dailyTokens: 0,
+    monthlyTokens: 0,
+    dailyCostCop: 0,
+    monthlyCostCop: 0,
+    lastRequestAt: null
   }
 };
 
@@ -67,6 +87,7 @@ const APP_SCHEMA_VERSION = 2;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
+let iaApiKeyRuntime = '';
 
 const APP_SCHEMA_MIGRATORS = {
   1: (data) => {
@@ -139,6 +160,14 @@ function normalizarEstadoCargado() {
   if(typeof appData.iaConfig.providerLocalModel !== 'string' || !appData.iaConfig.providerLocalModel.trim()) {
     appData.iaConfig.providerLocalModel = 'llama3.1:8b';
   }
+  if(typeof appData.iaConfig.providerApiEndpoint !== 'string') appData.iaConfig.providerApiEndpoint = '';
+  if(typeof appData.iaConfig.providerApiName !== 'string' || !appData.iaConfig.providerApiName.trim()) appData.iaConfig.providerApiName = 'generic';
+  if(typeof appData.iaConfig.providerApiModel !== 'string' || !appData.iaConfig.providerApiModel.trim()) appData.iaConfig.providerApiModel = 'gpt-4.1-mini';
+  if(typeof appData.iaConfig.providerApiKey !== 'string') appData.iaConfig.providerApiKey = '';
+  if(appData.iaConfig.providerApiKey) {
+    guardarApiKeySesionIA(appData.iaConfig.providerApiKey);
+    appData.iaConfig.providerApiKey = '';
+  }
   let timeoutNum = parseInt(appData.iaConfig.timeoutMs, 10);
   let timeoutNormalizado = isNaN(timeoutNum) ? 45000 : Math.min(Math.max(timeoutNum, 10000), 180000);
   // Migra configuraciones legacy de 12s, insuficientes para primer arranque de modelos locales.
@@ -146,7 +175,28 @@ function normalizarEstadoCargado() {
   appData.iaConfig.timeoutMs = timeoutNormalizado;
   let retriesNum = parseInt(appData.iaConfig.retries, 10);
   appData.iaConfig.retries = isNaN(retriesNum) ? 1 : Math.min(Math.max(retriesNum, 0), 4);
+  let apiDailyTokenLimitNum = parseInt(appData.iaConfig.apiDailyTokenLimit, 10);
+  appData.iaConfig.apiDailyTokenLimit = Math.max(0, isNaN(apiDailyTokenLimitNum) ? 80000 : apiDailyTokenLimitNum);
+  let apiMonthlyTokenLimitNum = parseInt(appData.iaConfig.apiMonthlyTokenLimit, 10);
+  appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, isNaN(apiMonthlyTokenLimitNum) ? 1200000 : apiMonthlyTokenLimitNum);
+  let apiDailyCopLimitNum = parseInt(appData.iaConfig.apiDailyCopLimit, 10);
+  appData.iaConfig.apiDailyCopLimit = Math.max(0, isNaN(apiDailyCopLimitNum) ? 20000 : apiDailyCopLimitNum);
+  let apiMonthlyCopLimitNum = parseInt(appData.iaConfig.apiMonthlyCopLimit, 10);
+  appData.iaConfig.apiMonthlyCopLimit = Math.max(0, isNaN(apiMonthlyCopLimitNum) ? 200000 : apiMonthlyCopLimitNum);
+  let apiEstimatedCopPer1kTokensNum = parseInt(appData.iaConfig.apiEstimatedCopPer1kTokens, 10);
+  appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, isNaN(apiEstimatedCopPer1kTokensNum) ? 40 : apiEstimatedCopPer1kTokensNum);
   if(!appData.iaConfig.updatedAt) appData.iaConfig.updatedAt = null;
+
+  if(!appData.iaUsage || typeof appData.iaUsage !== 'object') appData.iaUsage = {};
+  if(typeof appData.iaUsage.dayKey !== 'string') appData.iaUsage.dayKey = null;
+  if(typeof appData.iaUsage.monthKey !== 'string') appData.iaUsage.monthKey = null;
+  appData.iaUsage.dailyRequests = Math.max(0, parseInt(appData.iaUsage.dailyRequests, 10) || 0);
+  appData.iaUsage.monthlyRequests = Math.max(0, parseInt(appData.iaUsage.monthlyRequests, 10) || 0);
+  appData.iaUsage.dailyTokens = Math.max(0, parseInt(appData.iaUsage.dailyTokens, 10) || 0);
+  appData.iaUsage.monthlyTokens = Math.max(0, parseInt(appData.iaUsage.monthlyTokens, 10) || 0);
+  appData.iaUsage.dailyCostCop = Math.max(0, Math.round(parseMontoInput(appData.iaUsage.dailyCostCop)) || 0);
+  appData.iaUsage.monthlyCostCop = Math.max(0, Math.round(parseMontoInput(appData.iaUsage.monthlyCostCop)) || 0);
+  if(typeof appData.iaUsage.lastRequestAt !== 'string') appData.iaUsage.lastRequestAt = null;
 }
 
 function validarDataPrincipal(payload) {
@@ -282,8 +332,18 @@ function importarRespaldoArchivo(event) {
 
       let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
       if(!validarPayloadRespaldo(candidato)) {
-        alert('El archivo no tiene un formato de respaldo válido.');
-        return;
+        let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
+          ? window.FinancialData.sanitizePrimaryData(candidato || raw, { strict: false })
+          : null;
+        if(!parcial) {
+          alert('El archivo no tiene un formato de respaldo válido.');
+          return;
+        }
+        if(window.FinancialData && typeof window.FinancialData.tracePersistenceError === 'function') {
+          window.FinancialData.tracePersistenceError('import.partial_recovery', new Error('Respaldo importado parcialmente'), { source: 'file' });
+        }
+        candidato = parcial;
+        alert('El respaldo tenía bloques inválidos. Se recuperó parcialmente la información válida.');
       }
       appData = aplicarMigracionesSchema(candidato);
       if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
@@ -325,8 +385,18 @@ async function restaurarUltimoRespaldoLocal() {
 
     let candidato = payload && payload.data ? payload.data : payload;
     if(!validarPayloadRespaldo(candidato)) {
-      alert('El auto-respaldo local está incompleto.');
-      return;
+      let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
+        ? window.FinancialData.sanitizePrimaryData(candidato || payload, { strict: false })
+        : null;
+      if(!parcial) {
+        alert('El auto-respaldo local está incompleto.');
+        return;
+      }
+      if(window.FinancialData && typeof window.FinancialData.tracePersistenceError === 'function') {
+        window.FinancialData.tracePersistenceError('restore.partial_recovery', new Error('Auto-respaldo restaurado parcialmente'), { source: 'local_backup' });
+      }
+      candidato = parcial;
+      alert('El auto-respaldo tenía bloques inválidos. Se restauró parcialmente la información válida.');
     }
     appData = aplicarMigracionesSchema(candidato);
     if(!appData.migraciones || typeof appData.migraciones !== 'object') appData.migraciones = {};
@@ -650,6 +720,127 @@ function getConfigIALocal() {
   };
 }
 
+function normalizarEndpointIAGateway(endpointRaw) {
+  return String(endpointRaw || '').trim();
+}
+
+function leerApiKeySesionIA() {
+  return String(iaApiKeyRuntime || '').trim();
+}
+
+function guardarApiKeySesionIA(apiKeyRaw) {
+  iaApiKeyRuntime = String(apiKeyRaw || '').trim();
+}
+
+function getConfigIAApi() {
+  let cfg = appData.iaConfig || {};
+  return {
+    endpoint: normalizarEndpointIAGateway(cfg.providerApiEndpoint),
+    provider: String(cfg.providerApiName || 'generic').trim() || 'generic',
+    model: String(cfg.providerApiModel || 'gpt-4.1-mini').trim() || 'gpt-4.1-mini',
+    apiKey: leerApiKeySesionIA() || String(cfg.providerApiKey || '').trim(),
+    timeoutMs: Math.min(Math.max(parseInt(cfg.timeoutMs, 10) || 45000, 10000), 180000),
+    retries: Math.min(Math.max(parseInt(cfg.retries, 10) || 1, 0), 4),
+    limits: {
+      dailyTokenLimit: Math.max(0, parseInt(cfg.apiDailyTokenLimit, 10) || 80000),
+      monthlyTokenLimit: Math.max(0, parseInt(cfg.apiMonthlyTokenLimit, 10) || 1200000),
+      dailyCopLimit: Math.max(0, parseInt(cfg.apiDailyCopLimit, 10) || 20000),
+      monthlyCopLimit: Math.max(0, parseInt(cfg.apiMonthlyCopLimit, 10) || 200000),
+      estimatedCopPer1kTokens: Math.max(1, parseInt(cfg.apiEstimatedCopPer1kTokens, 10) || 40)
+    }
+  };
+}
+
+function claveDiaActual() {
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = String(now.getMonth() + 1).padStart(2, '0');
+  let d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function claveMesActual() {
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function asegurarVentanasConsumoIA() {
+  if(!appData.iaUsage || typeof appData.iaUsage !== 'object') appData.iaUsage = {};
+  let dayKey = claveDiaActual();
+  let monthKey = claveMesActual();
+  if(appData.iaUsage.dayKey !== dayKey) {
+    appData.iaUsage.dayKey = dayKey;
+    appData.iaUsage.dailyRequests = 0;
+    appData.iaUsage.dailyTokens = 0;
+    appData.iaUsage.dailyCostCop = 0;
+  }
+  if(appData.iaUsage.monthKey !== monthKey) {
+    appData.iaUsage.monthKey = monthKey;
+    appData.iaUsage.monthlyRequests = 0;
+    appData.iaUsage.monthlyTokens = 0;
+    appData.iaUsage.monthlyCostCop = 0;
+  }
+}
+
+function estimarTokensDesdeTexto(texto) {
+  let cleaned = String(texto || '').trim();
+  if(!cleaned) return 0;
+  let words = cleaned.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words * 1.3));
+}
+
+function validarLimitesIAAntesDeConsumir(cfgApi) {
+  asegurarVentanasConsumoIA();
+  let usage = appData.iaUsage || {};
+  if(usage.dailyTokens >= cfgApi.limits.dailyTokenLimit) {
+    throw new Error(`Límite diario de tokens IA alcanzado (${usage.dailyTokens}/${cfgApi.limits.dailyTokenLimit}).`);
+  }
+  if(usage.monthlyTokens >= cfgApi.limits.monthlyTokenLimit) {
+    throw new Error(`Límite mensual de tokens IA alcanzado (${usage.monthlyTokens}/${cfgApi.limits.monthlyTokenLimit}).`);
+  }
+  if(usage.dailyCostCop >= cfgApi.limits.dailyCopLimit) {
+    throw new Error(`Límite diario de costo IA alcanzado (${formatCOP(usage.dailyCostCop)}/${formatCOP(cfgApi.limits.dailyCopLimit)}).`);
+  }
+  if(usage.monthlyCostCop >= cfgApi.limits.monthlyCopLimit) {
+    throw new Error(`Límite mensual de costo IA alcanzado (${formatCOP(usage.monthlyCostCop)}/${formatCOP(cfgApi.limits.monthlyCopLimit)}).`);
+  }
+}
+
+function registrarConsumoIAApi(consumo, cfgApi) {
+  asegurarVentanasConsumoIA();
+  let tokens = Math.max(0, parseInt(consumo.tokens, 10) || 0);
+  let costCop = Math.max(0, Math.round(parseMontoInput(consumo.costCop)) || 0);
+
+  appData.iaUsage.dailyRequests = (parseInt(appData.iaUsage.dailyRequests, 10) || 0) + 1;
+  appData.iaUsage.monthlyRequests = (parseInt(appData.iaUsage.monthlyRequests, 10) || 0) + 1;
+  appData.iaUsage.dailyTokens = (parseInt(appData.iaUsage.dailyTokens, 10) || 0) + tokens;
+  appData.iaUsage.monthlyTokens = (parseInt(appData.iaUsage.monthlyTokens, 10) || 0) + tokens;
+  appData.iaUsage.dailyCostCop = (Math.round(parseMontoInput(appData.iaUsage.dailyCostCop)) || 0) + costCop;
+  appData.iaUsage.monthlyCostCop = (Math.round(parseMontoInput(appData.iaUsage.monthlyCostCop)) || 0) + costCop;
+  appData.iaUsage.lastRequestAt = new Date().toISOString();
+  appData.iaUsage.lastProvider = cfgApi.provider;
+  appData.iaUsage.lastModel = cfgApi.model;
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(appData.iaUsage.lastRequestAt);
+}
+
+function renderPanelConsumoIA() {
+  let root = document.getElementById('ia-usage-panel');
+  if(!root) return;
+  let cfgApi = getConfigIAApi();
+  asegurarVentanasConsumoIA();
+  let usage = appData.iaUsage || {};
+  root.innerHTML = `
+    <div style="font-size:12px;color:var(--color-text-secondary);">Requests hoy/mes: <strong>${usage.dailyRequests || 0}</strong> / <strong>${usage.monthlyRequests || 0}</strong></div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px;">Tokens hoy/mes: <strong>${usage.dailyTokens || 0}</strong> / <strong>${usage.monthlyTokens || 0}</strong></div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px;">Costo hoy/mes: <strong>${formatCOP(usage.dailyCostCop || 0)}</strong> / <strong>${formatCOP(usage.monthlyCostCop || 0)}</strong></div>
+    <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">Topes: tokens ${cfgApi.limits.dailyTokenLimit}/${cfgApi.limits.monthlyTokenLimit} · costo ${formatCOP(cfgApi.limits.dailyCopLimit)}/${formatCOP(cfgApi.limits.monthlyCopLimit)}</div>
+  `;
+}
+
 function renderConfigIA() {
   let sel = document.getElementById('ia-mode-selector');
   let help = document.getElementById('ia-mode-help');
@@ -657,15 +848,35 @@ function renderConfigIA() {
   let model = document.getElementById('ia-local-model');
   let timeout = document.getElementById('ia-local-timeout');
   let retries = document.getElementById('ia-local-retries');
+  let apiEndpoint = document.getElementById('ia-api-endpoint');
+  let apiProvider = document.getElementById('ia-api-provider');
+  let apiModel = document.getElementById('ia-api-model');
+  let apiKey = document.getElementById('ia-api-key');
+  let apiDailyTokens = document.getElementById('ia-api-daily-tokens');
+  let apiMonthlyTokens = document.getElementById('ia-api-monthly-tokens');
+  let apiDailyCop = document.getElementById('ia-api-daily-cop');
+  let apiMonthlyCop = document.getElementById('ia-api-monthly-cop');
+  let apiCost1k = document.getElementById('ia-api-cost-1k');
   if(!sel || !help) return;
   let modo = getModoIA();
   let cfg = getConfigIALocal();
+  let cfgApi = getConfigIAApi();
   sel.value = modo;
   help.innerText = textoModoIA(modo);
   if(endpoint) endpoint.value = cfg.endpoint;
   if(model) model.value = cfg.model;
   if(timeout) timeout.value = String(cfg.timeoutMs);
   if(retries) retries.value = String(cfg.retries);
+  if(apiEndpoint) apiEndpoint.value = cfgApi.endpoint;
+  if(apiProvider) apiProvider.value = cfgApi.provider;
+  if(apiModel) apiModel.value = cfgApi.model;
+  if(apiKey) apiKey.value = '';
+  if(apiDailyTokens) apiDailyTokens.value = String(cfgApi.limits.dailyTokenLimit);
+  if(apiMonthlyTokens) apiMonthlyTokens.value = String(cfgApi.limits.monthlyTokenLimit);
+  if(apiDailyCop) apiDailyCop.value = String(cfgApi.limits.dailyCopLimit);
+  if(apiMonthlyCop) apiMonthlyCop.value = String(cfgApi.limits.monthlyCopLimit);
+  if(apiCost1k) apiCost1k.value = String(cfgApi.limits.estimatedCopPer1kTokens);
+  renderPanelConsumoIA();
 }
 
 function setModoIA(modoNuevo) {
@@ -674,6 +885,10 @@ function setModoIA(modoNuevo) {
 
 function guardarConfigIALocal() {
   return window.FinancialActions.saveLocalAIConfig();
+}
+
+function guardarConfigIAApi() {
+  return window.FinancialActions.saveApiAIConfig();
 }
 
 async function consultarIALocal(prompt) {
@@ -742,6 +957,109 @@ async function consultarIALocal(prompt) {
   throw new Error(detalle);
 }
 
+function parsearRespuestaGatewayIA(data) {
+  let payload = data && typeof data === 'object' ? data : {};
+  let usage = payload.usage && typeof payload.usage === 'object' ? payload.usage : {};
+  let message = '';
+  if(typeof payload.message === 'string' && payload.message.trim()) {
+    message = payload.message.trim();
+  } else if(Array.isArray(payload.choices) && payload.choices[0]) {
+    let c0 = payload.choices[0];
+    if(c0.message && typeof c0.message.content === 'string') {
+      message = c0.message.content.trim();
+    } else if(typeof c0.text === 'string') {
+      message = c0.text.trim();
+    }
+  } else if(typeof payload.response === 'string') {
+    message = payload.response.trim();
+  }
+  return { message, usage };
+}
+
+async function consultarIAApiGateway(prompt) {
+  let cfg = getConfigIAApi();
+  if(!cfg.endpoint) {
+    throw new Error('Configura el endpoint del gateway IA para usar modo API.');
+  }
+  validarLimitesIAAntesDeConsumir(cfg);
+
+  let intentosTotales = cfg.retries + 1;
+  let ultimoError = null;
+
+  for(let intento = 1; intento <= intentosTotales; intento++) {
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
+    try {
+      let headers = { 'Content-Type': 'application/json' };
+      if(cfg.apiKey) {
+        headers.Authorization = `Bearer ${cfg.apiKey}`;
+        headers['x-api-key'] = cfg.apiKey;
+      }
+
+      let resp = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          provider: cfg.provider,
+          model: cfg.model,
+          prompt,
+          temperature: 0.2
+        })
+      });
+
+      if(!resp.ok) {
+        let detalleHttp = '';
+        try {
+          let body = await resp.json();
+          detalleHttp = String(body && (body.error || body.message) ? (body.error || body.message) : '').trim();
+        } catch(_e) {
+          try {
+            detalleHttp = (await resp.text() || '').trim();
+          } catch(_e2) {}
+        }
+        throw new Error(detalleHttp ? `HTTP ${resp.status} en gateway IA: ${detalleHttp}` : `HTTP ${resp.status} en gateway IA`);
+      }
+
+      let data = await resp.json();
+      let parsed = parsearRespuestaGatewayIA(data);
+      if(!parsed.message) throw new Error('Gateway IA no devolvió texto util.');
+
+      let usage = parsed.usage || {};
+      let totalTokens = Math.max(
+        0,
+        parseInt(usage.totalTokens, 10)
+        || parseInt(usage.total_tokens, 10)
+        || (parseInt(usage.promptTokens, 10) || 0) + (parseInt(usage.completionTokens, 10) || 0)
+      );
+      if(totalTokens <= 0) {
+        totalTokens = estimarTokensDesdeTexto(prompt) + estimarTokensDesdeTexto(parsed.message);
+      }
+
+      let costCop = Math.max(0, Math.round(parseMontoInput(usage.costCop)) || 0);
+      if(costCop <= 0) {
+        costCop = Math.max(1, Math.round((totalTokens / 1000) * cfg.limits.estimatedCopPer1kTokens));
+      }
+
+      registrarConsumoIAApi({ tokens: totalTokens, costCop }, cfg);
+      clearTimeout(timeoutId);
+      return { ok: true, mode: 'api', provider: cfg.provider, message: parsed.message, usage: { totalTokens, costCop } };
+    } catch(err) {
+      clearTimeout(timeoutId);
+      ultimoError = err;
+      if(intento < intentosTotales) continue;
+    }
+  }
+
+  if(ultimoError && ultimoError.name === 'AbortError') {
+    throw new Error(`Tiempo de espera agotado en gateway IA (${cfg.timeoutMs} ms).`);
+  }
+  if(ultimoError && ultimoError.name === 'TypeError') {
+    throw new Error(`No se pudo conectar al gateway IA en ${cfg.endpoint}.`);
+  }
+  throw new Error(ultimoError && ultimoError.message ? ultimoError.message : 'Error desconocido al consultar gateway IA.');
+}
+
 async function ejecutarConsultaIA(prompt) {
   let modo = getModoIA();
   if(modo === 'off') {
@@ -750,12 +1068,7 @@ async function ejecutarConsultaIA(prompt) {
   if(modo === 'local') {
     return consultarIALocal(prompt);
   }
-  return {
-    ok: false,
-    mode: modo,
-    message: 'Gateway/API externa aun no integrada. Se habilitara en TKT-012.',
-    prompt
-  };
+  return consultarIAApiGateway(prompt);
 }
 
 async function probarIAConfigurada() {
@@ -1972,6 +2285,10 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'save-local-ai-config') {
       guardarConfigIALocal();
+      return;
+    }
+    if(action === 'save-api-ai-config') {
+      guardarConfigIAApi();
     }
   });
 

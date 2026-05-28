@@ -55,6 +55,42 @@
     if(salida) salida.innerText = 'Configuracion LOCAL guardada.';
   }
 
+  function saveApiAIConfig() {
+    if(!appData.iaConfig || typeof appData.iaConfig !== 'object') appData.iaConfig = {};
+
+    let endpointInput = document.getElementById('ia-api-endpoint');
+    let providerInput = document.getElementById('ia-api-provider');
+    let modelInput = document.getElementById('ia-api-model');
+    let keyInput = document.getElementById('ia-api-key');
+    let dailyTokensInput = document.getElementById('ia-api-daily-tokens');
+    let monthlyTokensInput = document.getElementById('ia-api-monthly-tokens');
+    let dailyCopInput = document.getElementById('ia-api-daily-cop');
+    let monthlyCopInput = document.getElementById('ia-api-monthly-cop');
+    let cost1kInput = document.getElementById('ia-api-cost-1k');
+
+    appData.iaConfig.providerApiEndpoint = normalizarEndpointIAGateway(endpointInput ? endpointInput.value : '');
+    appData.iaConfig.providerApiName = String(providerInput && providerInput.value ? providerInput.value : 'generic').trim() || 'generic';
+    appData.iaConfig.providerApiModel = String(modelInput && modelInput.value ? modelInput.value : 'gpt-4.1-mini').trim() || 'gpt-4.1-mini';
+    let apiKey = String(keyInput && keyInput.value ? keyInput.value : '').trim();
+    if(apiKey) guardarApiKeySesionIA(apiKey);
+    appData.iaConfig.providerApiKey = '';
+    let apiDailyTokenLimitNum = parseInt(dailyTokensInput && dailyTokensInput.value, 10);
+    let apiMonthlyTokenLimitNum = parseInt(monthlyTokensInput && monthlyTokensInput.value, 10);
+    let apiDailyCopLimitNum = parseInt(dailyCopInput && dailyCopInput.value, 10);
+    let apiMonthlyCopLimitNum = parseInt(monthlyCopInput && monthlyCopInput.value, 10);
+    let apiEstimatedCopPer1kTokensNum = parseInt(cost1kInput && cost1kInput.value, 10);
+    appData.iaConfig.apiDailyTokenLimit = Math.max(0, Number.isNaN(apiDailyTokenLimitNum) ? 80000 : apiDailyTokenLimitNum);
+    appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, Number.isNaN(apiMonthlyTokenLimitNum) ? 1200000 : apiMonthlyTokenLimitNum);
+    appData.iaConfig.apiDailyCopLimit = Math.max(0, Number.isNaN(apiDailyCopLimitNum) ? 20000 : apiDailyCopLimitNum);
+    appData.iaConfig.apiMonthlyCopLimit = Math.max(0, Number.isNaN(apiMonthlyCopLimitNum) ? 200000 : apiMonthlyCopLimitNum);
+    appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, Number.isNaN(apiEstimatedCopPer1kTokensNum) ? 40 : apiEstimatedCopPer1kTokensNum);
+    persistAndStampNow();
+    renderConfigIA();
+
+    let salida = document.getElementById('ia-test-result');
+    if(salida) salida.innerText = 'Configuración API guardada.';
+  }
+
   async function testConfiguredAI() {
     let out = document.getElementById('ia-test-result');
     if(!out) return;
@@ -317,6 +353,7 @@
   globalScope.FinancialActions = {
     setAIMode,
     saveLocalAIConfig,
+    saveApiAIConfig,
     testConfiguredAI,
     installPWAApp,
     toggleInstallmentFields,
