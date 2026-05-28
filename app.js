@@ -366,6 +366,7 @@ function renderGoogleAuthConfig() {
 }
 
 let googleOAuthTokenClient = null;
+let googleOAuthTokenClientClientId = null;
 
 function googleSDKDisponible() {
   return !!(
@@ -392,6 +393,7 @@ function limpiarQueryOAuthLegacy() {
 
 function reiniciarClienteGoogleOAuth() {
   googleOAuthTokenClient = null;
+  googleOAuthTokenClientClientId = null;
 }
 
 function inicializarClienteTokenGoogleOAuth() {
@@ -435,6 +437,7 @@ function inicializarClienteTokenGoogleOAuth() {
     }
   });
 
+  googleOAuthTokenClientClientId = cfg.clientId;
   return googleOAuthTokenClient;
 }
 
@@ -452,7 +455,7 @@ async function iniciarFlujoGoogleGISToken() {
     return;
   }
 
-  if(googleOAuthTokenClient && getGoogleOAuthConfig().clientId !== cfg.clientId) {
+  if(googleOAuthTokenClient && googleOAuthTokenClientClientId !== cfg.clientId) {
     reiniciarClienteGoogleOAuth();
   }
 
