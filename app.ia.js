@@ -1,5 +1,191 @@
 // IA module extracted from app.js for maintainability.
 
+async function consultarIALocal(prompt) {
+  let cfg = getConfigIALocal();
+  let intentosTotales = cfg.retries + 1;
+  let ultimoError = null;
+
+  for(let intento = 1; intento <= intentosTotales; intento++) {
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
+
+    try {
+      let resp = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: cfg.model,
+          prompt,
+          stream: false,
+          options: { temperature: 0.2 }
+        })
+      });
+
+      if(!resp.ok) {
+        let detalleHttp = '';
+        try {
+          let body = await resp.json();
+          if(body && body.error) detalleHttp = String(body.error);
+        } catch(_e) {
+          try {
+            detalleHttp = (await resp.text() || '').trim();
+          } catch(_e2) {}
+        }
+
+        if(resp.status === 404 && /model .* not found/i.test(detalleHttp)) {
+          throw new Error(`${detalleHttp}. Ejecuta: ollama pull ${cfg.model}`);
+        }
+
+        throw new Error(detalleHttp ? `HTTP ${resp.status} en IA Local: ${detalleHttp}` : `HTTP ${resp.status} en IA Local`);
+      }
+      let data = await resp.json();
+      let txt = String(data && data.response ? data.response : '').trim();
+      if(!txt) throw new Error('IA Local no devolvio texto util.');
+
+      clearTimeout(timeoutId);
+      return { ok: true, mode: 'local', message: txt };
+    } catch(err) {
+      clearTimeout(timeoutId);
+      ultimoError = err;
+      if(intento < intentosTotales) continue;
+    }
+  }
+
+  let detalle = '';
+  if(ultimoError && ultimoError.name === 'AbortError') {
+    detalle = `Tiempo de espera agotado en proveedor local (${cfg.timeoutMs} ms).`;
+  } else if(ultimoError && ultimoError.name === 'TypeError') {
+    detalle = `No se pudo conectar con IA LOCAL en ${cfg.endpoint}. Verifica que el servidor este arriba y accesible.\nSugerencia: si usas IA Local, inicia el servicio y prueba de nuevo.`;
+  } else {
+    detalle = ultimoError && ultimoError.message
+      ? ultimoError.message
+      : 'Error desconocido al consultar IA local.';
+  }
+  throw new Error(detalle);
+}
+
+function parsearRespuestaGatewayIA(data) {
+  let payload = data && typeof data === 'object' ? data : {};
+  let usage = payload.usage && typeof payload.usage === 'object' ? payload.usage : {};
+  let message = '';
+  if(typeof payload.message === 'string' && payload.message.trim()) {
+    message = payload.message.trim();
+  } else if(Array.isArray(payload.choices) && payload.choices[0]) {
+    let c0 = payload.choices[0];
+    if(c0.message && typeof c0.message.content === 'string') {
+      message = c0.message.content.trim();
+    } else if(typeof c0.text === 'string') {
+      message = c0.text.trim();
+    }
+  } else if(typeof payload.response === 'string') {
+    message = payload.response.trim();
+  }
+  return { message, usage };
+}
+
+async function consultarIAApiGateway(prompt) {
+  let cfg = getConfigIAApi();
+  if(!cfg.endpoint) {
+    throw new Error('Configura el endpoint del gateway IA para usar modo API.');
+  }
+  validarLimitesIAAntesDeConsumir(cfg);
+
+  let intentosTotales = cfg.retries + 1;
+  let ultimoError = null;
+
+  for(let intento = 1; intento <= intentosTotales; intento++) {
+    let controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), cfg.timeoutMs);
+    try {
+      let headers = { 'Content-Type': 'application/json' };
+      if(cfg.apiKey) {
+        headers.Authorization = `Bearer ${cfg.apiKey}`;
+        headers['x-api-key'] = cfg.apiKey;
+      }
+
+      let resp = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          provider: cfg.provider,
+          model: cfg.model,
+          prompt,
+          temperature: 0.2
+        })
+      });
+
+      if(!resp.ok) {
+        let detalleHttp = '';
+        try {
+          let body = await resp.json();
+          detalleHttp = String(body && (body.error || body.message) ? (body.error || body.message) : '').trim();
+        } catch(_e) {
+          try {
+            detalleHttp = (await resp.text() || '').trim();
+          } catch(_e2) {}
+        }
+        throw new Error(detalleHttp ? `HTTP ${resp.status} en gateway IA: ${detalleHttp}` : `HTTP ${resp.status} en gateway IA`);
+      }
+
+      let data = await resp.json();
+      let parsed = parsearRespuestaGatewayIA(data);
+      if(!parsed.message) throw new Error('Gateway IA no devolvió texto util.');
+
+      let usage = parsed.usage || {};
+      let totalTokens = Math.max(
+        0,
+        parseInt(usage.totalTokens, 10)
+        || parseInt(usage.total_tokens, 10)
+        || (parseInt(usage.promptTokens, 10) || 0) + (parseInt(usage.completionTokens, 10) || 0)
+      );
+      if(totalTokens <= 0) {
+        totalTokens = estimarTokensDesdeTexto(prompt) + estimarTokensDesdeTexto(parsed.message);
+      }
+
+      let costCop = Math.max(0, Math.round(parseMontoInput(usage.costCop)) || 0);
+      if(costCop <= 0) {
+        costCop = Math.max(1, Math.round((totalTokens / 1000) * cfg.limits.estimatedCopPer1kTokens));
+      }
+
+      registrarConsumoIAApi({ tokens: totalTokens, costCop }, cfg);
+      clearTimeout(timeoutId);
+      return { ok: true, mode: 'api', provider: cfg.provider, message: parsed.message, usage: { totalTokens, costCop } };
+    } catch(err) {
+      clearTimeout(timeoutId);
+      ultimoError = err;
+      if(intento < intentosTotales) continue;
+    }
+  }
+
+  if(ultimoError && ultimoError.name === 'AbortError') {
+    throw new Error(`Tiempo de espera agotado en gateway IA (${cfg.timeoutMs} ms).`);
+  }
+  if(ultimoError && ultimoError.name === 'TypeError') {
+    throw new Error(`No se pudo conectar al gateway IA en ${cfg.endpoint}.`);
+  }
+  throw new Error(ultimoError && ultimoError.message ? ultimoError.message : 'Error desconocido al consultar gateway IA.');
+}
+
+async function ejecutarConsultaIA(prompt) {
+  let modo = getModoIA();
+  if(modo === 'off') {
+    throw new Error('Modo IA en OFF. Activa LOCAL o API para usar funciones IA.');
+  }
+  if(modo === 'local') {
+    return consultarIALocal(prompt);
+  }
+  return consultarIAApiGateway(prompt);
+}
+
+window.FinancialIA = {
+  queryLocalAI: consultarIALocal,
+  parseAIGatewayResponse: parsearRespuestaGatewayIA,
+  queryApiAI: consultarIAApiGateway,
+  executeAIQuery: ejecutarConsultaIA
+};
+
 function construirPromptEstrategiaDeudas(items) {
   let total = items.reduce((acc, it) => acc + it.valor, 0);
   let lista = items.map((it, idx) => `${idx + 1}. ${it.nombre} - ${formatCOP(it.valor)} (dia ${it.dia === -1 ? 'pre-mes' : it.dia})`).join('\n');
