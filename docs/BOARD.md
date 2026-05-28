@@ -15,6 +15,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 ## Backlog
 
 - [ ] TKT-057 Backend/proxy OAuth + Drive mediation (fase lejana)
+- [ ] TKT-058 Estandar de lenguaje en codigo y textos user-facing
 - [ ] TKT-054 Sincronizacion Drive <-> local con versionado
 - [ ] TKT-055 Cifrado de respaldo y secretos en cliente
 - [ ] TKT-056 Resolucion de conflictos multi-dispositivo
@@ -306,6 +307,23 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - [ ] Mover intercambio de credenciales y renovacion de tokens al proxy
    - [ ] Ajustar cliente para consumir endpoints proxy en vez de llamadas OAuth sensibles directas
 
+### TKT-058 - Estandar de lenguaje en codigo y textos user-facing
+
+- Estado: Backlog
+- Prioridad: Alta
+- Fase: 5
+- Owner: Gustavo
+- Criterio de aceptacion:
+   - Todo texto user-facing cuenta con equivalentes locales definidos y consistentes (es-CO y en-US).
+   - Todo comentario nuevo o existente en codigo fuente queda en ingles claro y consistente.
+   - Nombres de funciones, helpers y bloques de codigo se mantienen en ingles para reducir deuda de mantenimiento.
+   - Se documenta una guia corta de convenciones para evitar regresiones en tickets futuros.
+- Checklist:
+   - [ ] Auditar textos user-facing y completar pares de traduccion faltantes por locale
+   - [ ] Migrar comentarios en espanol a ingles en modulos activos
+   - [ ] Renombrar funciones/bloques en espanol a ingles con pruebas de regresion
+   - [ ] Publicar guia de convenciones de lenguaje (codigo, comentarios, i18n)
+
 ### TKT-054 - Sincronizacion Drive <-> local con versionado
 
 - Estado: Backlog
@@ -316,7 +334,10 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
    - Datos locales pueden subirse y descargarse desde Drive sin perdida.
    - Cada snapshot remoto incluye version de esquema y timestamp consistente.
    - Sync incremental evita sobreescrituras silenciosas.
+   - UX en un solo paso: CTA "Sincronizar con Drive" dispara autenticacion (si aplica) y subida inicial sin separar login manual.
 - Checklist:
+   - [ ] Definir CTA unico "Sincronizar con Drive" en lugar de accion separada de login
+   - [ ] Encadenar autenticacion + push inicial en un mismo flujo (con manejo de cancelacion/errores)
    - [ ] Implementar operaciones pull/push con control de version
    - [ ] Agregar checksum/hash para validar integridad remota
    - [ ] Agregar modo simulacion dry-run para validar merges
