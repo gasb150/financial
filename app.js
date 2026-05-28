@@ -870,7 +870,7 @@ function renderConfigIA() {
   if(apiEndpoint) apiEndpoint.value = cfgApi.endpoint;
   if(apiProvider) apiProvider.value = cfgApi.provider;
   if(apiModel) apiModel.value = cfgApi.model;
-  if(apiKey) apiKey.value = cfgApi.apiKey;
+  if(apiKey) apiKey.value = '';
   if(apiDailyTokens) apiDailyTokens.value = String(cfgApi.limits.dailyTokenLimit);
   if(apiMonthlyTokens) apiMonthlyTokens.value = String(cfgApi.limits.monthlyTokenLimit);
   if(apiDailyCop) apiDailyCop.value = String(cfgApi.limits.dailyCopLimit);

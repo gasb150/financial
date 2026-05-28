@@ -150,3 +150,57 @@ test('extraerJSONDeTextoIA recupera JSON con o sin markdown fences', () => {
   const invalido = ctx.extraerJSONDeTextoIA('sin json');
   assert.equal(invalido, null);
 });
+
+test('renderConfigIA no rehidrata la API key en el input', () => {
+  const nodes = {
+    'ia-mode-selector': { value: '' },
+    'ia-mode-help': { innerText: '' },
+    'ia-api-key': { value: 'visible-secret' },
+    'ia-api-endpoint': { value: '' },
+    'ia-api-provider': { value: '' },
+    'ia-api-model': { value: '' },
+    'ia-api-daily-tokens': { value: '' },
+    'ia-api-monthly-tokens': { value: '' },
+    'ia-api-daily-cop': { value: '' },
+    'ia-api-monthly-cop': { value: '' },
+    'ia-api-cost-1k': { value: '' }
+  };
+  let consumoRenderCalls = 0;
+
+  const ctx = loadFunctionsFromFile(APP_JS, ['renderConfigIA'], {
+    document: {
+      getElementById: (id) => nodes[id] || null
+    },
+    getModoIA: () => 'api',
+    textoModoIA: () => 'Modo API',
+    getConfigIALocal: () => ({
+      endpoint: 'http://localhost:11434/api/generate',
+      model: 'llama3.1:8b',
+      timeoutMs: 45000,
+      retries: 1
+    }),
+    getConfigIAApi: () => ({
+      endpoint: 'https://gateway.example.test',
+      provider: 'generic',
+      model: 'gpt-4.1-mini',
+      apiKey: 'secret-runtime-key',
+      limits: {
+        dailyTokenLimit: 80000,
+        monthlyTokenLimit: 1200000,
+        dailyCopLimit: 20000,
+        monthlyCopLimit: 200000,
+        estimatedCopPer1kTokens: 40
+      }
+    }),
+    renderPanelConsumoIA: () => { consumoRenderCalls += 1; }
+  });
+
+  ctx.renderConfigIA();
+
+  assert.equal(nodes['ia-mode-selector'].value, 'api');
+  assert.equal(nodes['ia-mode-help'].innerText, 'Modo API');
+  assert.equal(nodes['ia-api-key'].value, '');
+  assert.equal(nodes['ia-api-endpoint'].value, 'https://gateway.example.test');
+  assert.equal(nodes['ia-api-model'].value, 'gpt-4.1-mini');
+  assert.equal(consumoRenderCalls, 1);
+});
