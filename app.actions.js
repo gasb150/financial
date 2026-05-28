@@ -74,11 +74,16 @@
     let apiKey = String(keyInput && keyInput.value ? keyInput.value : '').trim();
     if(apiKey) guardarApiKeySesionIA(apiKey);
     appData.iaConfig.providerApiKey = '';
-    appData.iaConfig.apiDailyTokenLimit = Math.max(0, parseInt(dailyTokensInput && dailyTokensInput.value, 10) || 80000);
-    appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, parseInt(monthlyTokensInput && monthlyTokensInput.value, 10) || 1200000);
-    appData.iaConfig.apiDailyCopLimit = Math.max(0, parseInt(dailyCopInput && dailyCopInput.value, 10) || 20000);
-    appData.iaConfig.apiMonthlyCopLimit = Math.max(0, parseInt(monthlyCopInput && monthlyCopInput.value, 10) || 200000);
-    appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, parseInt(cost1kInput && cost1kInput.value, 10) || 40);
+    let apiDailyTokenLimitNum = parseInt(dailyTokensInput && dailyTokensInput.value, 10);
+    let apiMonthlyTokenLimitNum = parseInt(monthlyTokensInput && monthlyTokensInput.value, 10);
+    let apiDailyCopLimitNum = parseInt(dailyCopInput && dailyCopInput.value, 10);
+    let apiMonthlyCopLimitNum = parseInt(monthlyCopInput && monthlyCopInput.value, 10);
+    let apiEstimatedCopPer1kTokensNum = parseInt(cost1kInput && cost1kInput.value, 10);
+    appData.iaConfig.apiDailyTokenLimit = Math.max(0, Number.isNaN(apiDailyTokenLimitNum) ? 80000 : apiDailyTokenLimitNum);
+    appData.iaConfig.apiMonthlyTokenLimit = Math.max(0, Number.isNaN(apiMonthlyTokenLimitNum) ? 1200000 : apiMonthlyTokenLimitNum);
+    appData.iaConfig.apiDailyCopLimit = Math.max(0, Number.isNaN(apiDailyCopLimitNum) ? 20000 : apiDailyCopLimitNum);
+    appData.iaConfig.apiMonthlyCopLimit = Math.max(0, Number.isNaN(apiMonthlyCopLimitNum) ? 200000 : apiMonthlyCopLimitNum);
+    appData.iaConfig.apiEstimatedCopPer1kTokens = Math.max(1, Number.isNaN(apiEstimatedCopPer1kTokensNum) ? 40 : apiEstimatedCopPer1kTokensNum);
     persistAndStampNow();
     renderConfigIA();
 

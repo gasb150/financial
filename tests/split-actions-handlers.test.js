@@ -106,3 +106,44 @@ test('processNewExpense adds compromiso in quick mode and resets form values', (
   assert.equal(modeSwitch, 'rapido');
   assert.equal(initCalls, 1);
 });
+
+test('saveApiAIConfig preserves explicit zero limits', () => {
+  let persistCalls = 0;
+  let renderCalls = 0;
+
+  const nodes = {
+    'ia-api-endpoint': { value: 'https://api.example.com/v1/chat/completions' },
+    'ia-api-provider': { value: 'openai' },
+    'ia-api-model': { value: 'gpt-4.1-mini' },
+    'ia-api-key': { value: '' },
+    'ia-api-daily-tokens': { value: '0' },
+    'ia-api-monthly-tokens': { value: '0' },
+    'ia-api-daily-cop': { value: '0' },
+    'ia-api-monthly-cop': { value: '0' },
+    'ia-api-cost-1k': { value: '40' },
+    'ia-test-result': { innerText: '' }
+  };
+
+  const appData = { iaConfig: {} };
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['saveApiAIConfig'], {
+    appData,
+    normalizarEndpointIAGateway: (value) => value.trim(),
+    guardarApiKeySesionIA: () => {},
+    persistAndStampNow: () => { persistCalls += 1; },
+    renderConfigIA: () => { renderCalls += 1; },
+    document: {
+      getElementById: (id) => nodes[id] || null
+    }
+  });
+
+  ctx.saveApiAIConfig();
+
+  assert.equal(appData.iaConfig.apiDailyTokenLimit, 0);
+  assert.equal(appData.iaConfig.apiMonthlyTokenLimit, 0);
+  assert.equal(appData.iaConfig.apiDailyCopLimit, 0);
+  assert.equal(appData.iaConfig.apiMonthlyCopLimit, 0);
+  assert.equal(appData.iaConfig.apiEstimatedCopPer1kTokens, 40);
+  assert.equal(persistCalls, 1);
+  assert.equal(renderCalls, 1);
+});
