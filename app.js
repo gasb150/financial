@@ -74,6 +74,11 @@ const datosDefault = resolverDatosDefaultExternos() || {
     dailyCostCop: 0,
     monthlyCostCop: 0,
     lastRequestAt: null
+  },
+  iaHistory: {
+    version: 1,
+    lastEventAt: null,
+    events: []
   }
 };
 
@@ -83,7 +88,7 @@ const STORAGE_LAST_SAVE_KEY = 'finanzas_linea_tiempo_v7_last_save';
 const IDB_NAME = 'financial_app_db';
 const IDB_VERSION = 1;
 const IDB_STORE = 'kv';
-const APP_SCHEMA_VERSION = 2;
+const APP_SCHEMA_VERSION = 3;
 const IA_MODES = ['off', 'local', 'api'];
 const IA_ACTION_SCHEMA_VERSION = 1;
 const IA_ACTION_TYPES = ['reducir', 'posponer', 'mover_tramo'];
@@ -115,6 +120,31 @@ const APP_SCHEMA_MIGRATORS = {
         }
       });
     }
+    return data;
+  },
+  3: (data) => {
+    if(Array.isArray(data.compromisos)) {
+      data.compromisos.forEach((comp) => {
+        if(!comp || typeof comp !== 'object') return;
+        if(comp.diaPagoReal === undefined || comp.diaPagoReal === '') {
+          comp.diaPagoReal = null;
+          return;
+        }
+        let diaPagoReal = parseInt(comp.diaPagoReal, 10);
+        if(Number.isNaN(diaPagoReal) || diaPagoReal < 1 || diaPagoReal > 31) {
+          comp.diaPagoReal = null;
+        } else {
+          comp.diaPagoReal = diaPagoReal;
+        }
+      });
+    }
+
+    if(!data.iaHistory || typeof data.iaHistory !== 'object') {
+      data.iaHistory = { version: 1, lastEventAt: null, events: [] };
+    }
+    if(!Array.isArray(data.iaHistory.events)) data.iaHistory.events = [];
+    if(typeof data.iaHistory.version !== 'number' || data.iaHistory.version < 1) data.iaHistory.version = 1;
+    if(typeof data.iaHistory.lastEventAt !== 'string') data.iaHistory.lastEventAt = null;
     return data;
   }
 };
@@ -197,6 +227,25 @@ function normalizarEstadoCargado() {
   appData.iaUsage.dailyCostCop = Math.max(0, Math.round(parseMontoInput(appData.iaUsage.dailyCostCop)) || 0);
   appData.iaUsage.monthlyCostCop = Math.max(0, Math.round(parseMontoInput(appData.iaUsage.monthlyCostCop)) || 0);
   if(typeof appData.iaUsage.lastRequestAt !== 'string') appData.iaUsage.lastRequestAt = null;
+
+  if(!appData.iaHistory || typeof appData.iaHistory !== 'object') {
+    appData.iaHistory = { version: 1, lastEventAt: null, events: [] };
+  }
+  if(typeof appData.iaHistory.version !== 'number' || appData.iaHistory.version < 1) appData.iaHistory.version = 1;
+  if(typeof appData.iaHistory.lastEventAt !== 'string') appData.iaHistory.lastEventAt = null;
+  if(!Array.isArray(appData.iaHistory.events)) appData.iaHistory.events = [];
+
+  if(Array.isArray(appData.compromisos)) {
+    appData.compromisos.forEach((comp) => {
+      if(!comp || typeof comp !== 'object') return;
+      if(comp.diaPagoReal === null || comp.diaPagoReal === undefined || comp.diaPagoReal === '') {
+        comp.diaPagoReal = null;
+        return;
+      }
+      let dpr = parseInt(comp.diaPagoReal, 10);
+      comp.diaPagoReal = (!isNaN(dpr) && dpr >= 1 && dpr <= 31) ? dpr : null;
+    });
+  }
 }
 
 function validarDataPrincipal(payload) {
@@ -1352,6 +1401,15 @@ function modificarCompromisoPropiedad(id, campo, nuevoValor) {
     if(campo === 'nombre') comp.nombre = nuevoValor.trim();
     if(campo === 'valor') comp.valor = parseMontoInput(nuevoValor) || 0;
     if(campo === 'dia') comp.dia = parseInt(nuevoValor);
+    if(campo === 'diaPagoReal') {
+      let txt = String(nuevoValor || '').trim();
+      if(!txt) {
+        comp.diaPagoReal = null;
+      } else {
+        let dpr = parseInt(txt, 10);
+        comp.diaPagoReal = (!isNaN(dpr) && dpr >= 1 && dpr <= 31) ? dpr : null;
+      }
+    }
     if(campo === 'tipo') comp.tipo = nuevoValor;
     if(campo === 'mesKey') comp.mesKey = nuevoValor;
     if(campo === 'faltantes') comp.faltantes = Math.max(0, parseInt(nuevoValor, 10) || 0);
@@ -1420,6 +1478,8 @@ function renderDeudasModulo(compromisosMes) {
     let tipoLabel = c.tipo === 'fijo' ? 'Fijo' : (c.tipo === 'credito' ? 'Crédito' : 'Variable');
     let tipoPillClass = c.tipo === 'fijo' ? 'pill-fijo' : (c.tipo === 'credito' ? 'pill-credito' : 'pill-variable');
     let diaNormalizado = parseInt(c.dia, 10) === -1 ? 1 : parseInt(c.dia, 10);
+    let diaPagoReal = parseInt(c.diaPagoReal, 10);
+    let diaPagoRealValido = !isNaN(diaPagoReal) && diaPagoReal >= 1 && diaPagoReal <= 31;
     let sem = obtenerSemanaParaDia(parseInt(c.dia, 10));
     let semTxt = sem ? sem.nombre.replace('Tramo Semanal ', 'S') : 'S/N';
     let card = document.createElement('div');
@@ -1477,6 +1537,10 @@ function renderDeudasModulo(compromisosMes) {
           <input type="number" value="${c.dia}" min="-1" max="31" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'dia', this.value)">
         </div>
         <div>
+          <label class="sl">Pago real (opcional)</label>
+          <input type="number" value="${diaPagoRealValido ? diaPagoReal : ''}" min="1" max="31" placeholder="Auto" class="input-app" style="margin:0;padding:4px 6px;font-size:12px;" onchange="modificarCompromisoPropiedad(${c.id}, 'diaPagoReal', this.value)">
+        </div>
+        <div>
           <label class="sl">Estado</label>
           <div class="deuda-mini" style="height:31px;border:1px solid var(--color-border-secondary);border-radius:6px;padding:0 8px;">
             <input type="checkbox" ${c.pagado ? 'checked':''} onclick="toggleCheckPago(${c.id})"> ¿Pagado?
@@ -1486,6 +1550,7 @@ function renderDeudasModulo(compromisosMes) {
 
       ${extraCredito}
       <div class="rm" style="margin-top:6px;">Fecha tentativa: día ${diaNormalizado} · ${semTxt}</div>
+      <div class="rm" style="margin-top:4px;">Fecha real de pago: ${diaPagoRealValido ? `día ${diaPagoReal}` : 'sin definir (usa tentativa)'}</div>
       <div class="deuda-bar" style="margin-top:6px;"><div class="deuda-fill" style="width:${pctBarra}%;background:${colorBarra}"></div></div>
     `;
     container.appendChild(card);
@@ -1709,11 +1774,18 @@ function renderCalendario(compromisosMes) {
   for(let i=0; i<offset; i++) grid.appendChild(document.createElement('div'));
 
   let mapaDias = {};
+  let mapaPagosRealesCompromisos = {};
   compromisosMes.forEach(c => {
     let d = parseInt(c.dia); 
     if (d === -1) d = 1; // Muestra los cargos fijos "pre-mes" en el día 1 para visualización
     if (!mapaDias[d]) mapaDias[d] = [];
     mapaDias[d].push(c);
+
+    let diaReal = parseInt(c.diaPagoReal, 10);
+    if(!isNaN(diaReal) && diaReal >= 1 && diaReal <= 31) {
+      if(!mapaPagosRealesCompromisos[diaReal]) mapaPagosRealesCompromisos[diaReal] = [];
+      mapaPagosRealesCompromisos[diaReal].push(c);
+    }
   });
 
   let detallePago = obtenerDetalleDiasPagoMes(mesActivoGlobal);
@@ -1741,6 +1813,16 @@ function renderCalendario(compromisosMes) {
           payMark.title = 'Día con impacto de arrastre del mes anterior';
         }
         item.appendChild(payMark);
+      }
+
+      if(mapaPagosRealesCompromisos[dia] && mapaPagosRealesCompromisos[dia].length > 0) {
+        let realMark = document.createElement('div');
+        realMark.className = 'cal-pay-mark';
+        realMark.style.right = '20px';
+        realMark.style.background = '#136F63';
+        realMark.innerText = 'R';
+        realMark.title = 'Compromisos con fecha real de pago';
+        item.appendChild(realMark);
       }
 
     // Si el día tiene compromisos financieros asignados
@@ -1804,6 +1886,15 @@ function obtenerPagosRealesDiferidosDelDia(mesKey, diaObjetivo) {
   return pagos;
 }
 
+function obtenerCompromisosConPagoRealDelDia(mesKey, diaObjetivo) {
+  return appData.compromisos
+    .filter((c) => c.mesKey === mesKey)
+    .filter((c) => {
+      let diaReal = parseInt(c.diaPagoReal, 10);
+      return !isNaN(diaReal) && diaReal === diaObjetivo;
+    });
+}
+
 // NUEVO: SISTEMA DE DESPLIEGUE DE LA VISTA DIARIA
 function renderVistaDiaria(compromisosMes) {
   let secTitulo = document.getElementById('sec-vista-diaria');
@@ -1820,12 +1911,18 @@ function renderVistaDiaria(compromisosMes) {
   let ingresosDia = obtenerEventosIngresoDelMes(mesActivoGlobal)
     .filter(e => e.dia === diaSeleccionadoActivo);
   let pagosRealesDiferidosDia = obtenerPagosRealesDiferidosDelDia(mesActivoGlobal, diaSeleccionadoActivo);
+  let compromisosPagoRealDia = obtenerCompromisosConPagoRealDelDia(mesActivoGlobal, diaSeleccionadoActivo)
+    .filter((c) => {
+      let diaTentativo = parseInt(c.dia, 10);
+      if(diaTentativo === -1) diaTentativo = 1;
+      return diaTentativo !== diaSeleccionadoActivo;
+    });
 
   secTitulo.innerText = `Detalle del Día ${diaSeleccionadoActivo} de ${mesActivoGlobal}`;
   secTitulo.style.display = 'flex';
   cardContenedor.style.display = 'block';
 
-  if(deEsteDia.length === 0 && ingresosDia.length === 0 && pagosRealesDiferidosDia.length === 0) {
+  if(deEsteDia.length === 0 && ingresosDia.length === 0 && pagosRealesDiferidosDia.length === 0 && compromisosPagoRealDia.length === 0) {
     cardContenedor.innerHTML = `
       <div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding: 10px 0;">
         ¡Día libre! No tienes ingresos ni obligaciones programadas para esta fecha. 🎉
@@ -1852,6 +1949,21 @@ function renderVistaDiaria(compromisosMes) {
         <strong class="pos">${formatCOP(totalPagoRealDiferidoDia)}</strong>
       </div>
     `;
+  }
+
+  if(compromisosPagoRealDia.length > 0) {
+    html += `<div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:8px;">Compromisos con pago real hoy (fecha tentativa distinta):</div>`;
+    compromisosPagoRealDia.forEach((c) => {
+      let nombreSeguro = escapeHTML(c.nombre);
+      let diaTentativo = parseInt(c.dia, 10);
+      if(diaTentativo === -1) diaTentativo = 1;
+      html += `
+        <div class="row">
+          <div class="rn"><i class="ti ti-calendar-event"></i> ${nombreSeguro}</div>
+          <div class="ra neg">${formatCOP(c.valor)} <span class="rm">(impacta día ${diaTentativo})</span></div>
+        </div>
+      `;
+    });
   }
 
   if(ingresosDia.length > 0) {
@@ -1889,13 +2001,17 @@ function renderVistaDiaria(compromisosMes) {
 
   deEsteDia.forEach(c => {
     let nombreSeguro = escapeHTML(c.nombre);
+    let diaReal = parseInt(c.diaPagoReal, 10);
+    let diaRealTxt = (!isNaN(diaReal) && diaReal >= 1 && diaReal <= 31)
+      ? `Pago real: día ${diaReal}`
+      : 'Pago real: usa fecha tentativa';
     html += `
       <div class="row ${c.pagado ? 'row-paid' : ''}">
         <div class="rn">
           <input type="checkbox" class="chk-box" ${c.pagado ? 'checked' : ''} onclick="toggleCheckPago(${c.id})">
           <div>
             <div style="font-size:13px; font-weight:500;">${nombreSeguro}</div>
-            <div class="rm" style="text-transform: capitalize;">${c.tipo}</div>
+            <div class="rm" style="text-transform: capitalize;">${c.tipo} · ${diaRealTxt}</div>
           </div>
         </div>
         <div class="ra ${c.pagado ? 'pos' : 'neg'}" style="font-size:13px;">${formatCOP(c.valor)}</div>

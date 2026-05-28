@@ -16,6 +16,8 @@ test('validatePrimaryData accepts only required array shape', () => {
     'sanitizeCompromisoItem',
     'sanitizeIAConfig',
     'sanitizeIAUsage',
+    'sanitizeIAHistoryEvent',
+    'sanitizeIAHistory',
     'sanitizePrimaryData',
     'hasStrictSanitizedLists',
     'validateCoreDataShape',
@@ -67,6 +69,8 @@ test('validateBackupPayload enforces required backup structure', () => {
     'sanitizeCompromisoItem',
     'sanitizeIAConfig',
     'sanitizeIAUsage',
+    'sanitizeIAHistoryEvent',
+    'sanitizeIAHistory',
     'sanitizePrimaryData',
     'hasStrictSanitizedLists',
     'validateCoreDataShape',
@@ -109,6 +113,8 @@ test('sanitizePrimaryData supports partial recovery in non-strict mode', () => {
     'sanitizeCompromisoItem',
     'sanitizeIAConfig',
     'sanitizeIAUsage',
+    'sanitizeIAHistoryEvent',
+    'sanitizeIAHistory',
     'sanitizePrimaryData'
   ], {
     APP_SCHEMA_VERSION: 2

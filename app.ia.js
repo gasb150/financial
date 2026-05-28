@@ -540,6 +540,164 @@ function construirTextoConfirmacionAccionIA(accion, nombre, preview) {
   return `${cab}\n${detalle}${motivo}\n\n¿Aplicar cambio?`;
 }
 
+function asegurarHistorialIA() {
+  if(!appData.iaHistory || typeof appData.iaHistory !== 'object') {
+    appData.iaHistory = { version: 1, lastEventAt: null, events: [] };
+  }
+  if(!Array.isArray(appData.iaHistory.events)) appData.iaHistory.events = [];
+  if(typeof appData.iaHistory.version !== 'number' || appData.iaHistory.version < 1) appData.iaHistory.version = 1;
+  if(typeof appData.iaHistory.lastEventAt !== 'string') appData.iaHistory.lastEventAt = null;
+  return appData.iaHistory;
+}
+
+function clonarCompromisoHistorial(comp) {
+  if(!comp || typeof comp !== 'object') return null;
+  let out = {
+    id: comp.id,
+    nombre: comp.nombre,
+    valor: comp.valor,
+    dia: comp.dia,
+    diaPagoReal: comp.diaPagoReal === undefined ? null : comp.diaPagoReal,
+    pagado: !!comp.pagado,
+    tipo: comp.tipo,
+    mesKey: comp.mesKey
+  };
+  if(comp.tipo === 'credito') {
+    out.faltantes = comp.faltantes;
+    out.totales = comp.totales;
+  }
+  return out;
+}
+
+function registrarEventoHistorialIA(payload) {
+  let history = asegurarHistorialIA();
+  let now = new Date().toISOString();
+  let before = clonarCompromisoHistorial(payload.before);
+  let after = clonarCompromisoHistorial(payload.after);
+  if(!before || !after) return null;
+
+  let evento = {
+    id: `ia-event-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    source: String(payload.source || 'desconocido').toLowerCase(),
+    action: String(payload.action || 'desconocida').toLowerCase(),
+    itemId: after.id,
+    itemName: String(after.nombre || payload.itemName || '').trim(),
+    monthKey: String(payload.monthKey || after.mesKey || mesActivoGlobal),
+    appliedAt: now,
+    revertedAt: null,
+    reason: String(payload.reason || '').trim(),
+    before,
+    after,
+    meta: payload.meta && typeof payload.meta === 'object' ? payload.meta : {}
+  };
+
+  history.events.push(evento);
+  if(history.events.length > 120) history.events = history.events.slice(-120);
+  history.lastEventAt = now;
+
+  return evento;
+}
+
+function obtenerEventoHistorialIA(eventId) {
+  let history = asegurarHistorialIA();
+  return history.events.find((evt) => evt.id === eventId) || null;
+}
+
+function actualizarEstadoAplicadoDesdeHistorialIA() {
+  let history = asegurarHistorialIA();
+  let activos = new Set(history.events.filter((evt) => !evt.revertedAt).map((evt) => evt.id));
+
+  let recortes = getEstadoRecortesItemsMes();
+  if(Array.isArray(recortes.items)) {
+    recortes.items.forEach((s) => {
+      if(!s || !s.historyEventId) return;
+      if(!activos.has(s.historyEventId)) {
+        s.applied = false;
+        delete s.appliedAt;
+        delete s.undoPayload;
+        delete s.ahorroReal;
+      }
+    });
+  }
+
+  ['rebalanceQuincena', 'rebalanceSemana'].forEach((stateKey) => {
+    let st = iaPanelState[stateKey];
+    if(!st || !Array.isArray(st.actions)) return;
+    st.actions.forEach((a) => {
+      if(!a || !a.historyEventId) return;
+      if(!activos.has(a.historyEventId)) {
+        a.applied = false;
+        delete a.appliedAt;
+        delete a.undoPayload;
+      }
+    });
+  });
+}
+
+function revertirEventoHistorialIA(eventId, options = {}) {
+  let evento = obtenerEventoHistorialIA(eventId);
+  if(!evento) return { ok: false, error: 'Evento IA no encontrado.' };
+  if(evento.revertedAt) return { ok: false, error: 'Este evento ya fue revertido.' };
+  if(!evento.before || !evento.before.id || !evento.before.mesKey) {
+    return { ok: false, error: 'El evento no tiene snapshot previo para revertir.' };
+  }
+
+  let idxComp = appData.compromisos.findIndex((c) => c.id === evento.before.id && c.mesKey === evento.before.mesKey);
+  if(idxComp < 0) {
+    return { ok: false, error: 'No se puede revertir: el compromiso ya no existe.' };
+  }
+
+  appData.compromisos[idxComp] = { ...evento.before };
+  evento.revertedAt = new Date().toISOString();
+  evento.meta = evento.meta && typeof evento.meta === 'object' ? evento.meta : {};
+  if(options.reason) evento.meta.revertReason = String(options.reason);
+
+  asegurarHistorialIA().lastEventAt = evento.revertedAt;
+  actualizarEstadoAplicadoDesdeHistorialIA();
+
+  persistirDataPrincipalConFallback();
+  persistirAuxiliaresConFallback(evento.revertedAt);
+
+  if(!options.silent) {
+    let recortes = getEstadoRecortesItemsMes();
+    recortes.error = '';
+    recortes.result = `Evento revertido: ${evento.itemName}.`;
+    initApp();
+  }
+
+  return { ok: true, event: evento };
+}
+
+function revertirUltimosEventosIA(cantidad = 3) {
+  let history = asegurarHistorialIA();
+  let limite = Math.max(1, Math.min(10, parseInt(cantidad, 10) || 3));
+  let candidatos = history.events
+    .filter((evt) => evt && !evt.revertedAt)
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, limite);
+
+  if(!candidatos.length) {
+    let recortes = getEstadoRecortesItemsMes();
+    recortes.error = '1';
+    recortes.result = 'No hay eventos IA activos para revertir.';
+    initApp();
+    return;
+  }
+
+  let ok = 0;
+  let fail = 0;
+  candidatos.forEach((evt) => {
+    let out = revertirEventoHistorialIA(evt.id, { silent: true, reason: 'bulk' });
+    if(out.ok) ok += 1;
+    else fail += 1;
+  });
+
+  let recortes = getEstadoRecortesItemsMes();
+  recortes.error = fail > 0 ? '1' : '';
+  recortes.result = `Reversion masiva completada. Exitos: ${ok}. Fallos: ${fail}.`;
+  initApp();
+}
+
 function deshacerCambioSugerenciaRecorteMesIA(index) {
   let stateKey = 'recortesItemsMes';
   let st = getEstadoRecortesItemsMes();
@@ -563,10 +721,15 @@ function deshacerCambioSugerenciaRecorteMesIA(index) {
   }
 
   appData.compromisos[idxComp] = { ...prev };
+  if(sug.historyEventId) {
+    let evt = obtenerEventoHistorialIA(sug.historyEventId);
+    if(evt && !evt.revertedAt) evt.revertedAt = new Date().toISOString();
+  }
   sug.applied = false;
   delete sug.appliedAt;
   delete sug.ahorroReal;
   delete sug.undoPayload;
+  delete sug.historyEventId;
 
   persistirDataPrincipalConFallback();
   persistirAuxiliaresConFallback(new Date().toISOString());
@@ -638,6 +801,60 @@ function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
       <div class="meta" style="margin-top:8px;">Aplicadas: ${aplicadas}/${sugerencias.length}</div>
       <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Generar recortes accionables ↗'}</button>
       ${resultado}
+    </div>
+  `;
+}
+
+function renderFilasHistorialIA() {
+  let history = asegurarHistorialIA();
+  let items = history.events
+    .slice()
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, 8);
+
+  if(!items.length) {
+    return '<div class="ia-row"><div class="meta">Sin eventos IA aplicados todavía.</div></div>';
+  }
+
+  return items.map((evt) => {
+    let fecha = evt.appliedAt ? new Date(evt.appliedAt).toLocaleString('es-CO') : 'N/D';
+    let estado = evt.revertedAt ? 'Revertido' : 'Activo';
+    let beforeTxt = evt.before ? `${formatCOP(evt.before.valor)} · día ${evt.before.dia === -1 ? 'pre-mes' : evt.before.dia}` : 'N/D';
+    let afterTxt = evt.after ? `${formatCOP(evt.after.valor)} · día ${evt.after.dia === -1 ? 'pre-mes' : evt.after.dia}` : 'N/D';
+    return `
+      <div class="ia-row" style="display:block;">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+          <div>
+            <div class="nm">${escapeHTML(evt.itemName || `Item ${evt.itemId}`)}</div>
+            <div class="meta">${escapeHTML(String(evt.source || 'ia'))} · ${escapeHTML(String(evt.action || 'accion'))} · ${escapeHTML(estado)}</div>
+            <div class="meta">${escapeHTML(fecha)} · ${escapeHTML(beforeTxt)} → ${escapeHTML(afterTxt)}</div>
+          </div>
+          ${evt.revertedAt
+            ? '<span class="meta">OK</span>'
+            : `<button class="ia-cta" style="width:auto;min-width:110px;padding:7px 10px;margin-top:0;" onclick="revertirEventoHistorialIA('${evt.id}')">Revertir</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildIACardHistorialIA() {
+  let history = asegurarHistorialIA();
+  let activos = history.events.filter((evt) => !evt.revertedAt).length;
+  let total = history.events.length;
+
+  return `
+    <div class="ia-card">
+      <div class="ttl">Historial IA aplicado</div>
+      <div class="ia-row">
+        <div>
+          <div class="nm">Eventos registrados</div>
+          <div class="meta">Activos ${activos} · Total ${total}</div>
+        </div>
+      </div>
+      ${renderFilasHistorialIA()}
+      <button class="ia-cta" onclick="revertirUltimosEventosIA(3)" ${activos === 0 ? 'disabled' : ''}>Revertir últimos 3 ↩</button>
     </div>
   `;
 }
@@ -1312,6 +1529,7 @@ function renderIAPanelResumen() {
   let nodo = document.getElementById('ia-panel-resumen');
   if(!nodo) return;
 
+  actualizarEstadoAplicadoDesdeHistorialIA();
   let gastosMes = obtenerGastosVariablesPendientesMes();
   let st = getEstadoRecortesItemsMes();
   if(!Array.isArray(st.items)) st.items = [];
@@ -1322,6 +1540,7 @@ function renderIAPanelResumen() {
     ${buildIACardSimpleResultado('Simulador de escenarios IA', 'Simula mover fecha o monto para estimar impacto en balance y semanas en deficit.', 'simuladorEscenarios', 'simularEscenariosIA', 'Simular escenarios de impacto ↗')}
     ${buildIACardGastos('Gastos este mes', gastosMes, 'gastosMes', 'analizarReduccionGastosMesIA')}
     ${buildIACardRecortesItemsMes(gastosMes, 'recortesItemsMes', 'analizarRecortesItemMesIA')}
+    ${buildIACardHistorialIA()}
   `;
 }
 
@@ -1584,6 +1803,23 @@ function aplicarSugerenciaRecorteMesIA(index) {
     sug.appliedAt = new Date().toISOString();
     sug.ahorroReal = ahorroReal;
 
+    let evento = registrarEventoHistorialIA({
+      source: 'recorte',
+      action: accion.accion,
+      monthKey: mesActivoGlobal,
+      itemName: appData.compromisos[idxComp].nombre,
+      reason: sug.motivo || '',
+      before: prevComp,
+      after: appData.compromisos[idxComp],
+      meta: {
+        ahorroReal,
+        ahorroEstimado: sug.ahorroEstimado || 0,
+        riesgo: sug.riesgo,
+        prioridad: sug.prioridad
+      }
+    });
+    if(evento) sug.historyEventId = evento.id;
+
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
 
@@ -1713,6 +1949,20 @@ function aplicarAccionRebalanceoIA(scope, index) {
     appData.compromisos[idxComp].dia = nuevoDia;
     accion.applied = true;
     accion.appliedAt = new Date().toISOString();
+    let evento = registrarEventoHistorialIA({
+      source: `rebalance-${scope}`,
+      action: 'mover_tramo',
+      monthKey: mesActivoGlobal,
+      itemName: appData.compromisos[idxComp].nombre,
+      reason: accion.motivo || '',
+      before: prevComp,
+      after: appData.compromisos[idxComp],
+      meta: {
+        scope,
+        tramoDestino: accion.tramoDestino
+      }
+    });
+    if(evento) accion.historyEventId = evento.id;
     accion.undoPayload = {
       prevComp,
       newComp: { ...appData.compromisos[idxComp] },
@@ -1760,9 +2010,14 @@ function deshacerAccionRebalanceoIA(scope, index) {
   }
 
   appData.compromisos[idxComp] = { ...prev };
+  if(accion.historyEventId) {
+    let evt = obtenerEventoHistorialIA(accion.historyEventId);
+    if(evt && !evt.revertedAt) evt.revertedAt = new Date().toISOString();
+  }
   accion.applied = false;
   delete accion.appliedAt;
   delete accion.undoPayload;
+  delete accion.historyEventId;
 
   persistirDataPrincipalConFallback();
   persistirAuxiliaresConFallback(new Date().toISOString());
