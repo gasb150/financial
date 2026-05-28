@@ -386,7 +386,7 @@ function limpiarQueryOAuthLegacy() {
     }
   });
   if(changed) {
-    window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }
 }
 
