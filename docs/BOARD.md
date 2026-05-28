@@ -19,9 +19,6 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## En curso
 
-- [ ] TKT-054 Sincronizacion Drive <-> local con versionado
-- [ ] TKT-055 Cifrado de respaldo y secretos en cliente
-- [ ] TKT-056 Resolucion de conflictos multi-dispositivo
 
 ## Bloqueado
 
@@ -29,6 +26,9 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ## Done
 
+- [x] TKT-054 Sincronizacion Drive <-> local con versionado
+- [x] TKT-055 Cifrado de respaldo y secretos en cliente
+- [x] TKT-056 Resolucion de conflictos multi-dispositivo
 - [x] TKT-045 Modularizacion final de app.js y dominio IA
 - [x] TKT-053 Autenticacion Google (GIS token flow) y sesion segura
 - [x] TKT-052 Arquitectura backend en Google Drive (MVP)
@@ -325,7 +325,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-054 - Sincronizacion Drive <-> local con versionado
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo
@@ -344,7 +344,7 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 
 ### TKT-055 - Cifrado de respaldo y secretos en cliente
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Media
 - Fase: 5
 - Owner: Gustavo
@@ -355,11 +355,11 @@ Objetivo: app movil estable, bajo riesgo de perdida de datos e IA integrada con 
 - Checklist:
    - [x] Definir estrategia de cifrado cliente (Web Crypto)
    - [x] Implementar derivacion de clave y manejo de passphrase
-   - [ ] Probar restauracion completa desde payload cifrado
+   - [x] Probar restauracion completa desde payload cifrado
 
 ### TKT-056 - Resolucion de conflictos multi-dispositivo
 
-- Estado: En curso
+- Estado: Done
 - Prioridad: Alta
 - Fase: 5
 - Owner: Gustavo

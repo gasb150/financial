@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const { webcrypto } = require('node:crypto');
+const { TextEncoder, TextDecoder } = require('node:util');
 
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
@@ -229,4 +231,45 @@ test('evaluarPlanSyncDrive bloquea push cuando remoto va adelante y checksum dif
   assert.equal(sameChecksum.needsPull, false);
   assert.equal(sameChecksum.pushAllowed, true);
   assert.equal(sameChecksum.reason, 'ok');
+});
+
+test('restauracion cifrada de Drive recupera payload original con passphrase', async () => {
+  const payloadOriginal = {
+    schemaVersion: 5,
+    compromisos: [{ id: 1, nombre: 'Prueba', valor: 12345, dia: 7 }],
+    ingresosList: [{ id: 9, nombre: 'Ingreso', valor: 999999, dia: 1 }]
+  };
+
+  const ctx = loadFunctionsFromFile(
+    APP_JS,
+    [
+      'bytesToBase64',
+      'base64ToBytes',
+      'deriveDriveSyncAesKey',
+      'encryptDriveSyncData',
+      'decryptDriveSyncData',
+      'resolveDriveEnvelopeData'
+    ],
+    {
+      DRIVE_SYNC_KDF_ITERATIONS: 120000,
+      TextEncoder,
+      TextDecoder,
+      Uint8Array,
+      crypto: webcrypto,
+      window: { crypto: webcrypto },
+      btoa: (value) => Buffer.from(value, 'binary').toString('base64'),
+      atob: (value) => Buffer.from(value, 'base64').toString('binary'),
+      getDriveSyncPassphrase: () => 'clave-secreta-123',
+      prompt: () => ''
+    }
+  );
+
+  const encrypted = await ctx.encryptDriveSyncData(payloadOriginal, 'clave-secreta-123');
+  const remoteEnvelope = {
+    encryption: encrypted.encryption,
+    ciphertext: encrypted.ciphertext
+  };
+
+  const restaurado = await ctx.resolveDriveEnvelopeData(remoteEnvelope);
+  assert.deepEqual(restaurado, payloadOriginal);
 });
