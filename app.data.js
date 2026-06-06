@@ -312,7 +312,7 @@
               compromisos: recuperada.compromisos.length
             });
           } else {
-            tracePersistenceError('hydrate.invalid_payload', new Error('Payload inválido'), { source: 'indexeddb' });
+            tracePersistenceError('hydrate.invalid_payload', new Error('Invalid payload'), { source: 'indexeddb' });
           }
         }
         await idbSetRaw(STORAGE_KEY, JSON.stringify(appData));
