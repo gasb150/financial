@@ -233,7 +233,7 @@ test('syncDriveNow starts Google login when there is no active session', async (
   assert.equal(renderAuthCalls, 1);
   assert.equal(renderDriveCalls, 1);
   assert.equal(alerts.length, 1);
-  assert.match(alerts[0], /Sincronización con Drive completada/);
+  assert.match(alerts[0], /Drive sync completed/);
 });
 
 test('syncDriveNow only reports success after confirmed sync', async () => {
@@ -260,8 +260,8 @@ test('syncDriveNow only reports success after confirmed sync', async () => {
   assert.equal(renderAuthCalls, 1);
   assert.equal(renderDriveCalls, 1);
   assert.equal(alerts.length, 1);
-  assert.match(alerts[0], /Sincronización detenida/);
-  assert.match(alerts[0], /Ya hay una sincronización con Drive en curso/);
+  assert.match(alerts[0], /Drive sync stopped/);
+  assert.match(alerts[0], /A Drive sync is already running/);
 });
 
 test('restoreFromDriveNow starts Google login when there is no active session', async () => {
@@ -294,7 +294,7 @@ test('restoreFromDriveNow starts Google login when there is no active session', 
   assert.equal(renderAuthCalls, 1);
   assert.equal(renderDriveCalls, 1);
   assert.equal(alerts.length, 1);
-  assert.match(alerts[0], /Recuperación desde Drive completada/);
+  assert.match(alerts[0], /Drive recovery completed/);
 });
 
 test('restoreFromDriveNow only reports success after confirmed force pull', async () => {
@@ -321,8 +321,8 @@ test('restoreFromDriveNow only reports success after confirmed force pull', asyn
   assert.equal(renderAuthCalls, 1);
   assert.equal(renderDriveCalls, 1);
   assert.equal(alerts.length, 1);
-  assert.match(alerts[0], /Recuperación detenida/);
-  assert.match(alerts[0], /Ya hay una sincronización con Drive en curso/);
+  assert.match(alerts[0], /Drive recovery stopped/);
+  assert.match(alerts[0], /A Drive sync is already running/);
 });
 
 test('togglePaidCheck marks diaPagoReal when paying active-month debt', () => {

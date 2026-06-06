@@ -88,7 +88,7 @@
     renderConfigIA();
 
     let salida = document.getElementById('ia-test-result');
-    if(salida) salida.innerText = 'Configuración API guardada.';
+    if(salida) salida.innerText = 'API configuration saved.';
   }
 
   function saveGoogleAuthConfig() {
@@ -128,13 +128,13 @@
     if(typeof isGoogleOAuthSessionActive === 'function' && isGoogleOAuthSessionActive()) return;
     await iniciarFlujoGoogleGISToken();
     if(typeof isGoogleOAuthSessionActive === 'function' && !isGoogleOAuthSessionActive()) {
-      throw new Error('No se pudo iniciar una sesión activa de Google.');
+      throw new Error('Could not start an active Google session.');
     }
   }
 
   function getDriveActionFailureMessage(result, fallback) {
     if(result && result.reason === 'already-running') {
-      return 'Ya hay una sincronización con Drive en curso. Espera a que termine antes de intentar de nuevo.';
+      return 'A Drive sync is already running. Wait until it finishes before trying again.';
     }
     if(result && result.reason) return `${fallback} (${result.reason}).`;
     return fallback;
@@ -146,16 +146,16 @@
 
       let result = await sincronizarDriveConGoogle();
       if(!result || result.ok !== true) {
-        throw new Error(getDriveActionFailureMessage(result, 'No se pudo confirmar la sincronización con Drive.'));
+        throw new Error(getDriveActionFailureMessage(result, 'Could not confirm Drive sync.'));
       }
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
-      alert('Sincronización con Drive completada.');
+      alert('Drive sync completed.');
     } catch(err) {
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
-      let detalle = err && err.message ? err.message : 'No se pudo sincronizar con Drive.';
-      alert(`Sincronización detenida: ${detalle}`);
+      let detalle = err && err.message ? err.message : 'Could not sync with Drive.';
+      alert(`Drive sync stopped: ${detalle}`);
     }
   }
 
@@ -165,16 +165,16 @@
 
       let result = await sincronizarDriveConGoogle({ forcePull: true });
       if(!result || result.ok !== true) {
-        throw new Error(getDriveActionFailureMessage(result, 'No se pudo confirmar la recuperación desde Drive.'));
+        throw new Error(getDriveActionFailureMessage(result, 'Could not confirm Drive recovery.'));
       }
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
-      alert('Recuperación desde Drive completada.');
+      alert('Drive recovery completed.');
     } catch(err) {
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
-      let detalle = err && err.message ? err.message : 'No se pudo recuperar desde Drive.';
-      alert(`Recuperación detenida: ${detalle}`);
+      let detalle = err && err.message ? err.message : 'Could not recover from Drive.';
+      alert(`Drive recovery stopped: ${detalle}`);
     }
   }
 
@@ -243,7 +243,7 @@
     let diaPagoReal = diaPagoRealRaw ? parseInt(diaPagoRealRaw, 10) : null;
 
     if(!nombre || isNaN(valor) || valor <= 0 || (dia !== -1 && (isNaN(dia) || dia < 1 || dia > 31)) || (diaPagoRealRaw && !isValidDayInMonth(diaPagoReal))) {
-      resumen.innerText = 'Completa nombre, valor y día para simular impacto.';
+      resumen.innerText = 'Enter name, amount, and day to simulate impact.';
       semanaTxt.innerText = '';
       quincenaTxt.innerText = '';
       fechaRealTxt.innerText = '';
@@ -264,20 +264,20 @@
     }
     let balanceDespues = balanceAntes - valor;
 
-    resumen.innerText = `${nombre} por ${formatCOP(valor)} en día ${dia === -1 ? 'pre-mes' : dia}.`;
-    semanaTxt.innerText = `Impacta: ${semanaNombre}. Balance semanal estimado: ${formatCOP(balanceAntes)} -> ${formatCOP(balanceDespues)}.`;
-    quincenaTxt.innerText = `Impacta tramo: ${quincena}.`;
-    fechaRealTxt.innerText = `Pago real: ${isValidDayInMonth(diaPagoReal) ? `día ${diaPagoReal}` : 'sin definir (usa fecha tentativa)'}.`;
+    resumen.innerText = `${nombre} for ${formatCOP(valor)} on day ${dia === -1 ? 'pre-month' : dia}.`;
+    semanaTxt.innerText = `Impacts: ${semanaNombre}. Estimated weekly balance: ${formatCOP(balanceAntes)} -> ${formatCOP(balanceDespues)}.`;
+    quincenaTxt.innerText = `Impacts segment: ${quincena}.`;
+    fechaRealTxt.innerText = `Actual payment: ${isValidDayInMonth(diaPagoReal) ? `day ${diaPagoReal}` : 'not defined (uses tentative date)'}.`;
 
     let ingresosMes = obtenerEventosIngresoDelMes(mesActivoGlobal).reduce((acc, e) => acc + e.valor, 0);
     let ratio = ingresosMes > 0 ? valor / ingresosMes : 1;
 
     if(balanceDespues < 0) {
       alerta.style.display = 'block';
-      alerta.innerText = 'Alerta: este registro deja la semana en negativo. Considera mover la fecha tentativa o ajustar monto.';
+      alerta.innerText = 'Alert: this entry leaves the week negative. Consider moving the tentative date or adjusting the amount.';
     } else if(ratio >= 0.2) {
       alerta.style.display = 'block';
-      alerta.innerText = 'Aviso: este gasto supera 20% del ingreso del mes; revisa su fecha para mejorar flujo.';
+      alerta.innerText = 'Notice: this expense exceeds 20% of monthly income; review its date to improve cash flow.';
     } else {
       alerta.style.display = 'none';
       alerta.innerText = '';
@@ -331,11 +331,11 @@
     let mesFinRaw = document.getElementById('new-ing-hasta').value;
     let mesFinIndefinido = mesFinRaw === '__indefinido__';
     let mesFin = mesFinIndefinido ? null : mesFinRaw;
-    if(!nombre || !isValidPositiveValue(valor)) { alert('Datos inválidos'); return; }
-    if(!isValidDayInMonth(diaPago)) { alert('El día de pago del ingreso debe estar entre 1 y 31.'); return; }
-    if(!esMesKeyValido(mesInicio)) { alert('Selecciona el mes inicial de vigencia.'); return; }
-    if(!mesFinIndefinido && !esMesKeyValido(mesFin)) { alert('Selecciona un mes final válido o deja indefinido.'); return; }
-    if(!mesFinIndefinido && mesKeyToIndex(mesFin) < mesKeyToIndex(mesInicio)) { alert('La vigencia final no puede ser anterior al inicio.'); return; }
+    if(!nombre || !isValidPositiveValue(valor)) { alert('Invalid data.'); return; }
+    if(!isValidDayInMonth(diaPago)) { alert('Income pay day must be between 1 and 31.'); return; }
+    if(!esMesKeyValido(mesInicio)) { alert('Select the initial effective month.'); return; }
+    if(!mesFinIndefinido && !esMesKeyValido(mesFin)) { alert('Select a valid final month or leave it indefinite.'); return; }
+    if(!mesFinIndefinido && mesKeyToIndex(mesFin) < mesKeyToIndex(mesInicio)) { alert('The final effective date cannot be earlier than the start.'); return; }
     appData.ingresosList.push({
       id: Date.now(),
       nombre: nombre,
@@ -355,7 +355,7 @@
   }
 
   function removeIncome(id) {
-    if(confirm('¿Remover esta fuente?')) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); commitAppChange(); }
+    if(confirm('Remove this source?')) { appData.ingresosList = appData.ingresosList.filter(i => i.id !== id); commitAppChange(); }
   }
 
   function addOneOffBonus() {
@@ -365,11 +365,11 @@
     let mesKey = document.getElementById('new-prima-mes').value;
 
     if(!nombre || !isValidPositiveValue(valor)) {
-      alert('Datos inválidos para la prima.');
+      alert('Invalid bonus data.');
       return;
     }
     if(!isValidDayInMonth(diaPago)) {
-      alert('El día de pago de la prima debe estar entre 1 y 31.');
+      alert('Bonus pay day must be between 1 and 31.');
       return;
     }
 
@@ -388,14 +388,14 @@
   }
 
   function removeBonus(id) {
-    if(confirm('¿Eliminar esta prima?')) {
+    if(confirm('Delete this bonus?')) {
       appData.primasList = appData.primasList.filter(p => p.id !== id);
       commitAppChange();
     }
   }
 
   function removeCompromiso(id) {
-    if(confirm('¿Eliminar compromiso?')) {
+    if(confirm('Delete commitment?')) {
       appData.compromisos = appData.compromisos.filter(c => c.id !== id);
       commitAppChange();
     }
@@ -414,23 +414,23 @@
     let totales = parseInt(document.getElementById('add-totales').value, 10);
 
     if(!nombre || !isValidPositiveValue(valor)) {
-      alert('Debes ingresar un nombre y un valor mayor que 0.');
+      alert('Enter a name and an amount greater than 0.');
       return;
     }
 
     if(dia !== -1 && !isValidDayInMonth(dia)) {
-      alert('El día debe ser -1 o estar entre 1 y 31.');
+      alert('The day must be -1 or between 1 and 31.');
       return;
     }
 
     if(diaPagoRealRaw && !isValidDayInMonth(diaPagoReal)) {
-      alert('La fecha real de pago debe estar entre 1 y 31.');
+      alert('The actual payment date must be between 1 and 31.');
       return;
     }
 
     if(tipoGasto === 'credito') {
       if(isNaN(faltantes) || isNaN(totales) || faltantes <= 0 || totales <= 0 || faltantes > totales) {
-        alert('Para créditos, valida cuotas restantes y totales.');
+        alert('For credits, validate remaining and total installments.');
         return;
       }
     }
