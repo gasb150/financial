@@ -266,6 +266,93 @@ test('sincronizarDriveConGoogle still blocks when a runtime sync is active', asy
   assert.equal(result.reason, 'already-running');
 });
 
+test('scope upgrade retry keeps sync state active until recursive retry finishes', async () => {
+  const now = Date.now();
+  let uploadCalls = 0;
+  let consentCalls = 0;
+  let finishRetryUpload;
+  let retryUploadStartedResolve;
+  const retryUploadStarted = new Promise((resolve) => {
+    retryUploadStartedResolve = resolve;
+  });
+  const appData = {
+    googleAuth: {
+      session: {
+        accessToken: 'token-ok',
+        scope: 'openid profile email https://www.googleapis.com/auth/drive.appdata',
+        expiresAtMs: now + 120000,
+        user: { email: 'retry@example.com' }
+      }
+    },
+    driveSync: {
+      fileId: null,
+      syncInProgress: false,
+      syncEvents: []
+    }
+  };
+
+  const ctx = loadFunctionsFromFile(APP_JS, [
+    'getGoogleOAuthSession',
+    'getGoogleOAuthSessionEmail',
+    'sincronizarDriveConGoogle'
+  ], {
+    appData,
+    googleOAuthAccessTokenRuntime: '',
+    driveSyncRuntimeInProgress: false,
+    getDriveSyncState: () => appData.driveSync,
+    syncDriveEncryptionFlagFromUI: () => {},
+    appendDriveSyncEvent: (type, details = {}) => {
+      appData.driveSync.syncEvents.push({ type, details });
+    },
+    setDriveSyncError: (message) => {
+      appData.driveSync.lastError = message;
+    },
+    persistirDataPrincipalConFallback: () => {},
+    persistirAuxiliaresConFallback: async () => {},
+    renderDriveSyncStatus: () => {},
+    asegurarSesionGoogleParaDrive: async () => {},
+    iniciarFlujoGoogleGISToken: async (options) => {
+      consentCalls += 1;
+      assert.equal(options.forceConsent, true);
+    },
+    findDriveSyncFile: async () => null,
+    buildDriveSyncBackupPayload: () => ({ data: { schemaVersion: 5 }, checksum: 'local-checksum' }),
+    asegurarChecksumPayload: async (payload) => payload.checksum,
+    evaluarPlanSyncDrive: () => ({ needsPull: false, pushAllowed: true, reason: 'ok' }),
+    buildDriveSyncEnvelope: async () => ({ version: uploadCalls + 1, checksum: 'local-checksum', updatedAt: '2026-06-06T12:00:00.000Z' }),
+    uploadDriveSyncEnvelope: async () => {
+      uploadCalls += 1;
+      if(uploadCalls === 1) {
+        let error = new Error('scope missing');
+        error.code = 'ACCESS_TOKEN_SCOPE_INSUFFICIENT';
+        throw error;
+      }
+      retryUploadStartedResolve();
+      return new Promise((resolve) => {
+        finishRetryUpload = () => resolve({ id: 'drive-file-retry' });
+      });
+    },
+    Date: class extends Date {
+      static now() { return now; }
+    }
+  });
+
+  const syncPromise = ctx.sincronizarDriveConGoogle();
+  await retryUploadStarted;
+
+  assert.equal(consentCalls, 1);
+  assert.equal(uploadCalls, 2);
+  assert.equal(appData.driveSync.syncInProgress, true);
+
+  finishRetryUpload();
+  const result = await syncPromise;
+
+  assert.equal(result.ok, true);
+  assert.equal(result.action, 'pushed');
+  assert.equal(appData.driveSync.syncInProgress, false);
+  assert.equal(appData.driveSync.fileId, 'drive-file-retry');
+});
+
 test('sincronizarDriveConGoogle allows local changes when remote is unchanged during revalidation', async () => {
   const now = Date.now();
   let confirmCalls = 0;

@@ -1301,7 +1301,7 @@ async function sincronizarDriveConGoogle(options = {}) {
       persistirAuxiliaresConFallback(new Date().toISOString());
       renderDriveSyncStatus();
 
-      return sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
+      return await sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
     }
 
     let mensaje = err && err.message ? err.message : 'Error desconocido durante sincronización con Drive.';
