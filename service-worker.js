@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   './src/app/use-cases/timeline/timelineUseCases.js',
   './src/app/use-cases/driveSync/changeSummary.js',
   './src/app/use-cases/debts/debtUseCases.js',
+  './app.state.js',
   './app.drive.js',
   './app.data.js',
   './app.rules.js',

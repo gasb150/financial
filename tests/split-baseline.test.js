@@ -11,6 +11,7 @@ const APP_JS = path.join(ROOT, 'app.js');
 const APP_DRIVE_JS = path.join(ROOT, 'app.drive.js');
 const APP_DEBTS_JS = path.join(ROOT, 'app.debts.js');
 const APP_FORTNIGHTS_JS = path.join(ROOT, 'app.fortnights.js');
+const APP_STATE_JS = path.join(ROOT, 'app.state.js');
 const APP_RULES_JS = path.join(ROOT, 'app.rules.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
@@ -405,7 +406,7 @@ test('marcarCorreccionMesBaseComoAplicada evita que backups restaurados se despl
 });
 
 test('obtenerMesKeyActualInicial usa el mes del sistema como mes activo inicial', () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['obtenerMesKeyActualInicial'], {
+  const ctx = loadFunctionsFromFile(APP_STATE_JS, ['obtenerMesKeyActualInicial'], {
     ORDEN_MESES: [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
