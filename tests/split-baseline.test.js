@@ -12,6 +12,7 @@ const APP_DRIVE_JS = path.join(ROOT, 'app.drive.js');
 const APP_DEBTS_JS = path.join(ROOT, 'app.debts.js');
 const APP_FORTNIGHTS_JS = path.join(ROOT, 'app.fortnights.js');
 const APP_STATE_JS = path.join(ROOT, 'app.state.js');
+const APP_BACKUP_JS = path.join(ROOT, 'app.backup.js');
 const APP_RULES_JS = path.join(ROOT, 'app.rules.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
@@ -436,7 +437,7 @@ test('resolverPayloadImportadoRespaldo extrae data de respaldos exportados', () 
     data: exportedData,
     checksum: 'sha256:test'
   };
-  const ctx = loadFunctionsFromFile(APP_JS, ['resolverPayloadImportadoRespaldo']);
+  const ctx = loadFunctionsFromFile(APP_BACKUP_JS, ['resolverPayloadImportadoRespaldo']);
 
   assert.equal(ctx.resolverPayloadImportadoRespaldo(exportedBackup), exportedData);
   assert.equal(ctx.resolverPayloadImportadoRespaldo(exportedData), exportedData);

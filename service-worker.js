@@ -19,6 +19,7 @@ const CORE_ASSETS = [
   './app.rules.js',
   './app.actions.js',
   './app.render.js',
+  './app.backup.js',
   './app.i18n.es-CO.js',
   './app.i18n.en-US.js',
   './app.i18n.js',
