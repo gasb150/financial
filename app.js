@@ -229,12 +229,28 @@ const APP_SCHEMA_MIGRATORS = {
 };
 
 let appData = aplicarMigracionesSchema(JSON.parse(localStorage.getItem(STORAGE_KEY)) || datosDefault);
+let appStore = window.FinancialAppStore && typeof window.FinancialAppStore.createAppStore === 'function'
+  ? window.FinancialAppStore.createAppStore()
+  : null;
 let idbReady = false;
 let idbPromise = null;
 
 normalizarEstadoCargado();
+syncAppStoreState();
 
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
+
+function syncAppStoreState() {
+  if(!appStore || typeof appStore.setState !== 'function') return;
+  appStore.setState({
+    appData,
+    monthsTimeline: mesesLineaTiempo,
+    activeMonthKey: mesActivoGlobal,
+    selectedDay: diaSeleccionadoActivo,
+    activeDebtFilter: filtroDeudaActivo,
+    aiPanelState
+  });
+}
 
 function aplicarMigracionesSchema(dataIn) {
   let data = dataIn && typeof dataIn === 'object'
@@ -1589,6 +1605,10 @@ function escapeHTML(texto) {
 }
 
 function getCompromisosMesActual() {
+  syncAppStoreState();
+  if(appStore && window.FinancialSelectors && typeof window.FinancialSelectors.getCurrentMonthDebts === 'function') {
+    return appStore.select(window.FinancialSelectors.getCurrentMonthDebts, []);
+  }
   return appData.compromisos.filter(c => c.mesKey === mesActivoGlobal);
 }
 

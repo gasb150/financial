@@ -8,6 +8,8 @@ const CORE_ASSETS = [
   './app.seed.js',
   './app.js',
   './src/app/bootstrap/pwa.js',
+  './src/app/store/appStore.js',
+  './src/app/store/selectors.js',
   './app.data.js',
   './app.rules.js',
   './app.actions.js',
