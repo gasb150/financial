@@ -1,5 +1,6 @@
 .DS_Store
 app.seed.local.js
+app.seed.local\ copy.js
+app.seed.local.copy.js
 node_modules/
 .env
-app.seed.local.copy.js
