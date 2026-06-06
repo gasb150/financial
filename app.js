@@ -2970,6 +2970,14 @@ function obtenerMesKeyActualSistema() {
 }
 
 function construirAlertasVencimientoDeudas(compromisosMes, umbralDias = 3) {
+  if(typeof window !== 'undefined' && window.FinancialDebtUseCases && typeof window.FinancialDebtUseCases.buildDebtDueAlerts === 'function') {
+    return window.FinancialDebtUseCases.buildDebtDueAlerts({
+      debts: compromisosMes,
+      activeMonthKey: mesActivoGlobal,
+      systemMonthKey: obtenerMesKeyActualSistema(),
+      thresholdDays: umbralDias
+    });
+  }
   if(!Array.isArray(compromisosMes)) return null;
   if(mesActivoGlobal !== obtenerMesKeyActualSistema()) return null;
 

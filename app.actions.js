@@ -285,13 +285,21 @@
   }
 
   function togglePaidCheck(id) {
+    if(typeof window !== 'undefined' && window.FinancialDebtUseCases && typeof window.FinancialDebtUseCases.markDebtPaid === 'function') {
+      let result = window.FinancialDebtUseCases.markDebtPaid({
+        debts: appData.compromisos,
+        debtId: id,
+        activeMonthKey: mesActivoGlobal
+      });
+      if(!result.ok) return;
+      commitAppChange({ refreshDailyView: true });
+      return;
+    }
+
     let comp = appData.compromisos.find(c => c.id === id);
     if(comp) {
       comp.pagado = !comp.pagado;
-      if(comp.pagado && comp.mesKey === mesActivoGlobal) {
-        let hoy = new Date();
-        comp.diaPagoReal = hoy.getDate();
-      }
+      if(comp.pagado && comp.mesKey === mesActivoGlobal) comp.diaPagoReal = new Date().getDate();
       commitAppChange({ refreshDailyView: true });
     }
   }
