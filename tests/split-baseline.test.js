@@ -363,8 +363,18 @@ test('asegurarMesesAnioActualEnLineaTiempo incluye todos los meses del año actu
   ];
   const ctx = loadFunctionsFromFile(APP_JS, ['asegurarMesesAnioActualEnLineaTiempo'], {
     ORDEN_MESES: monthNames,
-    mesesLineaTiempo: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`, 'Mes roto', 'Abril sin-anio'],
-    appData: { lineaTiempoGuardada: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`, 'Mes roto', 'Abril sin-anio'] },
+    mesesLineaTiempo: [
+      `Julio ${currentYear}`,
+      `  Enero ${currentYear + 1}  `,
+      'Mes roto',
+      'Abril sin-anio',
+      '',
+      '   ',
+      null,
+      123,
+      { mes: 'Junio' }
+    ],
+    appData: { lineaTiempoGuardada: [] },
     Date: class extends Date {
       constructor(...args) {
         return args.length ? super(...args) : new global.Date('2026-06-06T12:00:00.000Z');

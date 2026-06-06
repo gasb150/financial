@@ -322,7 +322,10 @@ function asegurarMesesAnioActualEnLineaTiempo() {
   let anioActual = new Date().getFullYear();
   let mesesAnioActual = ORDEN_MESES.map((mes) => `${mes} ${anioActual}`);
   let existentes = Array.isArray(mesesLineaTiempo) ? mesesLineaTiempo : [];
-  let union = Array.from(new Set([...mesesAnioActual, ...existentes].filter(Boolean)));
+  let existentesNormalizados = existentes
+    .map((mes) => (typeof mes === 'string' ? mes.trim() : ''))
+    .filter(Boolean);
+  let union = Array.from(new Set([...mesesAnioActual, ...existentesNormalizados]));
 
   union.sort((a, b) => {
     let pa = String(a || '').trim().split(/\s+/);
