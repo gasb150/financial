@@ -65,10 +65,11 @@ let mesesLineaTiempo = [
   "Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"
 ];
 
+const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
 function obtenerMesKeyActualInicial() {
-  let meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
   let now = new Date();
-  return `${meses[now.getMonth()]} ${now.getFullYear()}`;
+  return `${ORDEN_MESES[now.getMonth()]} ${now.getFullYear()}`;
 }
 
 let mesActivoGlobal = obtenerMesKeyActualInicial();
@@ -290,8 +291,6 @@ let idbPromise = null;
 
 normalizarEstadoCargado();
 
-const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
 function formatCOP(val) { return '$' + Math.round(val).toLocaleString('es-CO'); }
 
 function aplicarMigracionesSchema(dataIn) {
@@ -332,8 +331,9 @@ function asegurarMesesAnioActualEnLineaTiempo() {
     let ib = ORDEN_MESES.indexOf(pb[0]);
     let aa = parseInt(pa[1], 10);
     let ab = parseInt(pb[1], 10);
-    if(isNaN(aa) || ia < 0) return 1;
-    if(isNaN(ab) || ib < 0) return -1;
+    let aValida = !isNaN(aa) && ia >= 0;
+    let bValida = !isNaN(ab) && ib >= 0;
+    if(!aValida || !bValida) return aValida === bValida ? 0 : (aValida ? -1 : 1);
     return (aa - ab) || (ia - ib);
   });
 

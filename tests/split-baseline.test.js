@@ -356,24 +356,29 @@ test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async 
 });
 
 test('asegurarMesesAnioActualEnLineaTiempo incluye todos los meses del año actual sin perder futuros', () => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
   const ctx = loadFunctionsFromFile(APP_JS, ['asegurarMesesAnioActualEnLineaTiempo'], {
     ORDEN_MESES: monthNames,
-    mesesLineaTiempo: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`],
-    appData: { lineaTiempoGuardada: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`] },
-    Date
+    mesesLineaTiempo: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`, 'Mes roto', 'Abril sin-anio'],
+    appData: { lineaTiempoGuardada: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`, 'Mes roto', 'Abril sin-anio'] },
+    Date: class extends Date {
+      constructor(...args) {
+        return args.length ? super(...args) : new global.Date('2026-06-06T12:00:00.000Z');
+      }
+    }
   });
 
   ctx.asegurarMesesAnioActualEnLineaTiempo();
 
-  assert.equal(ctx.mesesLineaTiempo.length, 13);
+  assert.equal(ctx.mesesLineaTiempo.length, 15);
   assert.equal(ctx.mesesLineaTiempo[0], `Enero ${currentYear}`);
   assert.equal(ctx.mesesLineaTiempo[11], `Diciembre ${currentYear}`);
   assert.equal(ctx.mesesLineaTiempo[12], `Enero ${currentYear + 1}`);
+  assert.deepEqual(ctx.mesesLineaTiempo.slice(13), ['Mes roto', 'Abril sin-anio']);
   assert.deepEqual(ctx.appData.lineaTiempoGuardada, ctx.mesesLineaTiempo);
 });
 
@@ -388,6 +393,10 @@ test('marcarCorreccionMesBaseComoAplicada evita que backups restaurados se despl
 
 test('obtenerMesKeyActualInicial usa el mes del sistema como mes activo inicial', () => {
   const ctx = loadFunctionsFromFile(APP_JS, ['obtenerMesKeyActualInicial'], {
+    ORDEN_MESES: [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ],
     Date: class extends Date {
       constructor(...args) {
         return args.length ? super(...args) : new global.Date('2026-06-06T12:00:00.000Z');
