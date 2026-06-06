@@ -5,11 +5,11 @@ const path = require('node:path');
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP_IA_JS = path.join(ROOT, 'app.ia.js');
+const APP_IA_ACTIONS_JS = path.join(ROOT, 'app.ia.actions.js');
 const APP_FORTNIGHTS_JS = path.join(ROOT, 'app.fortnights.js');
 
 test('obtenerEstadoRebalanceo inicializa estado consistente para semana/quincena', () => {
-  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerEstadoRebalanceo'], {
+  const ctx = loadFunctionsFromFile(APP_IA_ACTIONS_JS, ['obtenerEstadoRebalanceo'], {
     iaPanelState: {}
   });
 
@@ -28,7 +28,7 @@ test('obtenerEstadoRebalanceo inicializa estado consistente para semana/quincena
 
 test('renderAccionesRebalanceoIA muestra CTA aplicar/deshacer segun estado', () => {
   const ctx = loadFunctionsFromFile(
-    APP_IA_JS,
+    APP_IA_ACTIONS_JS,
     ['obtenerEstadoRebalanceo', 'construirTextoImpactoRebalanceo', 'renderAccionesRebalanceoIA'],
     {
       iaPanelState: {
@@ -64,7 +64,7 @@ test('renderAccionesRebalanceoIA muestra CTA aplicar/deshacer segun estado', () 
 
 test('aplicarAccionRebalanceoIA marca error cuando accion no es mover_tramo', () => {
   let initCalls = 0;
-  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerEstadoRebalanceo', 'aplicarAccionRebalanceoIA'], {
+  const ctx = loadFunctionsFromFile(APP_IA_ACTIONS_JS, ['obtenerEstadoRebalanceo', 'aplicarAccionRebalanceoIA'], {
     iaPanelState: {
       rebalanceSemana: {
         loading: false,
@@ -87,7 +87,7 @@ test('aplicarAccionRebalanceoIA marca error cuando accion no es mover_tramo', ()
 
 test('deshacerAccionRebalanceoIA marca error cuando no hay cambio aplicado', () => {
   let initCalls = 0;
-  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerEstadoRebalanceo', 'deshacerAccionRebalanceoIA'], {
+  const ctx = loadFunctionsFromFile(APP_IA_ACTIONS_JS, ['obtenerEstadoRebalanceo', 'deshacerAccionRebalanceoIA'], {
     iaPanelState: {
       rebalanceSemana: {
         loading: false,

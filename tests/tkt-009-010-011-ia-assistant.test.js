@@ -5,16 +5,16 @@ const path = require('node:path');
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP_IA_JS = path.join(ROOT, 'app.ia.js');
+const APP_IA_RENDER_JS = path.join(ROOT, 'app.ia.render.js');
 
 test('obtenerMensajeIAValido retorna mensaje cuando ok es true', () => {
-  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerMensajeIAValido'], {});
+  const ctx = loadFunctionsFromFile(APP_IA_RENDER_JS, ['obtenerMensajeIAValido'], {});
   const out = ctx.obtenerMensajeIAValido({ ok: true, message: 'respuesta' });
   assert.equal(out, 'respuesta');
 });
 
 test('obtenerMensajeIAValido lanza error cuando ok es false', () => {
-  const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerMensajeIAValido'], {});
+  const ctx = loadFunctionsFromFile(APP_IA_RENDER_JS, ['obtenerMensajeIAValido'], {});
   assert.throws(
     () => ctx.obtenerMensajeIAValido({ ok: false, message: 'Gateway/API externa aun no integrada.' }),
     /Gateway\/API externa aun no integrada\./
@@ -23,7 +23,7 @@ test('obtenerMensajeIAValido lanza error cuando ok es false', () => {
 
 test('generarAlertasDeficitTempranasIA detecta riesgo semanal y mensual', () => {
   const ctx = loadFunctionsFromFile(
-    APP_IA_JS,
+    APP_IA_RENDER_JS,
     ['construirSnapshotMensualIA', 'generarAlertasDeficitTempranasIA'],
     {
       mesActivoGlobal: 'Mayo 2026',
@@ -50,7 +50,7 @@ test('generarAlertasDeficitTempranasIA detecta riesgo semanal y mensual', () => 
 
 test('construirSnapshotMensualIA usa ratio 0 cuando no hay ingresos ni pendiente', () => {
   const ctx = loadFunctionsFromFile(
-    APP_IA_JS,
+    APP_IA_RENDER_JS,
     ['construirSnapshotMensualIA'],
     {
       mesActivoGlobal: 'Mayo 2026',
@@ -67,7 +67,7 @@ test('construirSnapshotMensualIA usa ratio 0 cuando no hay ingresos ni pendiente
 
 test('simularEscenariosBaseIA devuelve escenarios con impacto formateable', () => {
   const ctx = loadFunctionsFromFile(
-    APP_IA_JS,
+    APP_IA_RENDER_JS,
     [
       'construirSnapshotMensualIA',
       'calcularMetricasEscenarioIA',
@@ -112,7 +112,7 @@ test('simularEscenariosBaseIA devuelve escenarios con impacto formateable', () =
 
 test('simularEscenariosBaseIA limita dia pospuesto al fin del mes activo', () => {
   const ctx = loadFunctionsFromFile(
-    APP_IA_JS,
+    APP_IA_RENDER_JS,
     [
       'construirSnapshotMensualIA',
       'calcularMetricasEscenarioIA',

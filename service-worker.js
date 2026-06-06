@@ -24,6 +24,8 @@ const CORE_ASSETS = [
   './app.i18n.en-US.js',
   './app.i18n.js',
   './app.ia.js',
+  './app.ia.render.js',
+  './app.ia.actions.js',
   './app.income.js',
   './app.debts.js',
   './app.fortnights.js',
