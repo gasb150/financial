@@ -25,10 +25,11 @@ Standardize JavaScript quality checks with low friction in a modular legacy code
 
 - Target size for new files: 300 lines or fewer.
 - Review threshold: when a file exceeds 500 lines, the PR must explicitly consider whether cohesive logic can move to a module under `src/app/`, an existing split file, or a new domain file.
-- Legacy exception threshold: files over 1,000 lines are allowed only while actively being reduced; any substantial change in those files should either extract a cohesive block or document why extraction is unsafe.
+- Soft cap for legacy files: 900 lines. Files above this cap should be reduced before adding new responsibilities.
+- Hard cap for legacy files: 1,000 lines. Files over this cap are allowed only while actively being reduced; any substantial change in those files should either extract a cohesive block or document why extraction is unsafe.
 - Avoid adding unrelated responsibilities to files already above the review threshold.
 
-## Criterio de uso en PR
+## PR usage criteria
 
 1. Run `npm run lint` before push.
 2. Fix new errors immediately.
