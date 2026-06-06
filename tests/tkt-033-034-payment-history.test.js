@@ -5,7 +5,7 @@ const path = require('node:path');
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP_JS = path.join(ROOT, 'app.js');
+const APP_DEBTS_JS = path.join(ROOT, 'app.debts.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 const DATA_JS = path.join(ROOT, 'app.data.js');
 
@@ -37,7 +37,7 @@ test('sanitizeCompromisoItem conserva diaPagoReal valido y limpia invalido', () 
 
 test('modificarCompromisoPropiedad permite editar diaPagoReal opcional', () => {
   let initCalls = 0;
-  const ctx = loadFunctionsFromFile(APP_JS, ['modificarCompromisoPropiedad'], {
+  const ctx = loadFunctionsFromFile(APP_DEBTS_JS, ['modificarCompromisoPropiedad'], {
     appData: {
       compromisos: [
         { id: 10, nombre: 'Arriendo', valor: 1000000, dia: 5, diaPagoReal: null, pagado: false, tipo: 'fijo', mesKey: 'Junio 2026' }

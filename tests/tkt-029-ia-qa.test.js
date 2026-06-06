@@ -6,7 +6,7 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
-const APP_JS = path.join(ROOT, 'app.js');
+const APP_FORTNIGHTS_JS = path.join(ROOT, 'app.fortnights.js');
 
 test('obtenerEstadoRebalanceo inicializa estado consistente para semana/quincena', () => {
   const ctx = loadFunctionsFromFile(APP_IA_JS, ['obtenerEstadoRebalanceo'], {
@@ -121,7 +121,7 @@ test('renderBalanceQuincena muestra CTA de rebalanceo en deficit y modo preventi
     renderAccionesRebalanceoIA: () => ''
   };
 
-  const ctxConDeficit = loadFunctionsFromFile(APP_JS, ['renderBalanceQuincena'], {
+  const ctxConDeficit = loadFunctionsFromFile(APP_FORTNIGHTS_JS, ['renderBalanceQuincena'], {
     ...baseSandbox,
     calcularResumenBalanceQuincena: () => ({
       tramos: [
@@ -134,7 +134,7 @@ test('renderBalanceQuincena muestra CTA de rebalanceo en deficit y modo preventi
   ctxConDeficit.renderBalanceQuincena([]);
   assert.match(container.innerHTML, /data-action="rebalance-quincena-from-balance"/);
 
-  const ctxSinDeficit = loadFunctionsFromFile(APP_JS, ['renderBalanceQuincena'], {
+  const ctxSinDeficit = loadFunctionsFromFile(APP_FORTNIGHTS_JS, ['renderBalanceQuincena'], {
     ...baseSandbox,
     calcularResumenBalanceQuincena: () => ({
       tramos: [

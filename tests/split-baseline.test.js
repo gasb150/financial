@@ -9,6 +9,8 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 const ROOT = path.resolve(__dirname, '..');
 const APP_JS = path.join(ROOT, 'app.js');
 const APP_DRIVE_JS = path.join(ROOT, 'app.drive.js');
+const APP_DEBTS_JS = path.join(ROOT, 'app.debts.js');
+const APP_FORTNIGHTS_JS = path.join(ROOT, 'app.fortnights.js');
 const APP_RULES_JS = path.join(ROOT, 'app.rules.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
@@ -67,7 +69,7 @@ test('calcularBalanceSemanal usa ingresos por dias y pre-mes en semana 1', () =>
 });
 
 test('calcularResumenBalanceQuincena integra Pre-Mes en Q1 y arrastra saldo a Q2', () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['calcularResumenBalanceQuincena']);
+  const ctx = loadFunctionsFromFile(APP_FORTNIGHTS_JS, ['calcularResumenBalanceQuincena']);
 
   const eventos = [
     { dia: 1, valor: 1000 },
@@ -453,7 +455,7 @@ test('construirAlertasVencimientoDeudas clasifica vencidos y proximos del mes ac
   const dueSoonDay2 = Math.min(31, today + 2);
   const farDay = Math.min(31, today + 8);
 
-  const ctx = loadFunctionsFromFile(APP_JS, ['obtenerMesKeyActualSistema', 'construirAlertasVencimientoDeudas'], {
+  const ctx = loadFunctionsFromFile(APP_DEBTS_JS, ['obtenerMesKeyActualSistema', 'construirAlertasVencimientoDeudas'], {
     ORDEN_MESES: monthNames,
     mesActivoGlobal: activeMonthKey
   });
