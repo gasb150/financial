@@ -987,6 +987,9 @@ function crearMultipartDriveBody(metadata, contentObj, boundary) {
 }
 
 function formatearValorCambioDriveSync(valor) {
+  if(typeof window !== 'undefined' && window.FinancialDriveSyncChangeSummary && typeof window.FinancialDriveSyncChangeSummary.formatChangedValue === 'function') {
+    return window.FinancialDriveSyncChangeSummary.formatChangedValue(valor, formatCOP);
+  }
   if(valor === null || valor === undefined) return 'sin valor';
   if(typeof valor === 'number') return formatCOP(valor);
   if(typeof valor === 'boolean') return valor ? 'sí' : 'no';
@@ -1000,24 +1003,16 @@ function formatearValorCambioDriveSync(valor) {
 }
 
 function nombreCampoCambioDriveSync(campo) {
-  let mapa = {
-    ingresosList: 'ingresos',
-    compromisos: 'deudas',
-    primasList: 'primas',
-    valor: 'valor',
-    nombre: 'nombre',
-    periodo: 'periodo',
-    diaPago: 'día de pago',
-    mesInicio: 'mes inicial',
-    mesFin: 'mes final',
-    dia: 'día',
-    mesKey: 'mes',
-    pagado: 'pagado'
-  };
-  return mapa[campo] || campo;
+  if(typeof window !== 'undefined' && window.FinancialDriveSyncChangeSummary && typeof window.FinancialDriveSyncChangeSummary.getFieldLabel === 'function') {
+    return window.FinancialDriveSyncChangeSummary.getFieldLabel(campo);
+  }
+  return campo;
 }
 
 function etiquetaCambioDriveSync(pathParts, campo, remoto, local) {
+  if(typeof window !== 'undefined' && window.FinancialDriveSyncChangeSummary && typeof window.FinancialDriveSyncChangeSummary.buildChangeLabel === 'function') {
+    return window.FinancialDriveSyncChangeSummary.buildChangeLabel(pathParts, campo, remoto, local);
+  }
   let nombre = '';
   if(local && typeof local === 'object' && local.nombre) nombre = String(local.nombre);
   if(!nombre && remoto && typeof remoto === 'object' && remoto.nombre) nombre = String(remoto.nombre);
@@ -1026,6 +1021,14 @@ function etiquetaCambioDriveSync(pathParts, campo, remoto, local) {
 }
 
 function acumularCambiosDriveSync(remoto, local, pathParts = [], cambios = [], limite = 8) {
+  if(typeof window !== 'undefined' && window.FinancialDriveSyncChangeSummary && typeof window.FinancialDriveSyncChangeSummary.collectDriveSyncChanges === 'function') {
+    return window.FinancialDriveSyncChangeSummary.collectDriveSyncChanges(remoto, local, {
+      pathParts,
+      changes: cambios,
+      limit: limite,
+      formatCurrency: formatCOP
+    });
+  }
   if(cambios.length >= limite) return cambios;
   if(Object.is(remoto, local)) return cambios;
 
