@@ -104,6 +104,14 @@ test('validateBackupPayload enforces required backup structure', () => {
   assert.equal(ctx.validateBackupPayload({}), false);
 });
 
+test('resolveImportedBackupPayload unwraps exported backup envelopes', () => {
+  const ctx = loadFunctionsFromFile(DATA_JS, ['resolveImportedBackupPayload']);
+  const data = { ingresosList: [], primasList: [], compromisos: [], lineaTiempoGuardada: ['Junio 2026'] };
+
+  assert.equal(ctx.resolveImportedBackupPayload({ version: 1, data }), data);
+  assert.equal(ctx.resolveImportedBackupPayload(data), data);
+});
+
 test('sanitizePrimaryData supports partial recovery in non-strict mode', () => {
   const ctx = loadFunctionsFromFile(DATA_JS, [
     'toSafeInt',

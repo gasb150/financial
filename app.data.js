@@ -361,6 +361,13 @@
     return validateCoreDataShape(data);
   }
 
+  function resolveImportedBackupPayload(raw) {
+    if(raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'data')) {
+      return raw.data;
+    }
+    return raw;
+  }
+
   async function sha256Hex(texto) {
     if(!(window.crypto && window.crypto.subtle)) {
       throw new Error('crypto.subtle no disponible');
@@ -439,6 +446,7 @@
     persistPrimaryDataWithFallback,
     persistAuxDataWithFallback,
     validateBackupPayload,
+    resolveImportedBackupPayload,
     sha256Hex,
     hashFallbackHex,
     generatePayloadChecksum,

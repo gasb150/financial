@@ -1476,6 +1476,9 @@ function buildBackupPayload() {
 }
 
 function resolverPayloadImportadoRespaldo(raw) {
+  if(typeof window !== 'undefined' && window.FinancialData && typeof window.FinancialData.resolveImportedBackupPayload === 'function') {
+    return window.FinancialData.resolveImportedBackupPayload(raw);
+  }
   if(raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'data')) {
     return raw.data;
   }
