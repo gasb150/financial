@@ -173,6 +173,8 @@ test('force pull stores the Google account email used for Drive recovery', async
     generarChecksumSnapshotDriveSync: async () => 'remote-checksum',
     aplicarMigracionesSchema: (data) => ({ ...data, driveSync: appData.driveSync }),
     normalizarEstadoCargado: () => {},
+    marcarCorreccionMesBaseComoAplicada: () => {},
+    asegurarMesesAnioActualEnLineaTiempo: () => {},
     initApp: () => {},
     Date: class extends Date {
       static now() { return now; }
