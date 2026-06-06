@@ -19,8 +19,8 @@
     return Array.isArray(timeline) ? timeline.slice() : [];
   }
 
-  function getAiPanelState(state = {}) {
-    return state.aiPanelState && typeof state.aiPanelState === 'object' ? state.aiPanelState : {};
+  function getIaPanelState(state = {}) {
+    return state.iaPanelState && typeof state.iaPanelState === 'object' ? state.iaPanelState : {};
   }
 
   globalScope.FinancialSelectors = {
@@ -28,6 +28,6 @@
     getActiveMonthKey,
     getCurrentMonthDebts,
     getTimelineMonths,
-    getAiPanelState
+    getIaPanelState
   };
 })(window);

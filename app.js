@@ -11,6 +11,9 @@ let mesesLineaTiempo = [
 const ORDEN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function obtenerMesKeyActualInicial() {
+  if(typeof window !== 'undefined' && window.FinancialTimelineUseCases && typeof window.FinancialTimelineUseCases.getMonthKeyForDate === 'function') {
+    return window.FinancialTimelineUseCases.getMonthKeyForDate(new Date(), ORDEN_MESES);
+  }
   let now = new Date();
   return `${ORDEN_MESES[now.getMonth()]} ${now.getFullYear()}`;
 }
@@ -248,7 +251,7 @@ function syncAppStoreState() {
     activeMonthKey: mesActivoGlobal,
     selectedDay: diaSeleccionadoActivo,
     activeDebtFilter: filtroDeudaActivo,
-    aiPanelState
+    iaPanelState
   });
 }
 
@@ -272,12 +275,25 @@ function aplicarMigracionesSchema(dataIn) {
 }
 
 function marcarCorreccionMesBaseComoAplicada(dataObj = appData) {
+  if(typeof window !== 'undefined' && window.FinancialTimelineUseCases && typeof window.FinancialTimelineUseCases.markBaseMonthCorrectionApplied === 'function') {
+    window.FinancialTimelineUseCases.markBaseMonthCorrectionApplied(dataObj);
+    return;
+  }
   if(!dataObj || typeof dataObj !== 'object') return;
   if(!dataObj.migraciones || typeof dataObj.migraciones !== 'object') dataObj.migraciones = {};
   dataObj.migraciones.correccionMesBaseJunio2026 = true;
 }
 
 function asegurarMesesAnioActualEnLineaTiempo() {
+  if(typeof window !== 'undefined' && window.FinancialTimelineUseCases && typeof window.FinancialTimelineUseCases.ensureCurrentYearTimelineMonths === 'function') {
+    mesesLineaTiempo = window.FinancialTimelineUseCases.ensureCurrentYearTimelineMonths({
+      timeline: mesesLineaTiempo,
+      currentYear: new Date().getFullYear(),
+      monthNames: ORDEN_MESES
+    });
+    if(appData && typeof appData === 'object') appData.lineaTiempoGuardada = mesesLineaTiempo;
+    return;
+  }
   let anioActual = new Date().getFullYear();
   let mesesAnioActual = ORDEN_MESES.map((mes) => `${mes} ${anioActual}`);
   let existentes = Array.isArray(mesesLineaTiempo) ? mesesLineaTiempo : [];

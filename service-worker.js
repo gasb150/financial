@@ -10,6 +10,7 @@ const CORE_ASSETS = [
   './src/app/bootstrap/pwa.js',
   './src/app/store/appStore.js',
   './src/app/store/selectors.js',
+  './src/app/use-cases/timeline/timelineUseCases.js',
   './src/app/use-cases/debts/debtUseCases.js',
   './app.data.js',
   './app.rules.js',
