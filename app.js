@@ -3537,6 +3537,10 @@ function registrarEventosHtmlEstaticos() {
       recuperarDesdeDriveAhora();
       return;
     }
+    if(action === 'logout-google-auth') {
+      cerrarSesionGoogleAuth();
+      return;
+    }
     if(action === 'extend-timeline-year') {
       extenderAnioLineaTiempo();
       return;

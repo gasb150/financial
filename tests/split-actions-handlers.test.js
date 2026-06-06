@@ -185,6 +185,24 @@ test('saveGoogleAuthConfig persists without mutating iaConfig.updatedAt', () => 
   assert.equal(renderCalls, 1);
 });
 
+test('logoutGoogleAuth closes Google session and refreshes Drive UI', async () => {
+  let logoutCalls = 0;
+  let renderAuthCalls = 0;
+  let renderDriveCalls = 0;
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['logoutGoogleAuth'], {
+    cerrarSesionGoogleOAuth: async () => { logoutCalls += 1; },
+    renderGoogleAuthConfig: () => { renderAuthCalls += 1; },
+    renderDriveSyncStatus: () => { renderDriveCalls += 1; }
+  });
+
+  await ctx.logoutGoogleAuth();
+
+  assert.equal(logoutCalls, 1);
+  assert.equal(renderAuthCalls, 1);
+  assert.equal(renderDriveCalls, 1);
+});
+
 test('syncDriveNow starts Google login when there is no active session', async () => {
   let activeSession = false;
   let loginCalls = 0;

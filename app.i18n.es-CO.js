@@ -112,6 +112,7 @@
       'config.googleRedirectUri': 'Redirect URI',
       'config.syncDriveNow': 'Sincronizar con Drive',
       'config.restoreDriveNow': 'Recuperar desde Drive',
+      'config.logoutGoogleDrive': 'Cerrar sesión de Drive',
       'config.driveSyncPassphrase': 'Passphrase de cifrado remoto (opcional)',
       'config.driveSyncPassphrase.placeholder': 'Solo para cifrar/descifrar en tu dispositivo',
       'config.driveSyncIdle': 'Aún no hay sincronización con Drive.',
