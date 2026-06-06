@@ -80,7 +80,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
 
   assert.equal(nodes['google-oauth-client-id'].value, 'abc.apps.googleusercontent.com');
   assert.equal(nodes['google-oauth-redirect'].value, 'https://demo.test/index.html');
-  assert.match(nodes['google-auth-status'].innerText, /Sesión activa/);
+  assert.match(nodes['google-auth-status'].innerText, /Active session/);
   assert.match(nodes['google-auth-status'].innerText, /demo@example.com/);
   assert.equal(nodes['google-auth-error'].innerText, '');
 });
@@ -482,11 +482,11 @@ test('confirmarSubidaCambiosLocalesDriveSync summarizes changed values before up
   );
 
   assert.equal(ok, true);
-  assert.match(confirmMessage, /Tu información local tiene cambios/);
+  assert.match(confirmMessage, /Your local information has changes/);
   assert.match(confirmMessage, /Salario/);
   assert.match(confirmMessage, /\$400\.000/);
   assert.match(confirmMessage, /\$300\.000/);
   assert.doesNotMatch(confirmMessage, /googleapis/);
   assert.doesNotMatch(confirmMessage, /obtainedAtMs|expiresAtMs|session|scope/);
-  assert.match(confirmMessage, /reemplazar el respaldo remoto/);
+  assert.match(confirmMessage, /replace the remote backup/);
 });

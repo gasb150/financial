@@ -516,11 +516,11 @@ function renderGoogleAuthConfig() {
     let user = session.user && typeof session.user === 'object' ? session.user : {};
     let email = String(user.email || '').trim();
     let exp = session.expiresAtMs ? new Date(session.expiresAtMs).toLocaleString('es-CO') : 'N/D';
-    statusEl.innerText = `Sesión activa${email ? ` · ${email}` : ''}. Expira: ${exp}.`;
+    statusEl.innerText = `Active session${email ? ` · ${email}` : ''}. Expires: ${exp}.`;
   } else if(session && session.accessToken) {
-    statusEl.innerText = 'Sesión expirada. Inicia sesión de nuevo o refresca token.';
+    statusEl.innerText = 'Session expired. Sign in again or refresh the token.';
   } else {
-    statusEl.innerText = 'Sesión no iniciada.';
+    statusEl.innerText = 'Session not started.';
   }
 
   errorEl.innerText = appData.googleAuth && appData.googleAuth.lastError ? appData.googleAuth.lastError : '';
@@ -622,15 +622,15 @@ async function iniciarFlujoGoogleGISToken(options = {}) {
   let opts = options && typeof options === 'object' ? options : {};
   let cfg = getGoogleOAuthConfig();
   if(!cfg.clientId) {
-    setErrorGoogleOAuth('Configura el Client ID de Google antes de iniciar sesión.');
+    setErrorGoogleOAuth('Configure the Google Client ID before signing in.');
     renderGoogleAuthConfig();
-    throw new Error('Configura el Client ID de Google antes de iniciar sesión.');
+    throw new Error('Configure the Google Client ID before signing in.');
   }
 
   if(!googleSDKDisponible()) {
-    setErrorGoogleOAuth('Google Identity Services no está disponible todavía. Recarga la página e intenta de nuevo.');
+    setErrorGoogleOAuth('Google Identity Services is not available yet. Reload the page and try again.');
     renderGoogleAuthConfig();
-    throw new Error('Google Identity Services no está disponible todavía.');
+    throw new Error('Google Identity Services is not available yet.');
   }
 
   if(googleOAuthTokenClient && googleOAuthTokenClientClientId !== cfg.clientId) {
@@ -649,7 +649,7 @@ async function iniciarFlujoGoogleGISToken(options = {}) {
   persistirAuxiliaresConFallback(new Date().toISOString());
   let prompt = opts.forceConsent ? 'consent' : (getGoogleOAuthSession() ? '' : 'consent');
   if(googleOAuthPendingRequest) {
-    googleOAuthPendingRequest.reject(new Error('Se inició una nueva solicitud OAuth.'));
+    googleOAuthPendingRequest.reject(new Error('A new OAuth request started.'));
     googleOAuthPendingRequest = null;
   }
   let requestPromise = new Promise((resolve, reject) => {
@@ -738,7 +738,7 @@ async function deriveDriveSyncAesKey(passphrase, saltBytes) {
 
 async function encryptDriveSyncData(dataObj, passphrase) {
   if(!(window.crypto && crypto.subtle)) {
-    throw new Error('Web Crypto no está disponible para cifrar el respaldo remoto.');
+    throw new Error('Web Crypto is not available to encrypt the remote backup.');
   }
   let encoder = new TextEncoder();
   let payload = encoder.encode(JSON.stringify(dataObj));
@@ -760,10 +760,10 @@ async function encryptDriveSyncData(dataObj, passphrase) {
 
 async function decryptDriveSyncData(envelope, passphrase) {
   if(!envelope || !envelope.encryption || !envelope.ciphertext) {
-    throw new Error('No hay metadatos de cifrado válidos en el snapshot remoto.');
+    throw new Error('There is no valid encryption metadata in the remote snapshot.');
   }
   if(!(window.crypto && crypto.subtle)) {
-    throw new Error('Web Crypto no está disponible para descifrar el respaldo remoto.');
+    throw new Error('Web Crypto is not available to decrypt the remote backup.');
   }
   let enc = envelope.encryption;
   let salt = base64ToBytes(enc.salt || '');
@@ -795,10 +795,10 @@ function renderDriveSyncStatus() {
     let date = new Date(state.lastSyncAt).toLocaleString('es-CO');
     let email = String(state.lastSyncEmail || '').trim();
     statusEl.innerText = email
-      ? i18nT('config.driveSyncLastOkWithEmail', { date, email }, `Última sincronización exitosa con ${email}: ${date}.`)
-      : i18nT('config.driveSyncLastOk', { date }, `Última sincronización exitosa: ${date}.`);
+      ? i18nT('config.driveSyncLastOkWithEmail', { date, email }, `Last successful sync with ${email}: ${date}.`)
+      : i18nT('config.driveSyncLastOk', { date }, `Last successful sync: ${date}.`);
   } else {
-    statusEl.innerText = i18nT('config.driveSyncIdle', {}, 'Aún no hay sincronización con Drive.');
+    statusEl.innerText = i18nT('config.driveSyncIdle', {}, 'No Drive sync yet.');
   }
 
   errorEl.innerText = state.lastError || '';
@@ -826,7 +826,7 @@ function evaluarPlanSyncDrive({ remoteVersion = 0, remoteChecksum = '', localChe
 async function googleDriveApiFetch(path, options = {}) {
   let session = getGoogleOAuthSession();
   let token = session && session.accessToken ? session.accessToken : '';
-  if(!token) throw new Error('No hay sesión OAuth activa para Drive.');
+  if(!token) throw new Error('There is no active OAuth session for Drive.');
 
   let resp = await fetch(path, {
     ...options,
@@ -918,7 +918,7 @@ async function resolveDriveEnvelopeData(remoteEnvelope) {
 
   let passphrase = getDriveSyncPassphrase();
   if(!passphrase) {
-    let prompted = prompt('El respaldo remoto está cifrado. Ingresa la passphrase para descifrarlo:');
+    let prompted = prompt('The remote backup is encrypted. Enter the passphrase to decrypt it:');
     passphrase = String(prompted || '').trim();
   }
   if(!passphrase) throw new Error('Se requiere passphrase para descifrar el respaldo remoto.');
@@ -992,8 +992,8 @@ function formatearValorCambioDriveSync(valor) {
   }
   if(valor === null || valor === undefined) return 'sin valor';
   if(typeof valor === 'number') return formatCOP(valor);
-  if(typeof valor === 'boolean') return valor ? 'sí' : 'no';
-  if(typeof valor === 'string') return valor.trim() ? valor.trim() : 'vacío';
+  if(typeof valor === 'boolean') return valor ? 'yes' : 'no';
+  if(typeof valor === 'string') return valor.trim() ? valor.trim() : 'empty';
   if(Array.isArray(valor)) return `lista (${valor.length} items)`;
   if(typeof valor === 'object') {
     if(valor.nombre) return String(valor.nombre);
@@ -1087,9 +1087,9 @@ async function confirmarSubidaCambiosLocalesDriveSync(remoteEnvelope, localData)
   }
 
   let detalle = cambios.length
-    ? `\n\nCambios detectados:\n- ${cambios.join('\n- ')}`
-    : '\n\nNo fue posible detallar los cambios, pero tu versión local difiere de la versión remota.';
-  return confirm(`Tu información local tiene cambios frente al respaldo de Drive.${detalle}\n\n¿Estás de acuerdo con subir estos cambios y reemplazar el respaldo remoto?`);
+    ? `\n\nDetected changes:\n- ${cambios.join('\n- ')}`
+    : '\n\nCould not list the changes, but your local version differs from the remote version.';
+  return confirm(`Your local information has changes compared with the Drive backup.${detalle}\n\nDo you agree to upload these changes and replace the remote backup?`);
 }
 
 async function uploadDriveSyncEnvelope(existingFileId, envelope) {
@@ -1123,7 +1123,7 @@ async function asegurarSesionGoogleParaDrive() {
     await iniciarFlujoGoogleGISToken({ forceConsent: !hasDriveAccess });
   }
 
-  if(!isGoogleOAuthSessionActive()) throw new Error('No se pudo obtener una sesión activa de Google.');
+  if(!isGoogleOAuthSessionActive()) throw new Error('Could not get an active Google session.');
   return getGoogleOAuthSession();
 }
 
@@ -1168,11 +1168,11 @@ async function sincronizarDriveConGoogle(options = {}) {
     });
 
     if(forcePull) {
-      if(!remoteEnvelope) throw new Error('No hay snapshot remoto en Drive para recuperar.');
+      if(!remoteEnvelope) throw new Error('There is no remote snapshot in Drive to recover.');
 
       let remoteData = await resolveDriveEnvelopeData(remoteEnvelope);
       if(!validarPayloadRespaldo(remoteData)) {
-        throw new Error('El snapshot remoto de Drive es inválido o está corrupto.');
+        throw new Error('The remote Drive snapshot is invalid or corrupted.');
       }
       await validarChecksumEnvelopeDriveSync(remoteEnvelope, remoteData);
       remoteChecksum = await generarChecksumSnapshotDriveSync(remoteData);
@@ -1207,7 +1207,7 @@ async function sincronizarDriveConGoogle(options = {}) {
     if(plan.needsPull) {
       let remoteData = await resolveDriveEnvelopeData(remoteEnvelope);
       if(!remoteEnvelope || !validarPayloadRespaldo(remoteData)) {
-        throw new Error('Se detectaron cambios remotos, pero el snapshot remoto no es válido.');
+        throw new Error('Remote changes were detected, but the remote snapshot is not valid.');
       }
       await validarChecksumEnvelopeDriveSync(remoteEnvelope, remoteData);
       remoteChecksum = await generarChecksumSnapshotDriveSync(remoteData);
@@ -1216,11 +1216,11 @@ async function sincronizarDriveConGoogle(options = {}) {
         return { ok: true, dryRun: true, action: 'pull-required', remoteVersion };
       }
 
-      let confirmarPull = confirm('Se detectaron cambios remotos más recientes en Drive. Aceptar: usar versión remota. Cancelar: mantener local y sobrescribir remoto.');
+      let confirmarPull = confirm('Newer remote changes were detected in Drive. Accept: use remote version. Cancel: keep local and overwrite remote.');
       if(!confirmarPull) {
-        let confirmarSobrescritura = confirm('Se sobrescribirá la versión remota con tu estado local actual. ¿Deseas continuar?');
+        let confirmarSobrescritura = confirm('The remote version will be overwritten with your current local state. Do you want to continue?');
         if(!confirmarSobrescritura) {
-          throw new Error('Sincronización cancelada para evitar sobrescritura silenciosa.');
+          throw new Error('Sync canceled to prevent silent overwrite.');
         }
         appendDriveSyncEvent('conflict-resolved-local-wins', {
           remoteVersion,
@@ -1235,7 +1235,7 @@ async function sincronizarDriveConGoogle(options = {}) {
         persistirDataPrincipalConFallback();
         persistirAuxiliaresConFallback(new Date().toISOString());
         initApp({ skipDataNormalization: false });
-        alert('Se descargó la versión remota de Drive. Vuelve a ejecutar sincronizar para subir cambios locales nuevos.');
+        alert('The remote Drive version was downloaded. Run sync again to upload new local changes.');
         let refreshedState = getDriveSyncState();
         refreshedState.fileId = remoteFile && remoteFile.id ? remoteFile.id : (refreshedState.fileId || null);
         refreshedState.lastKnownRemoteVersion = remoteVersion;
@@ -1258,7 +1258,7 @@ async function sincronizarDriveConGoogle(options = {}) {
     if(remoteEnvelope && remoteChecksum && localChecksum !== remoteChecksum) {
       let confirmarSubidaLocal = await confirmarSubidaCambiosLocalesDriveSync(remoteEnvelope, localPayload.data);
       if(!confirmarSubidaLocal) {
-        throw new Error('Sincronización cancelada: no se confirmaron los cambios locales para subir a Drive.');
+        throw new Error('Sync canceled: local changes were not confirmed for upload to Drive.');
       }
       appendDriveSyncEvent('local-changes-confirmed', {
         remoteVersion,
@@ -1279,7 +1279,7 @@ async function sincronizarDriveConGoogle(options = {}) {
         refreshedRemoteVersion !== remoteVersion
         || refreshedRemoteChecksum !== remoteChecksum
       ) {
-        throw new Error('El snapshot remoto cambió antes de subirse a Drive. Vuelve a sincronizar para revalidar el estado remoto.');
+        throw new Error('The remote snapshot changed before upload to Drive. Sync again to revalidate the remote state.');
       }
     }
 
@@ -1323,7 +1323,7 @@ async function sincronizarDriveConGoogle(options = {}) {
       return await sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
     }
 
-    let mensaje = err && err.message ? err.message : 'Error desconocido durante sincronización con Drive.';
+    let mensaje = err && err.message ? err.message : 'Unknown error during Drive sync.';
     setDriveSyncError(mensaje);
     appendDriveSyncEvent('sync-error', { message: mensaje });
     renderDriveSyncStatus();
@@ -2008,16 +2008,16 @@ function validarLimitesIAAntesDeConsumir(cfgApi) {
   asegurarVentanasConsumoIA();
   let usage = appData.iaUsage || {};
   if(usage.dailyTokens >= cfgApi.limits.dailyTokenLimit) {
-    throw new Error(`Límite diario de tokens IA alcanzado (${usage.dailyTokens}/${cfgApi.limits.dailyTokenLimit}).`);
+    throw new Error(`Daily AI token limit reached (${usage.dailyTokens}/${cfgApi.limits.dailyTokenLimit}).`);
   }
   if(usage.monthlyTokens >= cfgApi.limits.monthlyTokenLimit) {
-    throw new Error(`Límite mensual de tokens IA alcanzado (${usage.monthlyTokens}/${cfgApi.limits.monthlyTokenLimit}).`);
+    throw new Error(`Monthly AI token limit reached (${usage.monthlyTokens}/${cfgApi.limits.monthlyTokenLimit}).`);
   }
   if(usage.dailyCostCop >= cfgApi.limits.dailyCopLimit) {
-    throw new Error(`Límite diario de costo IA alcanzado (${formatCOP(usage.dailyCostCop)}/${formatCOP(cfgApi.limits.dailyCopLimit)}).`);
+    throw new Error(`Daily AI cost limit reached (${formatCOP(usage.dailyCostCop)}/${formatCOP(cfgApi.limits.dailyCopLimit)}).`);
   }
   if(usage.monthlyCostCop >= cfgApi.limits.monthlyCopLimit) {
-    throw new Error(`Límite mensual de costo IA alcanzado (${formatCOP(usage.monthlyCostCop)}/${formatCOP(cfgApi.limits.monthlyCopLimit)}).`);
+    throw new Error(`Monthly AI cost limit reached (${formatCOP(usage.monthlyCostCop)}/${formatCOP(cfgApi.limits.monthlyCopLimit)}).`);
   }
 }
 

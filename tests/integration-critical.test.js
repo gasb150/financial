@@ -171,7 +171,7 @@ test('validarLimitesIAAntesDeConsumir blocks when daily token cap is reached', (
         monthlyCopLimit: 10000
       }
     }),
-    /Límite diario de tokens IA alcanzado/
+    /Daily AI token limit reached/
   );
 });
 
