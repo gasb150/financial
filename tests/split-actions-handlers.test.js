@@ -185,6 +185,128 @@ test('saveGoogleAuthConfig persists without mutating iaConfig.updatedAt', () => 
   assert.equal(renderCalls, 1);
 });
 
+test('syncDriveNow starts Google login when there is no active session', async () => {
+  let activeSession = false;
+  let loginCalls = 0;
+  let syncCalls = 0;
+  let renderAuthCalls = 0;
+  let renderDriveCalls = 0;
+  const alerts = [];
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['ensureGoogleSessionForDriveAction', 'getDriveActionFailureMessage', 'syncDriveNow'], {
+    isGoogleOAuthSessionActive: () => activeSession,
+    iniciarFlujoGoogleGISToken: async () => {
+      loginCalls += 1;
+      activeSession = true;
+    },
+    sincronizarDriveConGoogle: async () => {
+      syncCalls += 1;
+      return { ok: true };
+    },
+    renderGoogleAuthConfig: () => { renderAuthCalls += 1; },
+    renderDriveSyncStatus: () => { renderDriveCalls += 1; },
+    alert: (msg) => { alerts.push(msg); }
+  });
+
+  await ctx.syncDriveNow();
+
+  assert.equal(loginCalls, 1);
+  assert.equal(syncCalls, 1);
+  assert.equal(renderAuthCalls, 1);
+  assert.equal(renderDriveCalls, 1);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /Sincronización con Drive completada/);
+});
+
+test('syncDriveNow only reports success after confirmed sync', async () => {
+  let syncCalls = 0;
+  let renderAuthCalls = 0;
+  let renderDriveCalls = 0;
+  const alerts = [];
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['ensureGoogleSessionForDriveAction', 'getDriveActionFailureMessage', 'syncDriveNow'], {
+    isGoogleOAuthSessionActive: () => true,
+    iniciarFlujoGoogleGISToken: async () => { throw new Error('should not login'); },
+    sincronizarDriveConGoogle: async () => {
+      syncCalls += 1;
+      return { ok: false, reason: 'already-running' };
+    },
+    renderGoogleAuthConfig: () => { renderAuthCalls += 1; },
+    renderDriveSyncStatus: () => { renderDriveCalls += 1; },
+    alert: (msg) => { alerts.push(msg); }
+  });
+
+  await ctx.syncDriveNow();
+
+  assert.equal(syncCalls, 1);
+  assert.equal(renderAuthCalls, 1);
+  assert.equal(renderDriveCalls, 1);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /Sincronización detenida/);
+  assert.match(alerts[0], /Ya hay una sincronización con Drive en curso/);
+});
+
+test('restoreFromDriveNow starts Google login when there is no active session', async () => {
+  let activeSession = false;
+  let loginCalls = 0;
+  let syncCalls = 0;
+  let renderAuthCalls = 0;
+  let renderDriveCalls = 0;
+  const alerts = [];
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['ensureGoogleSessionForDriveAction', 'getDriveActionFailureMessage', 'restoreFromDriveNow'], {
+    isGoogleOAuthSessionActive: () => activeSession,
+    iniciarFlujoGoogleGISToken: async () => {
+      loginCalls += 1;
+      activeSession = true;
+    },
+    sincronizarDriveConGoogle: async () => {
+      syncCalls += 1;
+      return { ok: true };
+    },
+    renderGoogleAuthConfig: () => { renderAuthCalls += 1; },
+    renderDriveSyncStatus: () => { renderDriveCalls += 1; },
+    alert: (msg) => { alerts.push(msg); }
+  });
+
+  await ctx.restoreFromDriveNow();
+
+  assert.equal(loginCalls, 1);
+  assert.equal(syncCalls, 1);
+  assert.equal(renderAuthCalls, 1);
+  assert.equal(renderDriveCalls, 1);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /Recuperación desde Drive completada/);
+});
+
+test('restoreFromDriveNow only reports success after confirmed force pull', async () => {
+  let syncOptions = null;
+  let renderAuthCalls = 0;
+  let renderDriveCalls = 0;
+  const alerts = [];
+
+  const ctx = loadFunctionsFromFile(ACTIONS_JS, ['ensureGoogleSessionForDriveAction', 'getDriveActionFailureMessage', 'restoreFromDriveNow'], {
+    isGoogleOAuthSessionActive: () => true,
+    iniciarFlujoGoogleGISToken: async () => { throw new Error('should not login'); },
+    sincronizarDriveConGoogle: async (options) => {
+      syncOptions = options;
+      return { ok: false, reason: 'already-running' };
+    },
+    renderGoogleAuthConfig: () => { renderAuthCalls += 1; },
+    renderDriveSyncStatus: () => { renderDriveCalls += 1; },
+    alert: (msg) => { alerts.push(msg); }
+  });
+
+  await ctx.restoreFromDriveNow();
+
+  assert.equal(syncOptions.forcePull, true);
+  assert.equal(renderAuthCalls, 1);
+  assert.equal(renderDriveCalls, 1);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /Recuperación detenida/);
+  assert.match(alerts[0], /Ya hay una sincronización con Drive en curso/);
+});
+
 test('togglePaidCheck marks diaPagoReal when paying active-month debt', () => {
   let commitCalls = 0;
   const todayDay = new Date().getDate();

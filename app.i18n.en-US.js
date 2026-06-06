@@ -117,6 +117,7 @@
       'config.driveSyncIdle': 'No Drive sync has been run yet.',
       'config.driveSyncInProgress': 'Synchronizing with Drive...',
       'config.driveSyncLastOk': 'Last successful sync: {{date}}.',
+      'config.driveSyncLastOkWithEmail': 'Last successful sync with {{email}}: {{date}}.',
       'config.aiTitle': 'AI assistant',
       'config.aiMode': 'AI mode',
       'config.aiMode.off': 'OFF (no AI calls)',

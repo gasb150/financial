@@ -124,13 +124,36 @@
     renderDriveSyncStatus();
   }
 
+  async function ensureGoogleSessionForDriveAction() {
+    if(typeof isGoogleOAuthSessionActive === 'function' && isGoogleOAuthSessionActive()) return;
+    await iniciarFlujoGoogleGISToken();
+    if(typeof isGoogleOAuthSessionActive === 'function' && !isGoogleOAuthSessionActive()) {
+      throw new Error('No se pudo iniciar una sesión activa de Google.');
+    }
+  }
+
+  function getDriveActionFailureMessage(result, fallback) {
+    if(result && result.reason === 'already-running') {
+      return 'Ya hay una sincronización con Drive en curso. Espera a que termine antes de intentar de nuevo.';
+    }
+    if(result && result.reason) return `${fallback} (${result.reason}).`;
+    return fallback;
+  }
+
   async function syncDriveNow() {
     try {
-      await sincronizarDriveConGoogle();
+      await ensureGoogleSessionForDriveAction();
+
+      let result = await sincronizarDriveConGoogle();
+      if(!result || result.ok !== true) {
+        throw new Error(getDriveActionFailureMessage(result, 'No se pudo confirmar la sincronización con Drive.'));
+      }
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
       alert('Sincronización con Drive completada.');
     } catch(err) {
+      renderGoogleAuthConfig();
+      renderDriveSyncStatus();
       let detalle = err && err.message ? err.message : 'No se pudo sincronizar con Drive.';
       alert(`Sincronización detenida: ${detalle}`);
     }
@@ -138,11 +161,18 @@
 
   async function restoreFromDriveNow() {
     try {
-      await sincronizarDriveConGoogle({ forcePull: true });
+      await ensureGoogleSessionForDriveAction();
+
+      let result = await sincronizarDriveConGoogle({ forcePull: true });
+      if(!result || result.ok !== true) {
+        throw new Error(getDriveActionFailureMessage(result, 'No se pudo confirmar la recuperación desde Drive.'));
+      }
       renderGoogleAuthConfig();
       renderDriveSyncStatus();
       alert('Recuperación desde Drive completada.');
     } catch(err) {
+      renderGoogleAuthConfig();
+      renderDriveSyncStatus();
       let detalle = err && err.message ? err.message : 'No se pudo recuperar desde Drive.';
       alert(`Recuperación detenida: ${detalle}`);
     }

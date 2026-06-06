@@ -290,6 +290,17 @@ test('snapshot replicado de Drive excluye metadata volatile de driveSync', async
   const base = {
     schemaVersion: 5,
     ingresosList: [{ id: 1, valor: 1000 }],
+    googleAuth: {
+      provider: 'google',
+      clientId: 'client-1',
+      scope: 'openid profile email https://www.googleapis.com/auth/drive.appdata',
+      session: {
+        obtainedAtMs: 1000,
+        expiresAtMs: 2000,
+        user: { email: 'demo@example.com' }
+      },
+      lastError: 'x'
+    },
     driveSync: {
       localDeviceId: 'device-a',
       syncInProgress: true,
@@ -299,6 +310,17 @@ test('snapshot replicado de Drive excluye metadata volatile de driveSync', async
   };
   const changedMetadata = {
     ...base,
+    googleAuth: {
+      provider: 'google',
+      clientId: 'client-1',
+      scope: 'https://www.googleapis.com/auth/userinfo.email openid profile https://www.googleapis.com/auth/drive.appdata',
+      session: {
+        obtainedAtMs: 3000,
+        expiresAtMs: 4000,
+        user: { email: 'demo@example.com' }
+      },
+      lastError: ''
+    },
     driveSync: {
       localDeviceId: 'device-b',
       syncInProgress: false,
@@ -312,6 +334,10 @@ test('snapshot replicado de Drive excluye metadata volatile de driveSync', async
   const checksumB = await ctx.generarChecksumSnapshotDriveSync(changedMetadata);
 
   assert.equal('driveSync' in sanitized, false);
+  assert.equal(sanitized.googleAuth.provider, 'google');
+  assert.equal(sanitized.googleAuth.clientId, 'client-1');
+  assert.equal('scope' in sanitized.googleAuth, false);
+  assert.equal('session' in sanitized.googleAuth, false);
   assert.equal(checksumA, checksumB);
 });
 
