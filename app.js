@@ -168,6 +168,7 @@ const datosDefault = resolverDatosDefaultExternos() || {
     lastKnownRemoteVersion: 0,
     lastKnownRemoteChecksum: '',
     lastSyncAt: null,
+    lastSyncEmail: '',
     lastError: '',
     syncInProgress: false,
     syncEvents: []
@@ -267,6 +268,7 @@ const APP_SCHEMA_MIGRATORS = {
         lastKnownRemoteVersion: 0,
         lastKnownRemoteChecksum: '',
         lastSyncAt: null,
+        lastSyncEmail: '',
         lastError: '',
         syncInProgress: false,
         syncEvents: []
@@ -404,6 +406,7 @@ function normalizarEstadoCargado() {
       lastKnownRemoteVersion: 0,
       lastKnownRemoteChecksum: '',
       lastSyncAt: null,
+      lastSyncEmail: '',
       lastError: '',
       syncInProgress: false,
       syncEvents: []
@@ -415,8 +418,11 @@ function normalizarEstadoCargado() {
   appData.driveSync.lastKnownRemoteVersion = Math.max(0, parseInt(appData.driveSync.lastKnownRemoteVersion, 10) || 0);
   if(typeof appData.driveSync.lastKnownRemoteChecksum !== 'string') appData.driveSync.lastKnownRemoteChecksum = '';
   if(typeof appData.driveSync.lastSyncAt !== 'string') appData.driveSync.lastSyncAt = null;
+  if(typeof appData.driveSync.lastSyncEmail !== 'string') appData.driveSync.lastSyncEmail = '';
   if(typeof appData.driveSync.lastError !== 'string') appData.driveSync.lastError = '';
-  appData.driveSync.syncInProgress = !!appData.driveSync.syncInProgress;
+  // syncInProgress is a runtime/UI flag. Never restore a persisted true value,
+  // because an interrupted tab/reload would leave Drive sync permanently locked.
+  appData.driveSync.syncInProgress = false;
   if(!Array.isArray(appData.driveSync.syncEvents)) appData.driveSync.syncEvents = [];
   appData.driveSync.syncEvents = appData.driveSync.syncEvents.slice(-DRIVE_SYNC_TRACE_LIMIT);
 }
@@ -442,6 +448,13 @@ function getGoogleOAuthSession() {
     return { ...session, accessToken: googleOAuthAccessTokenRuntime };
   }
   return session;
+}
+
+function getGoogleOAuthSessionEmail() {
+  let session = getGoogleOAuthSession();
+  if(!session || typeof session !== 'object') return '';
+  let user = session.user && typeof session.user === 'object' ? session.user : {};
+  return String(user.email || session.email || '').trim();
 }
 
 function hasGoogleScope(scopeText, requiredScope) {
@@ -505,6 +518,7 @@ let googleOAuthTokenClient = null;
 let googleOAuthTokenClientClientId = '';
 let googleOAuthPendingRequest = null;
 let googleOAuthAccessTokenRuntime = '';
+let driveSyncRuntimeInProgress = false;
 
 function googleSDKDisponible() {
   return !!(
@@ -766,9 +780,11 @@ function renderDriveSyncStatus() {
   if(state.syncInProgress) {
     statusEl.innerText = i18nT('config.driveSyncInProgress', {}, 'Sincronizando con Drive...');
   } else if(state.lastSyncAt) {
-    statusEl.innerText = i18nT('config.driveSyncLastOk', {
-      date: new Date(state.lastSyncAt).toLocaleString('es-CO')
-    }, `Última sincronización exitosa: ${new Date(state.lastSyncAt).toLocaleString('es-CO')}.`);
+    let date = new Date(state.lastSyncAt).toLocaleString('es-CO');
+    let email = String(state.lastSyncEmail || '').trim();
+    statusEl.innerText = email
+      ? i18nT('config.driveSyncLastOkWithEmail', { date, email }, `Última sincronización exitosa con ${email}: ${date}.`)
+      : i18nT('config.driveSyncLastOk', { date }, `Última sincronización exitosa: ${date}.`);
   } else {
     statusEl.innerText = i18nT('config.driveSyncIdle', {}, 'Aún no hay sincronización con Drive.');
   }
@@ -901,6 +917,12 @@ function sanitizarSnapshotReplicadoDriveSync(dataObj) {
   let snapshot = clonarJSONSeguro(dataObj);
   if(!snapshot || typeof snapshot !== 'object') return {};
   delete snapshot.driveSync;
+  if(snapshot.googleAuth && typeof snapshot.googleAuth === 'object') {
+    snapshot.googleAuth = {
+      provider: String(snapshot.googleAuth.provider || 'google'),
+      clientId: String(snapshot.googleAuth.clientId || '')
+    };
+  }
   return snapshot;
 }
 
@@ -952,6 +974,109 @@ function crearMultipartDriveBody(metadata, contentObj, boundary) {
   return `${delimiter}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n${delimiter}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${payload}\r\n${close}`;
 }
 
+function formatearValorCambioDriveSync(valor) {
+  if(valor === null || valor === undefined) return 'sin valor';
+  if(typeof valor === 'number') return formatCOP(valor);
+  if(typeof valor === 'boolean') return valor ? 'sí' : 'no';
+  if(typeof valor === 'string') return valor.trim() ? valor.trim() : 'vacío';
+  if(Array.isArray(valor)) return `lista (${valor.length} items)`;
+  if(typeof valor === 'object') {
+    if(valor.nombre) return String(valor.nombre);
+    return 'objeto';
+  }
+  return String(valor);
+}
+
+function nombreCampoCambioDriveSync(campo) {
+  let mapa = {
+    ingresosList: 'ingresos',
+    compromisos: 'deudas',
+    primasList: 'primas',
+    valor: 'valor',
+    nombre: 'nombre',
+    periodo: 'periodo',
+    diaPago: 'día de pago',
+    mesInicio: 'mes inicial',
+    mesFin: 'mes final',
+    dia: 'día',
+    mesKey: 'mes',
+    pagado: 'pagado'
+  };
+  return mapa[campo] || campo;
+}
+
+function etiquetaCambioDriveSync(pathParts, campo, remoto, local) {
+  let nombre = '';
+  if(local && typeof local === 'object' && local.nombre) nombre = String(local.nombre);
+  if(!nombre && remoto && typeof remoto === 'object' && remoto.nombre) nombre = String(remoto.nombre);
+  if(nombre) return `${nombre} · ${nombreCampoCambioDriveSync(campo)}`;
+  return [...pathParts, nombreCampoCambioDriveSync(campo)].map(nombreCampoCambioDriveSync).join(' > ');
+}
+
+function acumularCambiosDriveSync(remoto, local, pathParts = [], cambios = [], limite = 8) {
+  if(cambios.length >= limite) return cambios;
+  if(Object.is(remoto, local)) return cambios;
+
+  if(!remoto || !local || typeof remoto !== 'object' || typeof local !== 'object') {
+    cambios.push(`${pathParts.map(nombreCampoCambioDriveSync).join(' > ') || 'dato'}: ${formatearValorCambioDriveSync(remoto)} → ${formatearValorCambioDriveSync(local)}`);
+    return cambios;
+  }
+
+  if(Array.isArray(remoto) || Array.isArray(local)) {
+    let remArr = Array.isArray(remoto) ? remoto : [];
+    let locArr = Array.isArray(local) ? local : [];
+    let max = Math.max(remArr.length, locArr.length);
+    for(let i = 0; i < max && cambios.length < limite; i += 1) {
+      let r = remArr[i];
+      let l = locArr[i];
+      if(r && l && typeof r === 'object' && typeof l === 'object') {
+        acumularCambiosDriveSync(r, l, [...pathParts, `${nombreCampoCambioDriveSync(pathParts[pathParts.length - 1] || 'item')} ${i + 1}`], cambios, limite);
+      } else if(!Object.is(r, l)) {
+        let nombre = (l && l.nombre) || (r && r.nombre) || `${nombreCampoCambioDriveSync(pathParts[pathParts.length - 1] || 'item')} ${i + 1}`;
+        cambios.push(`${nombre}: ${formatearValorCambioDriveSync(r)} → ${formatearValorCambioDriveSync(l)}`);
+      }
+    }
+    return cambios;
+  }
+
+  let keys = Array.from(new Set([...Object.keys(remoto), ...Object.keys(local)]));
+  for(let key of keys) {
+    if(cambios.length >= limite) break;
+    let r = remoto[key];
+    let l = local[key];
+    if(Object.is(r, l)) continue;
+    if(r && l && typeof r === 'object' && typeof l === 'object') {
+      acumularCambiosDriveSync(r, l, [...pathParts, nombreCampoCambioDriveSync(key)], cambios, limite);
+    } else {
+      cambios.push(`${etiquetaCambioDriveSync(pathParts, key, remoto, local)}: ${formatearValorCambioDriveSync(r)} → ${formatearValorCambioDriveSync(l)}`);
+    }
+  }
+
+  return cambios;
+}
+
+async function confirmarSubidaCambiosLocalesDriveSync(remoteEnvelope, localData) {
+  if(!remoteEnvelope) return true;
+
+  let cambios = [];
+  try {
+    let remoteData = await resolveDriveEnvelopeData(remoteEnvelope);
+    if(remoteData && typeof remoteData === 'object') {
+      cambios = acumularCambiosDriveSync(
+        sanitizarSnapshotReplicadoDriveSync(remoteData),
+        sanitizarSnapshotReplicadoDriveSync(localData)
+      );
+    }
+  } catch(_e) {
+    cambios = [];
+  }
+
+  let detalle = cambios.length
+    ? `\n\nCambios detectados:\n- ${cambios.join('\n- ')}`
+    : '\n\nNo fue posible detallar los cambios, pero tu versión local difiere de la versión remota.';
+  return confirm(`Tu información local tiene cambios frente al respaldo de Drive.${detalle}\n\n¿Estás de acuerdo con subir estos cambios y reemplazar el respaldo remoto?`);
+}
+
 async function uploadDriveSyncEnvelope(existingFileId, envelope) {
   let boundary = `financial-sync-${Date.now().toString(36)}`;
   let metadata = existingFileId
@@ -991,8 +1116,10 @@ async function sincronizarDriveConGoogle(options = {}) {
   let dryRun = !!options.dryRun;
   let forcePull = !!options.forcePull;
   let state = getDriveSyncState();
-  if(state.syncInProgress) return { ok: false, reason: 'already-running' };
+  if(driveSyncRuntimeInProgress) return { ok: false, reason: 'already-running' };
+  if(state.syncInProgress) state.syncInProgress = false;
 
+  driveSyncRuntimeInProgress = true;
   state.syncInProgress = true;
   state.lastError = '';
   syncDriveEncryptionFlagFromUI();
@@ -1003,6 +1130,7 @@ async function sincronizarDriveConGoogle(options = {}) {
 
   try {
     await asegurarSesionGoogleParaDrive();
+    let syncEmail = getGoogleOAuthSessionEmail();
     let remoteFile = await findDriveSyncFile();
     let remoteEnvelope = null;
     let remoteVersion = 0;
@@ -1045,12 +1173,15 @@ async function sincronizarDriveConGoogle(options = {}) {
       initApp({ skipDataNormalization: false });
 
       let refreshedState = getDriveSyncState();
+      refreshedState.fileId = remoteFile && remoteFile.id ? remoteFile.id : (refreshedState.fileId || null);
       refreshedState.lastKnownRemoteVersion = remoteVersion;
       refreshedState.lastKnownRemoteChecksum = remoteChecksum;
       refreshedState.lastSyncAt = new Date().toISOString();
+      refreshedState.lastSyncEmail = syncEmail;
       appendDriveSyncEvent('force-pull-applied', {
         remoteVersion,
-        remoteChecksum
+        remoteChecksum,
+        email: syncEmail
       });
 
       return { ok: true, action: 'force-pulled', remoteVersion };
@@ -1087,12 +1218,15 @@ async function sincronizarDriveConGoogle(options = {}) {
         initApp({ skipDataNormalization: false });
         alert('Se descargó la versión remota de Drive. Vuelve a ejecutar sincronizar para subir cambios locales nuevos.');
         let refreshedState = getDriveSyncState();
+        refreshedState.fileId = remoteFile && remoteFile.id ? remoteFile.id : (refreshedState.fileId || null);
         refreshedState.lastKnownRemoteVersion = remoteVersion;
         refreshedState.lastKnownRemoteChecksum = remoteChecksum;
         refreshedState.lastSyncAt = new Date().toISOString();
+        refreshedState.lastSyncEmail = syncEmail;
         appendDriveSyncEvent('conflict-resolved-remote-wins', {
           remoteVersion,
-          remoteChecksum
+          remoteChecksum,
+          email: syncEmail
         });
         return { ok: true, action: 'pulled-remote', remoteVersion };
       }
@@ -1102,6 +1236,18 @@ async function sincronizarDriveConGoogle(options = {}) {
       return { ok: true, dryRun: true, action: 'push-ready', remoteVersion };
     }
 
+    if(remoteEnvelope && remoteChecksum && localChecksum !== remoteChecksum) {
+      let confirmarSubidaLocal = await confirmarSubidaCambiosLocalesDriveSync(remoteEnvelope, localPayload.data);
+      if(!confirmarSubidaLocal) {
+        throw new Error('Sincronización cancelada: no se confirmaron los cambios locales para subir a Drive.');
+      }
+      appendDriveSyncEvent('local-changes-confirmed', {
+        remoteVersion,
+        localChecksum,
+        remoteChecksum
+      });
+    }
+
     if(state.fileId) {
       let refreshedRemoteEnvelope = await downloadDriveSyncEnvelope(state.fileId);
       let refreshedRemoteVersion = Math.max(0, parseInt(refreshedRemoteEnvelope && refreshedRemoteEnvelope.version, 10) || 0);
@@ -1109,17 +1255,9 @@ async function sincronizarDriveConGoogle(options = {}) {
         refreshedRemoteEnvelope,
         refreshedRemoteEnvelope && refreshedRemoteEnvelope.checksum
       );
-      let refreshedPlan = evaluarPlanSyncDrive({
-        remoteVersion: refreshedRemoteVersion,
-        remoteChecksum: refreshedRemoteChecksum,
-        localChecksum,
-        lastKnownRemoteVersion: state.lastKnownRemoteVersion
-      });
 
       if(
-        refreshedPlan.needsPull
-        || refreshedPlan.reason === 'diverged-same-version'
-        || refreshedRemoteVersion !== remoteVersion
+        refreshedRemoteVersion !== remoteVersion
         || refreshedRemoteChecksum !== remoteChecksum
       ) {
         throw new Error('El snapshot remoto cambió antes de subirse a Drive. Vuelve a sincronizar para revalidar el estado remoto.');
@@ -1133,10 +1271,12 @@ async function sincronizarDriveConGoogle(options = {}) {
     state.lastKnownRemoteVersion = uploadEnvelope.version;
     state.lastKnownRemoteChecksum = uploadEnvelope.checksum;
     state.lastSyncAt = uploadEnvelope.updatedAt;
+    state.lastSyncEmail = syncEmail;
     state.lastError = '';
     appendDriveSyncEvent('sync-pushed', {
       version: uploadEnvelope.version,
-      encryptionEnabled: !!uploadEnvelope.encryption
+      encryptionEnabled: !!uploadEnvelope.encryption,
+      email: syncEmail
     });
 
     persistirDataPrincipalConFallback();
@@ -1156,11 +1296,12 @@ async function sincronizarDriveConGoogle(options = {}) {
 
       let retryState = getDriveSyncState();
       retryState.syncInProgress = false;
+      driveSyncRuntimeInProgress = false;
       persistirDataPrincipalConFallback();
       persistirAuxiliaresConFallback(new Date().toISOString());
       renderDriveSyncStatus();
 
-      return sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
+      return await sincronizarDriveConGoogle({ ...options, _scopeRetryDone: true });
     }
 
     let mensaje = err && err.message ? err.message : 'Error desconocido durante sincronización con Drive.';
@@ -1171,6 +1312,7 @@ async function sincronizarDriveConGoogle(options = {}) {
   } finally {
     let latestState = getDriveSyncState();
     latestState.syncInProgress = false;
+    driveSyncRuntimeInProgress = false;
     persistirDataPrincipalConFallback();
     persistirAuxiliaresConFallback(new Date().toISOString());
     renderDriveSyncStatus();
@@ -3393,6 +3535,10 @@ function registrarEventosHtmlEstaticos() {
     }
     if(action === 'restore-drive-now') {
       recuperarDesdeDriveAhora();
+      return;
+    }
+    if(action === 'logout-google-auth') {
+      cerrarSesionGoogleAuth();
       return;
     }
     if(action === 'extend-timeline-year') {
