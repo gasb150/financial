@@ -22,6 +22,7 @@ const CORE_ASSETS = [
   './app.i18n.en-US.js',
   './app.i18n.js',
   './app.ia.js',
+  './app.events.js',
   './manifest.webmanifest',
   './assets/icons/icon-192.svg',
   './assets/icons/icon-512.svg'
