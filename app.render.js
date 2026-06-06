@@ -110,12 +110,12 @@
     document.getElementById('tit-cal-dinamico').innerText = i18nT(
       'summary.flowCalendarTitle',
       { month: mesActivoGlobal },
-      `Calendario de Flujo - ${mesActivoGlobal}`
+      `Cash Flow Calendar - ${mesActivoGlobal}`
     );
     document.getElementById('tit-semanas-dinamico').innerText = i18nT(
       'weeks.timelineTitle',
       { month: mesActivoGlobal },
-      `Línea de Semanas - ${mesActivoGlobal}`
+      `Weekly Timeline - ${mesActivoGlobal}`
     );
 
     const titSobrante = document.getElementById('tit-sobrante-dinamico');
@@ -123,7 +123,7 @@
       titSobrante.innerText = i18nT(
         'summary.surplusBaseMonthly',
         { value: formatCOP(0) },
-        `Sobrante (Base mensual: ${formatCOP(0)})`
+        `Surplus (monthly base: ${formatCOP(0)})`
       );
     }
 
@@ -150,13 +150,13 @@
         normal: formatCOP(totalNormalIngresos),
         carry: formatCOP(totalArrastreIngresos)
       },
-      `Normal: ${formatCOP(totalNormalIngresos)} · Arrastre: ${formatCOP(totalArrastreIngresos)}`
+      `Regular: ${formatCOP(totalNormalIngresos)} · Carryover: ${formatCOP(totalArrastreIngresos)}`
     );
     document.getElementById('res-gastos').innerText = formatCOP(totalGastos);
     document.getElementById('res-gastos-porc').innerText = i18nT(
       'summary.percentIncomeDynamic',
       { value: totalGastosPorc },
-      `${totalGastosPorc}% del ingreso`
+      `${totalGastosPorc}% of income`
     );
 
     let balCard = document.getElementById('res-balance');
@@ -166,7 +166,7 @@
       document.getElementById('res-balance-text').innerText = i18nT(
         'summary.balanceDeficitPeriod',
         {},
-        'Déficit en este periodo'
+        'Deficit in this period'
       );
       document.getElementById('alerta-deficit').style.display = 'flex';
       document.getElementById('alerta-b-text').innerText = i18nT(
@@ -175,14 +175,14 @@
           expenses: formatCOP(totalGastos),
           income: formatCOP(totalIngresos)
         },
-        `Gastos: ${formatCOP(totalGastos)} vs Ingresos: ${formatCOP(totalIngresos)}.`
+        `Expenses: ${formatCOP(totalGastos)} vs Income: ${formatCOP(totalIngresos)}.`
       );
     } else {
       balCard.style.color = '#1D9E75';
       document.getElementById('res-balance-text').innerText = i18nT(
         'summary.balanceSurplusPeriod',
         {},
-        'Superávit en este periodo'
+        'Surplus in this period'
       );
       document.getElementById('alerta-deficit').style.display = 'none';
     }

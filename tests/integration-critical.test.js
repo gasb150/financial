@@ -98,12 +98,12 @@ test('initApp integrates summary refresh and key render calls without crashing',
   ctx.initApp();
 
   assert.equal(ctx.appData.schemaVersion, 2);
-  assert.equal(nodes['tit-cal-dinamico'].innerText, 'Calendario de Flujo - Junio 2026');
-  assert.equal(nodes['tit-semanas-dinamico'].innerText, 'Línea de Semanas - Junio 2026');
+  assert.equal(nodes['tit-cal-dinamico'].innerText, 'Cash Flow Calendar - Junio 2026');
+  assert.equal(nodes['tit-semanas-dinamico'].innerText, 'Weekly Timeline - Junio 2026');
   assert.equal(nodes['res-ingresos'].innerText, '$500');
-  assert.equal(nodes['res-ingresos-detalle'].innerText, 'Normal: $400 · Arrastre: $100');
+  assert.equal(nodes['res-ingresos-detalle'].innerText, 'Regular: $400 · Carryover: $100');
   assert.equal(nodes['res-gastos'].innerText, '$150');
-  assert.equal(nodes['res-gastos-porc'].innerText, '30% del ingreso');
+  assert.equal(nodes['res-gastos-porc'].innerText, '30% of income');
   assert.equal(nodes['res-pendiente'].innerText, '$120');
   assert.ok(calls.includes('render.calendario'));
   assert.ok(calls.includes('render.weekly-menu'));
