@@ -166,12 +166,12 @@ async function consultarIAApiGateway(prompt) {
             detalleHttp = (await resp.text() || '').trim();
           } catch(_e2) {}
         }
-        throw new Error(detalleHttp ? `HTTP ${resp.status} en gateway IA: ${detalleHttp}` : `HTTP ${resp.status} en gateway IA`);
+        throw new Error(detalleHttp ? `HTTP ${resp.status} in AI gateway: ${detalleHttp}` : `HTTP ${resp.status} in AI gateway`);
       }
 
       let data = await resp.json();
       let parsed = parsearRespuestaGatewayIA(data);
-      if(!parsed.message) throw new Error('Gateway IA no devolvió texto util.');
+      if(!parsed.message) throw new Error('AI gateway did not return usable text.');
 
       let usage = parsed.usage || {};
       let totalTokens = Math.max(
@@ -561,7 +561,7 @@ function construirPreviewAccionIA(accion, compromisosMes) {
 }
 
 function construirTextoPreviewAccionIA(preview) {
-  if(!preview) return 'Preview no disponible.';
+  if(!preview) return 'Preview unavailable.';
   let tramoTxt = '';
   if(preview.tramoAntes && preview.tramoDespues) {
     if(preview.tramoAntes.id === preview.tramoDespues.id) {
@@ -570,14 +570,14 @@ function construirTextoPreviewAccionIA(preview) {
       tramoTxt = ` · ${preview.tramoAntes.codigo}/${preview.tramoDespues.codigo}: ${formatCOP(preview.tramoAntes.saldo)} -> ${formatCOP(preview.tramoDespues.saldo)}`;
     }
   }
-  return `Mes pendiente: ${formatCOP(preview.pendienteMesAntes)} -> ${formatCOP(preview.pendienteMesDespues)}${tramoTxt}`;
+  return `Pending month: ${formatCOP(preview.pendienteMesAntes)} -> ${formatCOP(preview.pendienteMesDespues)}${tramoTxt}`;
 }
 
 function construirTextoConfirmacionAccionIA(accion, nombre, preview) {
   let cab = `${etiquetaAccionRecorte(accion.accion)}: ${nombre}`;
   let detalle = construirTextoPreviewAccionIA(preview);
-  let motivo = accion.motivo ? `\nMotivo: ${accion.motivo}` : '';
-  return `${cab}\n${detalle}${motivo}\n\n¿Aplicar cambio?`;
+  let motivo = accion.motivo ? `\nReason: ${accion.motivo}` : '';
+  return `${cab}\n${detalle}${motivo}\n\nApply change?`;
 }
 
 function asegurarHistorialIA() {
@@ -769,9 +769,9 @@ function deshacerCambioSugerenciaRecorteMesIA(index) {
 }
 
 function etiquetaAccionRecorte(accion) {
-  if(accion === 'mover_tramo') return 'Mover tramo';
-  if(accion === 'posponer') return 'Posponer';
-  return 'Reducir monto';
+  if(accion === 'mover_tramo') return 'Move segment';
+  if(accion === 'posponer') return 'Postpone';
+  return 'Reduce amount';
 }
 
 function renderSugerenciasRecorteAccionables(stateKey) {
@@ -783,17 +783,17 @@ function renderSugerenciasRecorteAccionables(stateKey) {
 
   let estado = iaPanelState[stateKey];
   let items = Array.isArray(estado.items) ? estado.items : [];
-  if(!items.length) return '<div class="ia-row"><div class="meta">Sin sugerencias item a item todavía.</div></div>';
+  if(!items.length) return '<div class="ia-row"><div class="meta">No item-by-item suggestions yet.</div></div>';
 
   return items.map((s, idx) => {
     let rowKey = `recorte-${stateKey}-${idx}`;
     let expanded = expandState.has(rowKey);
     let preview = construirPreviewAccionIA(s, getCompromisosMesActual());
-    let ahorroTxt = s.ahorroEstimado > 0 ? `Ahorro est.: ${formatCOP(s.ahorroEstimado)}` : 'Ahorro est.: impacto en flujo';
+    let ahorroTxt = s.ahorroEstimado > 0 ? `Estimated savings: ${formatCOP(s.ahorroEstimado)}` : 'Estimated savings: cash-flow impact';
     let metaAccion = '';
-    if(s.accion === 'reducir' && s.nuevoValor) metaAccion = `Nuevo valor: ${formatCOP(s.nuevoValor)}`;
-    if(s.accion === 'posponer' && s.diaSugerido !== null) metaAccion = `Mover al día ${s.diaSugerido === -1 ? 'pre-mes' : s.diaSugerido}`;
-    if(s.accion === 'mover_tramo' && s.tramoDestino) metaAccion = `Mover a ${String(s.tramoDestino).toUpperCase()}`;
+    if(s.accion === 'reducir' && s.nuevoValor) metaAccion = `New amount: ${formatCOP(s.nuevoValor)}`;
+    if(s.accion === 'posponer' && s.diaSugerido !== null) metaAccion = `Move to day ${s.diaSugerido === -1 ? 'pre-month' : s.diaSugerido}`;
+    if(s.accion === 'mover_tramo' && s.tramoDestino) metaAccion = `Move to ${String(s.tramoDestino).toUpperCase()}`;
     return `
       <div class="ia-row" style="display:block;">
         <button class="ia-action-toggle" onclick="toggleExpandIAActionable('${rowKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
@@ -802,14 +802,14 @@ function renderSugerenciasRecorteAccionables(stateKey) {
         </button>
         ${expanded ? `
         <div class="ia-action-body">
-          <div class="meta">${etiquetaAccionRecorte(s.accion)} · Riesgo ${escapeHTML(s.riesgo)} · Prioridad ${escapeHTML(s.prioridad)}</div>
+          <div class="meta">${etiquetaAccionRecorte(s.accion)} · Risk ${escapeHTML(s.riesgo)} · Priority ${escapeHTML(s.prioridad)}</div>
           <div class="meta">${escapeHTML(metaAccion)} · ${ahorroTxt}</div>
           <div class="meta">${escapeHTML(construirTextoPreviewAccionIA(preview))}</div>
           <div class="meta" style="margin-top:2px;">${escapeHTML(s.motivo || '')}</div>
           <div style="display:flex;justify-content:flex-end;margin-top:6px;">
             ${s.applied
-              ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerCambioSugerenciaRecorteMesIA(${idx})">Deshacer cambio</button>`
-              : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarSugerenciaRecorteMesIA(${idx})">Aplicar</button>`
+              ? `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="deshacerCambioSugerenciaRecorteMesIA(${idx})">Undo change</button>`
+              : `<button class="ia-cta" style="width:auto;min-width:120px;padding:7px 10px;margin-top:0;" onclick="aplicarSugerenciaRecorteMesIA(${idx})">Apply</button>`
             }
           </div>
         </div>
@@ -840,21 +840,21 @@ function buildIACardRecortesItemsMes(items, stateKey, actionFnName) {
   return `
     <div class="ia-card">
       <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
-        <span class="ttl">Recortes item a item</span>
+        <span class="ttl">Item-by-item cuts</span>
         <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
       </button>
       ${expanded ? `
       <div class="ia-card-body">
       <div class="ia-row">
         <div>
-          <div class="nm">Pendiente variables del mes</div>
-          <div class="meta">${items.length} items · ahorro proyectado ${formatCOP(ahorroTotal)}</div>
+          <div class="nm">Monthly pending variable items</div>
+          <div class="meta">${items.length} items · projected savings ${formatCOP(ahorroTotal)}</div>
         </div>
         <div class="vl">${formatCOP(totalPendientes)}</div>
       </div>
       ${renderSugerenciasRecorteAccionables(stateKey)}
-      <div class="meta" style="margin-top:8px;">Aplicadas: ${aplicadas}/${sugerencias.length}</div>
-      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Generar recortes accionables ↗'}</button>
+      <div class="meta" style="margin-top:8px;">Applied: ${aplicadas}/${sugerencias.length}</div>
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analyzing...' : 'Generate actionable cuts ↗'}</button>
       ${resultado}
       </div>
       ` : ''}
@@ -870,14 +870,14 @@ function renderFilasHistorialIA() {
     .slice(0, 8);
 
   if(!items.length) {
-    return '<div class="ia-row"><div class="meta">Sin eventos IA aplicados todavía.</div></div>';
+    return '<div class="ia-row"><div class="meta">No applied AI events yet.</div></div>';
   }
 
   return items.map((evt) => {
     let fecha = evt.appliedAt ? new Date(evt.appliedAt).toLocaleString('es-CO') : 'N/D';
-    let estado = evt.revertedAt ? 'Revertido' : 'Activo';
-    let beforeTxt = evt.before ? `${formatCOP(evt.before.valor)} · día ${evt.before.dia === -1 ? 'pre-mes' : evt.before.dia}` : 'N/D';
-    let afterTxt = evt.after ? `${formatCOP(evt.after.valor)} · día ${evt.after.dia === -1 ? 'pre-mes' : evt.after.dia}` : 'N/D';
+    let estado = evt.revertedAt ? 'Reverted' : 'Active';
+    let beforeTxt = evt.before ? `${formatCOP(evt.before.valor)} · day ${evt.before.dia === -1 ? 'pre-month' : evt.before.dia}` : 'N/D';
+    let afterTxt = evt.after ? `${formatCOP(evt.after.valor)} · day ${evt.after.dia === -1 ? 'pre-month' : evt.after.dia}` : 'N/D';
     return `
       <div class="ia-row" style="display:block;">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
@@ -888,7 +888,7 @@ function renderFilasHistorialIA() {
           </div>
           ${evt.revertedAt
             ? '<span class="meta">OK</span>'
-            : `<button class="ia-cta" style="width:auto;min-width:110px;padding:7px 10px;margin-top:0;" onclick="revertirEventoHistorialIA('${evt.id}')">Revertir</button>`
+            : `<button class="ia-cta" style="width:auto;min-width:110px;padding:7px 10px;margin-top:0;" onclick="revertirEventoHistorialIA('${evt.id}')">Revert</button>`
           }
         </div>
       </div>
@@ -912,19 +912,19 @@ function buildIACardHistorialIA() {
   return `
     <div class="ia-card">
       <button class="ia-card-toggle" onclick="toggleExpandIACard('${cardKey}')" aria-expanded="${expanded ? 'true' : 'false'}">
-        <span class="ttl">Historial IA aplicado</span>
+        <span class="ttl">Applied AI history</span>
         <span class="ia-card-chevron" aria-hidden="true">${expanded ? '▾' : '▸'}</span>
       </button>
       ${expanded ? `
       <div class="ia-card-body">
       <div class="ia-row">
         <div>
-          <div class="nm">Eventos registrados</div>
-          <div class="meta">Activos ${activos} · Total ${total}</div>
+          <div class="nm">Recorded events</div>
+          <div class="meta">Active ${activos} · Total ${total}</div>
         </div>
       </div>
       ${renderFilasHistorialIA()}
-      <button class="ia-cta" onclick="revertirUltimosEventosIA(3)" ${activos === 0 ? 'disabled' : ''}>Revertir últimos 3 ↩</button>
+      <button class="ia-cta" onclick="revertirUltimosEventosIA(3)" ${activos === 0 ? 'disabled' : ''}>Revert last 3 ↩</button>
       </div>
       ` : ''}
     </div>
@@ -1276,8 +1276,8 @@ function buildIACardGastos(titulo, items, stateKey, actionFnName) {
       </button>
       ${expanded ? `
       <div class="ia-card-body">
-      ${renderItemsIACard(items, `No hay gastos pendientes para ${titulo.toLowerCase()}.`)}
-      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analizando...' : 'Analizar qué puedo reducir ↗'}</button>
+      ${renderItemsIACard(items, `No pending expenses for ${titulo.toLowerCase()}.`)}
+      <button class="ia-cta" onclick="${actionFnName}()" ${estado.loading ? 'disabled' : ''}>${estado.loading ? 'Analyzing...' : 'Analyze what I can reduce ↗'}</button>
       ${resultado}
       </div>
       ` : ''}
@@ -1681,7 +1681,7 @@ function renderIAPanelDeudas() {
   let expanded = cardExpandState.has(cardKey);
 
   let deudasPendientes = getCompromisosMesActual()
-    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
+    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[e\u00e9]stamo|vank|vecin/i.test(String(c.nombre || '')))
     .sort((a, b) => b.valor - a.valor);
 
   let lista = renderItemsIACard(deudasPendientes, 'No hay deudas pendientes detectadas para este mes.');
@@ -1734,7 +1734,7 @@ function refreshTramosAndWeekView() {
 
 async function pedirEstrategiaDeudasIA() {
   let items = getCompromisosMesActual()
-    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[eé]stamo|vank|vecin/i.test(String(c.nombre || '')))
+    .filter(c => !c.pagado && c.tipo !== 'credito' && /deuda|prestamo|pr[e\u00e9]stamo|vank|vecin/i.test(String(c.nombre || '')))
     .sort((a, b) => b.valor - a.valor)
     .slice(0, 8);
 
