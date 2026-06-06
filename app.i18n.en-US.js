@@ -109,6 +109,7 @@
       'config.googleDriveAuthTitle': 'Google Drive Auth (GIS Token)',
       'config.googleOAuthClientId': 'Google OAuth Client ID',
       'config.googleOAuthClientIdPlaceholder': 'xxxx.apps.googleusercontent.com',
+      'config.googleOAuthClientIdRequired': 'Configure the Google Client ID before signing in.',
       'config.googleRedirectUri': 'Redirect URI',
       'config.syncDriveNow': 'Synchronize with Drive',
       'config.restoreDriveNow': 'Recover from Drive',

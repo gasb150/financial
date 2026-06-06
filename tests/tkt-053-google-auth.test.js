@@ -5,11 +5,11 @@ const path = require('node:path');
 const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP_JS = path.join(ROOT, 'app.js');
+const APP_DRIVE_JS = path.join(ROOT, 'app.drive.js');
 
 test('isGoogleOAuthSessionActive validates token expiry window', () => {
   const now = Date.now();
-  const ctx = loadFunctionsFromFile(APP_JS, ['getGoogleOAuthSession', 'isGoogleOAuthSessionActive'], {
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, ['getGoogleOAuthSession', 'isGoogleOAuthSessionActive'], {
     googleOAuthAccessTokenRuntime: '',
     appData: {
       googleAuth: {
@@ -40,7 +40,7 @@ test('renderGoogleAuthConfig shows active session and clears error when empty', 
   };
 
   const now = Date.now();
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'getGoogleOAuthConfig',
     'getGoogleOAuthRedirectUri',
     'getGoogleOAuthSession',
@@ -91,7 +91,7 @@ test('renderDriveSyncStatus includes the last Drive account email when available
     'drive-sync-error': { innerText: '' }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, ['renderDriveSyncStatus'], {
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, ['renderDriveSyncStatus'], {
     getDriveSyncState: () => ({
       syncInProgress: false,
       lastSyncAt: '2026-06-06T12:00:00.000Z',
@@ -137,7 +137,7 @@ test('force pull stores the Google account email used for Drive recovery', async
     }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'getGoogleOAuthSession',
     'getGoogleOAuthSessionEmail',
     'sincronizarDriveConGoogle'
@@ -208,7 +208,7 @@ test('sincronizarDriveConGoogle ignores stale persisted syncInProgress when no r
     }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'getGoogleOAuthSession',
     'getGoogleOAuthSessionEmail',
     'sincronizarDriveConGoogle'
@@ -256,7 +256,7 @@ test('sincronizarDriveConGoogle still blocks when a runtime sync is active', asy
     }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, ['sincronizarDriveConGoogle'], {
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, ['sincronizarDriveConGoogle'], {
     appData,
     driveSyncRuntimeInProgress: true,
     getDriveSyncState: () => appData.driveSync
@@ -293,7 +293,7 @@ test('scope upgrade retry keeps sync state active until recursive retry finishes
     }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'getGoogleOAuthSession',
     'getGoogleOAuthSessionEmail',
     'sincronizarDriveConGoogle'
@@ -375,7 +375,7 @@ test('sincronizarDriveConGoogle allows local changes when remote is unchanged du
     }
   };
 
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'getGoogleOAuthSession',
     'getGoogleOAuthSessionEmail',
     'sincronizarDriveConGoogle'
@@ -434,7 +434,7 @@ test('sincronizarDriveConGoogle allows local changes when remote is unchanged du
 
 test('confirmarSubidaCambiosLocalesDriveSync summarizes changed values before upload', async () => {
   let confirmMessage = '';
-  const ctx = loadFunctionsFromFile(APP_JS, [
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, [
     'resolveDriveEnvelopeData',
     'sanitizarSnapshotReplicadoDriveSync',
     'formatearValorCambioDriveSync',

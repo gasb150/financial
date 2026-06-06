@@ -8,6 +8,7 @@ const { loadFunctionsFromFile } = require('./helpers/sourceFnLoader');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP_JS = path.join(ROOT, 'app.js');
+const APP_DRIVE_JS = path.join(ROOT, 'app.drive.js');
 const APP_RULES_JS = path.join(ROOT, 'app.rules.js');
 const APP_IA_JS = path.join(ROOT, 'app.ia.js');
 
@@ -210,7 +211,7 @@ test('renderConfigIA no rehidrata la API key en el input', () => {
 });
 
 test('evaluarPlanSyncDrive bloquea push cuando remoto va adelante y checksum difiere', () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['evaluarPlanSyncDrive']);
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, ['evaluarPlanSyncDrive']);
 
   const ahead = ctx.evaluarPlanSyncDrive({
     remoteVersion: 5,
@@ -241,7 +242,7 @@ test('restauracion cifrada de Drive recupera payload original con passphrase', a
   };
 
   const ctx = loadFunctionsFromFile(
-    APP_JS,
+    APP_DRIVE_JS,
     [
       'bytesToBase64',
       'base64ToBytes',
@@ -276,7 +277,7 @@ test('restauracion cifrada de Drive recupera payload original con passphrase', a
 
 test('snapshot replicado de Drive excluye metadata volatile de driveSync', async () => {
   const ctx = loadFunctionsFromFile(
-    APP_JS,
+    APP_DRIVE_JS,
     [
       'sanitizarSnapshotReplicadoDriveSync',
       'generarChecksumSnapshotDriveSync'
@@ -342,7 +343,7 @@ test('snapshot replicado de Drive excluye metadata volatile de driveSync', async
 });
 
 test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async () => {
-  const ctx = loadFunctionsFromFile(APP_JS, ['validarChecksumEnvelopeDriveSync'], {
+  const ctx = loadFunctionsFromFile(APP_DRIVE_JS, ['validarChecksumEnvelopeDriveSync'], {
     generarChecksumPayload: async (data) => JSON.stringify(data)
   });
 
