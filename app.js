@@ -21,7 +21,7 @@ function obtenerMesKeyActualInicial() {
 let mesActivoGlobal = obtenerMesKeyActualInicial();
 let filtroDeudaActivo = "todas";
 let semanaSeleccionadaIndex = 0;
-let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista diaria
+let diaSeleccionadoActivo = null; // Stores the active day selected for the daily view.
 let filtroDiaDesde = null;
 let filtroDiaHasta = null;
 let deudasExpandState = new Set();
@@ -2327,7 +2327,7 @@ function initApp(options = {}) {
     window.FinancialI18n.setupLanguageSwitcher();
   }
   
-  // Mantener la vista diaria actualizada si hay un día seleccionado
+  // Keep the daily view updated when a day is selected.
   if(diaSeleccionadoActivo !== null) {
     renderVistaDiaria(compromisosMesActual);
   } else {
@@ -3220,7 +3220,7 @@ function ejecutarRebalanceoQuincenaDesdeBalance() {
   renderBalanceQuincena(getCompromisosMesActual());
 }
 
-// CORRECCIÓN Y ACTUALIZACIÓN: LÓGICA DEL CALENDARIO E INTERACCIÓN DE CLICK
+// CALENDAR LOGIC AND CLICK INTERACTION
 function renderCalendario(compromisosMes) {
   let grid = document.getElementById('grid-calendario');
   grid.innerHTML = '';
@@ -3240,7 +3240,7 @@ function renderCalendario(compromisosMes) {
   let mapaPagosRealesCompromisos = {};
   compromisosMes.forEach(c => {
     let d = parseInt(c.dia); 
-    if (d === -1) d = 1; // Muestra los cargos fijos "pre-mes" en el día 1 para visualización
+    if (d === -1) d = 1; // Displays fixed pre-month charges on day 1.
     if (!mapaDias[d]) mapaDias[d] = [];
     mapaDias[d].push(c);
 
@@ -3288,11 +3288,11 @@ function renderCalendario(compromisosMes) {
         item.appendChild(realMark);
       }
 
-    // Si el día tiene compromisos financieros asignados
+    // If the day has assigned financial commitments.
     if(mapaDias[dia] && mapaDias[dia].length > 0) {
       let todosPagados = mapaDias[dia].every(c => c.pagado);
       let dot = document.createElement('div'); 
-      // Lógica solicitada: Rojo si hay deuda, verde si todo el día pasó a pagado
+      // Requested behavior: red when debt exists, green when the whole day is paid.
       dot.className = `cal-dot ${todosPagados ? 'all-paid' : 'pending'}`;
       item.appendChild(dot);
     }
@@ -3300,7 +3300,7 @@ function renderCalendario(compromisosMes) {
     // Evento Click para desplegar o cerrar la vista diaria
     item.onclick = function() {
       if(diaSeleccionadoActivo === dia) {
-        diaSeleccionadoActivo = null; // Si hace click en el mismo día activo, se cierra
+        diaSeleccionadoActivo = null; // Close when clicking the active day again.
       } else {
         diaSeleccionadoActivo = dia;
       }
@@ -3363,14 +3363,14 @@ function renderVistaDiaria(compromisosMes) {
   let secTitulo = document.getElementById('sec-vista-diaria');
   let cardContenedor = document.getElementById('card-vista-diaria');
 
-  // Filtrar compromisos correspondientes al día seleccionado
+  // Filter commitments for the selected day.
   let deEsteDia = compromisosMes.filter(c => {
     let d = parseInt(c.dia);
-    if(d === -1 && diaSeleccionadoActivo === 1) return true; // Incluye fijos pre-mes en el día 1
+    if(d === -1 && diaSeleccionadoActivo === 1) return true; // Include fixed pre-month commitments on day 1.
     return d === diaSeleccionadoActivo;
   });
 
-  // Filtrar ingresos que entran este día (incluye primas y arrastres)
+  // Filter income entering on this day, including bonuses and carryovers.
   let ingresosDia = obtenerEventosIngresoDelMes(mesActivoGlobal)
     .filter(e => e.dia === diaSeleccionadoActivo);
   let pagosRealesDiferidosDia = obtenerPagosRealesDiferidosDelDia(mesActivoGlobal, diaSeleccionadoActivo);
