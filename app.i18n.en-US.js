@@ -112,7 +112,7 @@
       'config.googleRedirectUri': 'Redirect URI',
       'config.syncDriveNow': 'Synchronize with Drive',
       'config.restoreDriveNow': 'Recover from Drive',
-      'config.logoutGoogleDrive': 'Sign out from Drive',
+      'config.logoutGoogleDrive': 'Sign out of Drive',
       'config.driveSyncPassphrase': 'Remote encryption passphrase (optional)',
       'config.driveSyncPassphrase.placeholder': 'Used only on this device for encrypt/decrypt',
       'config.driveSyncIdle': 'No Drive sync has been run yet.',

@@ -1015,7 +1015,7 @@ function etiquetaCambioDriveSync(pathParts, campo, remoto, local) {
 
 function acumularCambiosDriveSync(remoto, local, pathParts = [], cambios = [], limite = 8) {
   if(cambios.length >= limite) return cambios;
-  if(JSON.stringify(remoto) === JSON.stringify(local)) return cambios;
+  if(Object.is(remoto, local)) return cambios;
 
   if(!remoto || !local || typeof remoto !== 'object' || typeof local !== 'object') {
     cambios.push(`${pathParts.map(nombreCampoCambioDriveSync).join(' > ') || 'dato'}: ${formatearValorCambioDriveSync(remoto)} → ${formatearValorCambioDriveSync(local)}`);
@@ -1031,7 +1031,7 @@ function acumularCambiosDriveSync(remoto, local, pathParts = [], cambios = [], l
       let l = locArr[i];
       if(r && l && typeof r === 'object' && typeof l === 'object') {
         acumularCambiosDriveSync(r, l, [...pathParts, `${nombreCampoCambioDriveSync(pathParts[pathParts.length - 1] || 'item')} ${i + 1}`], cambios, limite);
-      } else if(JSON.stringify(r) !== JSON.stringify(l)) {
+      } else if(!Object.is(r, l)) {
         let nombre = (l && l.nombre) || (r && r.nombre) || `${nombreCampoCambioDriveSync(pathParts[pathParts.length - 1] || 'item')} ${i + 1}`;
         cambios.push(`${nombre}: ${formatearValorCambioDriveSync(r)} → ${formatearValorCambioDriveSync(l)}`);
       }
@@ -1044,7 +1044,7 @@ function acumularCambiosDriveSync(remoto, local, pathParts = [], cambios = [], l
     if(cambios.length >= limite) break;
     let r = remoto[key];
     let l = local[key];
-    if(JSON.stringify(r) === JSON.stringify(l)) continue;
+    if(Object.is(r, l)) continue;
     if(r && l && typeof r === 'object' && typeof l === 'object') {
       acumularCambiosDriveSync(r, l, [...pathParts, nombreCampoCambioDriveSync(key)], cambios, limite);
     } else {
