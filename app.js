@@ -65,7 +65,13 @@ let mesesLineaTiempo = [
   "Mayo 2026", "Junio 2026", "Julio 2026", "Agosto 2026", "Septiembre 2026", "Octubre 2026", "Noviembre 2026", "Diciembre 2026"
 ];
 
-let mesActivoGlobal = "Mayo 2026";
+function obtenerMesKeyActualInicial() {
+  let meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  let now = new Date();
+  return `${meses[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+let mesActivoGlobal = obtenerMesKeyActualInicial();
 let filtroDeudaActivo = "todas";
 let semanaSeleccionadaIndex = 0;
 let diaSeleccionadoActivo = null; // Guarda el día activo elegido para la vista diaria
@@ -305,6 +311,34 @@ function aplicarMigracionesSchema(dataIn) {
   }
 
   return data;
+}
+
+function marcarCorreccionMesBaseComoAplicada(dataObj = appData) {
+  if(!dataObj || typeof dataObj !== 'object') return;
+  if(!dataObj.migraciones || typeof dataObj.migraciones !== 'object') dataObj.migraciones = {};
+  dataObj.migraciones.correccionMesBaseJunio2026 = true;
+}
+
+function asegurarMesesAnioActualEnLineaTiempo() {
+  let anioActual = new Date().getFullYear();
+  let mesesAnioActual = ORDEN_MESES.map((mes) => `${mes} ${anioActual}`);
+  let existentes = Array.isArray(mesesLineaTiempo) ? mesesLineaTiempo : [];
+  let union = Array.from(new Set([...mesesAnioActual, ...existentes].filter(Boolean)));
+
+  union.sort((a, b) => {
+    let pa = String(a || '').trim().split(/\s+/);
+    let pb = String(b || '').trim().split(/\s+/);
+    let ia = ORDEN_MESES.indexOf(pa[0]);
+    let ib = ORDEN_MESES.indexOf(pb[0]);
+    let aa = parseInt(pa[1], 10);
+    let ab = parseInt(pb[1], 10);
+    if(isNaN(aa) || ia < 0) return 1;
+    if(isNaN(ab) || ib < 0) return -1;
+    return (aa - ab) || (ia - ib);
+  });
+
+  mesesLineaTiempo = union;
+  if(appData && typeof appData === 'object') appData.lineaTiempoGuardada = mesesLineaTiempo;
 }
 
 function normalizarEstadoCargado() {
@@ -1168,6 +1202,8 @@ async function sincronizarDriveConGoogle(options = {}) {
 
       appData = aplicarMigracionesSchema(remoteData);
       normalizarEstadoCargado();
+      marcarCorreccionMesBaseComoAplicada(appData);
+      asegurarMesesAnioActualEnLineaTiempo();
       persistirDataPrincipalConFallback();
       persistirAuxiliaresConFallback(new Date().toISOString());
       initApp({ skipDataNormalization: false });
@@ -1213,6 +1249,8 @@ async function sincronizarDriveConGoogle(options = {}) {
       } else {
         appData = aplicarMigracionesSchema(remoteData);
         normalizarEstadoCargado();
+        marcarCorreccionMesBaseComoAplicada(appData);
+        asegurarMesesAnioActualEnLineaTiempo();
         persistirDataPrincipalConFallback();
         persistirAuxiliaresConFallback(new Date().toISOString());
         initApp({ skipDataNormalization: false });
@@ -1459,6 +1497,13 @@ function buildBackupPayload() {
   return window.FinancialData.buildBackupPayload();
 }
 
+function resolverPayloadImportadoRespaldo(raw) {
+  if(raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'data')) {
+    return raw.data;
+  }
+  return raw;
+}
+
 function renderUltimoGuardado() {
   return window.FinancialRender.renderLastSavedIndicator();
 }
@@ -1503,7 +1548,7 @@ function importarRespaldoArchivo(event) {
         }
       }
 
-      let candidato = validarPayloadRespaldo(raw) ? raw : raw.data;
+      let candidato = resolverPayloadImportadoRespaldo(raw);
       if(!validarPayloadRespaldo(candidato)) {
         let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
           ? window.FinancialData.sanitizePrimaryData(candidato || raw, { strict: false })
@@ -1523,7 +1568,9 @@ function importarRespaldoArchivo(event) {
       mesesLineaTiempo = appData.lineaTiempoGuardada;
       diaSeleccionadoActivo = null;
       semanaSeleccionadaIndex = 0;
-      mesActivoGlobal = mesesLineaTiempo.includes('Junio 2026') ? 'Junio 2026' : (mesesLineaTiempo[0] || mesActivoGlobal);
+      marcarCorreccionMesBaseComoAplicada(appData);
+      asegurarMesesAnioActualEnLineaTiempo();
+      mesActivoGlobal = mesesLineaTiempo.includes(mesActivoGlobal) ? mesActivoGlobal : (mesesLineaTiempo[0] || mesActivoGlobal);
       initApp();
       alert('Respaldo importado correctamente.');
     } catch(_e) {
@@ -1556,7 +1603,7 @@ async function restaurarUltimoRespaldoLocal() {
       }
     }
 
-    let candidato = payload && payload.data ? payload.data : payload;
+    let candidato = resolverPayloadImportadoRespaldo(payload);
     if(!validarPayloadRespaldo(candidato)) {
       let parcial = window.FinancialData && typeof window.FinancialData.sanitizePrimaryData === 'function'
         ? window.FinancialData.sanitizePrimaryData(candidato || payload, { strict: false })
@@ -1576,7 +1623,9 @@ async function restaurarUltimoRespaldoLocal() {
     mesesLineaTiempo = appData.lineaTiempoGuardada;
     diaSeleccionadoActivo = null;
     semanaSeleccionadaIndex = 0;
-    mesActivoGlobal = mesesLineaTiempo.includes('Junio 2026') ? 'Junio 2026' : (mesesLineaTiempo[0] || mesActivoGlobal);
+    marcarCorreccionMesBaseComoAplicada(appData);
+    asegurarMesesAnioActualEnLineaTiempo();
+    mesActivoGlobal = mesesLineaTiempo.includes(mesActivoGlobal) ? mesActivoGlobal : (mesesLineaTiempo[0] || mesActivoGlobal);
     initApp();
     alert('Se restauró el último auto-respaldo local.');
   } catch(_e) {
@@ -2266,6 +2315,7 @@ function initApp(options = {}) {
 
   if(!opts.skipDataNormalization) {
     aplicarCorreccionMesBaseSiAplica();
+    asegurarMesesAnioActualEnLineaTiempo();
     normalizarRecurrenciasCompromisos();
     normalizarIngresosConDia();
     appData.schemaVersion = APP_SCHEMA_VERSION;

@@ -355,6 +355,70 @@ test('validarChecksumEnvelopeDriveSync rechaza checksum remoto alterado', async 
   );
 });
 
+test('asegurarMesesAnioActualEnLineaTiempo incluye todos los meses del año actual sin perder futuros', () => {
+  const currentYear = new Date().getFullYear();
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const ctx = loadFunctionsFromFile(APP_JS, ['asegurarMesesAnioActualEnLineaTiempo'], {
+    ORDEN_MESES: monthNames,
+    mesesLineaTiempo: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`],
+    appData: { lineaTiempoGuardada: [`Julio ${currentYear}`, `Enero ${currentYear + 1}`] },
+    Date
+  });
+
+  ctx.asegurarMesesAnioActualEnLineaTiempo();
+
+  assert.equal(ctx.mesesLineaTiempo.length, 13);
+  assert.equal(ctx.mesesLineaTiempo[0], `Enero ${currentYear}`);
+  assert.equal(ctx.mesesLineaTiempo[11], `Diciembre ${currentYear}`);
+  assert.equal(ctx.mesesLineaTiempo[12], `Enero ${currentYear + 1}`);
+  assert.deepEqual(ctx.appData.lineaTiempoGuardada, ctx.mesesLineaTiempo);
+});
+
+test('marcarCorreccionMesBaseComoAplicada evita que backups restaurados se desplacen luego', () => {
+  const appData = { migraciones: {} };
+  const ctx = loadFunctionsFromFile(APP_JS, ['marcarCorreccionMesBaseComoAplicada'], { appData });
+
+  ctx.marcarCorreccionMesBaseComoAplicada(appData);
+
+  assert.equal(appData.migraciones.correccionMesBaseJunio2026, true);
+});
+
+test('obtenerMesKeyActualInicial usa el mes del sistema como mes activo inicial', () => {
+  const ctx = loadFunctionsFromFile(APP_JS, ['obtenerMesKeyActualInicial'], {
+    Date: class extends Date {
+      constructor(...args) {
+        return args.length ? super(...args) : new global.Date('2026-06-06T12:00:00.000Z');
+      }
+    }
+  });
+
+  assert.equal(ctx.obtenerMesKeyActualInicial(), 'Junio 2026');
+});
+
+test('resolverPayloadImportadoRespaldo extrae data de respaldos exportados', () => {
+  const exportedData = {
+    schemaVersion: 5,
+    ingresosList: [{ id: 1, nombre: 'Salario', valor: 1000 }],
+    primasList: [],
+    compromisos: [],
+    lineaTiempoGuardada: ['Junio 2026']
+  };
+  const exportedBackup = {
+    version: 1,
+    dataSchemaVersion: 5,
+    savedAt: '2026-06-06T12:00:00.000Z',
+    data: exportedData,
+    checksum: 'sha256:test'
+  };
+  const ctx = loadFunctionsFromFile(APP_JS, ['resolverPayloadImportadoRespaldo']);
+
+  assert.equal(ctx.resolverPayloadImportadoRespaldo(exportedBackup), exportedData);
+  assert.equal(ctx.resolverPayloadImportadoRespaldo(exportedData), exportedData);
+});
+
 test('construirAlertasVencimientoDeudas clasifica vencidos y proximos del mes activo', () => {
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
